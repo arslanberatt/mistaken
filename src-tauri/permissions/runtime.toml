@@ -1,0 +1,17 @@
+# Least-privilege application permission for the typed runtime spine.
+#
+# Grants exactly the four commands frozen by Spec 03. No wildcard, no
+# per-command split beyond what is needed, and no other application command
+# exists yet to accidentally include.
+[[permission]]
+identifier = "runtime"
+description = """
+Allows invoking the four typed native runtime commands: `get_runtime_snapshot`,
+`list_microphones`, `start_capture`, and `stop_capture`.
+"""
+commands.allow = [
+  "get_runtime_snapshot",
+  "list_microphones",
+  "start_capture",
+  "stop_capture",
+]

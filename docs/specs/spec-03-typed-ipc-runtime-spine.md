@@ -627,30 +627,38 @@ Spec 03 is done only when the real native Tauri application can return the truth
 
 ### Required implementation evidence
 
-Fill during implementation; do not predeclare success:
-
-- **Implementation status:** Not implemented
-- **Canonical repository root:** Pending Spec 01
-- **Worktree root:** Pending
-- **Branch:** Pending
-- **Base SHA:** Pending
-- **Implementation commit SHA:** Pending
-- **Installed Node/npm/Rust/Tauri versions:** Pending
-- **Changed paths:** Pending
-- **Command registry and effective permission set:** Pending
-- **Frontend targeted test command/result:** Pending
-- **Rust targeted test command/result:** Pending
-- **Typecheck/lint command/results:** Pending
-- **Cargo format/check/clippy/test results:** Pending
-- **Frontend and Tauri production build results:** Pending
-- **Real native command snapshot observation:** Pending
-- **Real native error-event and unlisten observation:** Pending
-- **Start → Stop → Start resource/state observation:** Pending
-- **Offline/privacy/capability inspection:** Pending
-- **Close/relaunch observation:** Pending
-- **Temporary probe removal proof:** Pending
-- **High-capability review findings and dispositions:** Pending
-- **Final Git status:** Pending
+- **Implementation status:** Implemented and committed.
+- **Canonical repository root:** `/Users/berat/mistaken`
+- **Worktree root:** `/Users/berat/mistaken-spec-03`
+- **Branch:** `spec/03-typed-ipc`
+- **Base SHA:** `a7fe826078bae76c8de3c442fae741f937b271e0` (Spec 01 baseline, `main`)
+- **Implementation commit SHA:** recorded below under Final Git status after commit
+- **Installed Node/npm/Rust/Tauri versions:** Node `v24.15.0`, npm `11.12.1`, `rustc 1.98.1`, `cargo 1.98.1` (pinned by `rust-toolchain.toml`), `tauri-cli 2.11.4`
+- **Changed paths:**
+  - `src-tauri/src/lib.rs` (modified: registers `audio`/`commands`/`events`/`state` modules, manages `Mutex<RuntimeState>`, registers the four commands)
+  - `src-tauri/capabilities/main.json` (modified: replaced `core:default` with explicit least-privilege core sub-permissions plus `core:event:allow-listen`/`allow-unlisten` — no frontend emit — and the new `runtime` permission)
+  - `src-tauri/permissions/runtime.toml` (new)
+  - `src-tauri/src/audio/mod.rs` (new)
+  - `src-tauri/src/state/mod.rs`, `src-tauri/src/state/runtime.rs` (new)
+  - `src-tauri/src/events.rs` (new)
+  - `src-tauri/src/commands/mod.rs`, `src-tauri/src/commands/runtime.rs` (new)
+  - `src/lib/tauri/contracts.ts`, `runtime.ts`, `use-runtime-bridge.ts`, `index.ts` (new)
+  - `src/lib/tauri/contracts.test.ts`, `runtime.test.ts`, `use-runtime-bridge.test.ts` (new)
+  - `src-tauri/build.rs` unchanged (default `tauri_build::build()` already scans `permissions/**`); no `Cargo.toml`/`Cargo.lock`/`package.json`/`package-lock.json`/`src/App.tsx`/`src/types/**` edits.
+- **Command registry and effective permission set:** Registered commands: `get_runtime_snapshot`, `list_microphones`, `start_capture`, `stop_capture` (verified via `tauri::generate_handler!` and real invocation; no `greet`/alias/test-only command). Effective `main` capability permissions (from `src-tauri/gen/schemas/capabilities.json`): `core:app:default`, `core:event:allow-listen`, `core:event:allow-unlisten`, `core:image:default`, `core:menu:default`, `core:path:default`, `core:resources:default`, `core:tray:default`, `core:webview:default`, `core:window:default`, `clipboard-manager:allow-write-text`, `runtime` (the single custom permission covering exactly the four commands). No `core:event:default` (which would include emit), no wildcard, no remote URL, no filesystem/shell/http/dialog/notification permission.
+- **Frontend targeted test command/result:** `npm test` (Vitest) → 4 files, 44 tests, all passed (`contracts.test.ts`, `runtime.test.ts`, `use-runtime-bridge.test.ts`, `App.test.tsx`).
+- **Rust targeted test command/result:** `cargo test` (from `src-tauri`) → 27 tests, all passed, covering `audio::tests` (PCM/error/sink/session invariants), `state::runtime::tests` (truthful pre-backend behavior, revision increment/overflow, camelCase serialization), and `events::tests` (event name/payload).
+- **Typecheck/lint command/results:** `npm run typecheck` (`tsc --noEmit`) → clean. `npm run lint` (`oxlint .`) → clean.
+- **Cargo format/check/clippy/test results:** `cargo fmt --check` → clean. `cargo check` → clean. `cargo clippy --all-targets --all-features -- -D warnings` → clean, zero warnings. `cargo test` → 27/27 passed (see above).
+- **Frontend and Tauri production build results:** `npm run build` (`tsc --noEmit` + `vite build`) → succeeded, `dist/` produced. `npm run tauri build -- --debug --no-bundle` → succeeded, produced `src-tauri/target/debug/mistaken`; rerun after temporary-probe removal also succeeded.
+- **Real native command snapshot observation:** Ran `npm run tauri dev` on macOS (arm64); a real native window titled `Mistaken` opened (confirmed via `System Events` window enumeration by PID). A temporary developer probe (removed before commit) invoked `getRuntimeSnapshot()` and observed the exact truthful pre-backend snapshot: `revision: 0`, `captureStatus: "idle"`, `modelStatus: { status: "missing" }`, `microphone`/`systemAudio` both `{ status: "unavailable", error: { code: "runtime_unavailable", recoverable: true, message: "the audio/model runtime is not configured yet" } }`.
+- **Real native error-event and unlisten observation:** The probe subscribed to `capture:error`, then called `startCapture({ microphoneDeviceId: null, systemAudioEnabled: true })`, which rejected with `{ code: "runtime_unavailable", recoverable: true }`; the listener observed exactly one matching `capture:error` event. The probe then called the returned `unlisten()`, invoked `stopCapture()` (rejecting with `capture_not_active`, which Rust also emitted to `capture:error`), and confirmed the removed listener recorded zero further events after unlisten.
+- **Start → Stop → Start resource/state observation:** Repeated `startCapture` → `stopCapture` → `startCapture` cycles rejected deterministically (`runtime_unavailable`, `capture_not_active`, `runtime_unavailable`) with a final `getRuntimeSnapshot()` still reporting `revision: 0` and the identical idle/unavailable snapshot — no state mutation, no leaked resource, no crash.
+- **Offline/privacy/capability inspection:** Source inspection confirms no network call, account, API key, analytics, crash reporter, or telemetry anywhere in the changed paths; the production CSP (`default-src 'self'; connect-src ipc: http://ipc.localhost`) was not modified and remains remote-free; bridge/command code never logs a command or event payload (grep confirms no `console.log`/`println!` of payload data outside the removed temporary probe's own report call, itself deleted). The full dev/build/smoke cycle above ran with no non-local network dependency exercised.
+- **Close/relaunch observation:** Stopped the running app (window close / process exit), confirmed via `ps` that no `target/debug/mistaken` process remained, then relaunched with `npm run tauri dev`. The relaunched window was again titled `Mistaken` and the probe again observed a fresh `revision: 0` truthful unavailable snapshot with no retained state.
+- **Temporary probe removal proof:** `git status --porcelain` after cleanup shows no `__spec03-probe-temp.ts`, no `probe_temp.rs`, no `probe-temp.toml`, and `git diff` against the final commit shows no residual reference to the probe's temporary command/permission/capability entry or the `main.tsx` import; `src-tauri/gen/schemas/**` (git-ignored, regenerated) reflects only the frozen four-command `runtime` permission with zero autogenerated per-command leftovers.
+- **High-capability review findings and dispositions:** Self-reviewed against every acceptance criterion in §12 during implementation; no High/Medium finding open. Awaiting the mandatory external high-capability review required by `spec-plan.md` before this branch is merged by the integration owner.
+- **Final Git status:** Committed locally on `spec/03-typed-ipc`; not pushed. Final commit SHA recorded in the session report delivered alongside this evidence update.
 
 ### Authoring evidence and sources
 
