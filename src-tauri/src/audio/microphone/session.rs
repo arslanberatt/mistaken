@@ -66,9 +66,21 @@ impl MicrophoneMonitor {
 
     fn request_stop_and_join(&mut self) {
         self.stop_flag.store(true, Ordering::Release);
-        if let Some(join) = self.join.take() {
-            let _ = join.join();
+        let Some(join) = self.join.take() else {
+            return;
+        };
+        if join.thread().id() == thread::current().id() {
+            // Being dropped *on* the monitor thread: an observer callback
+            // (`on_fault`) clears the manager's session entry, and that
+            // entry owns this monitor. Joining here would wait on the
+            // current thread forever — `WaitForSingleObject` on one's own
+            // thread handle never returns on Windows, and `pthread_join`
+            // fails `EDEADLK` elsewhere. The stop flag is already set and
+            // `run` releases the capture session in its own tail, so detach
+            // and let the thread finish unwinding.
+            return;
         }
+        let _ = join.join();
     }
 }
 
@@ -266,6 +278,63 @@ mod tests {
             let _monitor = MicrophoneMonitor::spawn(handle, observer);
         }
         assert!(stopped.load(Ordering::SeqCst));
+    }
+
+    /// Mirrors `state::manager::RuntimeMonitorObserver::on_fault`, which
+    /// clears the manager's session entry so a later Stop does not try to
+    /// join a monitor that already exited. That `take()` drops the
+    /// `MicrophoneMonitor` **on the monitor thread itself**, so teardown
+    /// must not join from there.
+    struct SelfDroppingObserver {
+        slot: Mutex<Option<MicrophoneMonitor>>,
+        done: std::sync::mpsc::SyncSender<()>,
+    }
+    impl MicrophoneMonitorObserver for SelfDroppingObserver {
+        fn on_first_signal(&self) {}
+        fn on_overflow(&self) {}
+        fn on_fault(&self, _kind: AudioErrorKind) {
+            self.slot.lock().take();
+            let _ = self.done.send(());
+        }
+    }
+
+    /// Regression: a fault observer that drops the monitor from inside the
+    /// monitor thread must not join that thread. `pthread_join` on self
+    /// fails `EDEADLK` (aborting the thread) and
+    /// `WaitForSingleObject(own_thread, INFINITE)` never returns on
+    /// Windows, so the real device-disconnect path hung the whole capture
+    /// lifecycle while holding the session mutex.
+    #[test]
+    fn dropping_the_monitor_from_its_own_fault_callback_does_not_deadlock() {
+        let (_producer, consumer) = build_pool(4);
+        let (handle, stopped) = handle_with(consumer);
+        let fault = handle.fault.clone();
+
+        let (done_tx, done_rx) = std::sync::mpsc::sync_channel(1);
+        let observer = Arc::new(SelfDroppingObserver {
+            slot: Mutex::new(None),
+            done: done_tx,
+        });
+        let dyn_observer: Arc<dyn MicrophoneMonitorObserver> = observer.clone();
+        let monitor = MicrophoneMonitor::spawn(handle, dyn_observer);
+        *observer.slot.lock() = Some(monitor);
+
+        fault.set();
+
+        assert!(
+            done_rx.recv_timeout(Duration::from_secs(5)).is_ok(),
+            "on_fault never returned: the monitor joined its own thread"
+        );
+
+        // The session is still released by the monitor's own tail teardown.
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !stopped.load(Ordering::SeqCst) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(
+            stopped.load(Ordering::SeqCst),
+            "capture session was never stopped after the fault"
+        );
     }
 
     #[test]

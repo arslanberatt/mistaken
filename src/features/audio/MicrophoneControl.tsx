@@ -26,13 +26,38 @@ interface Presentation {
   readonly tone: "muted" | "success" | "warning" | "error";
 }
 
-function permissionGuidance(): string {
-  const isMac =
+const MACOS_PERMISSION_GUIDANCE =
+  "Microphone access is off. Enable Mistaken in System Settings → Privacy & Security → Microphone.";
+const WINDOWS_SETTINGS_GUIDANCE =
+  "Check Settings → Privacy & security → Microphone → Let desktop apps access your microphone.";
+
+function isMacPlatform(): boolean {
+  return (
     typeof navigator !== "undefined" &&
-    (/Mac/.test(navigator.platform) || /Mac/.test(navigator.userAgent));
-  return isMac
-    ? "Microphone access is off. Enable Mistaken in System Settings → Privacy & Security → Microphone."
-    : "Check Settings → Privacy & security → Microphone → Let desktop apps access your microphone.";
+    (/Mac/.test(navigator.platform) || /Mac/.test(navigator.userAgent))
+  );
+}
+
+function permissionGuidance(): string {
+  return isMacPlatform() ? MACOS_PERMISSION_GUIDANCE : WINDOWS_SETTINGS_GUIDANCE;
+}
+
+/**
+ * Windows desktop apps have no per-application microphone consent API, so
+ * an OS-level denial reaches us as an unclassified WASAPI start failure —
+ * `capture_start_failed`/`microphone_unavailable`, never
+ * `microphone_permission_denied`. Verified on Windows 10 22H2: turning off
+ * "Let desktop apps access your microphone" produces exactly
+ * `capture_start_failed`. Spec 04 §7 therefore requires the same exact
+ * Settings navigation next to those narrow observed errors so a real
+ * privacy denial stays actionable. macOS classifies denial correctly up
+ * front and needs no such hint here.
+ */
+function windowsUnavailableGuidance(code: string): string | null {
+  if (isMacPlatform()) return null;
+  return code === "capture_start_failed" || code === "microphone_unavailable"
+    ? WINDOWS_SETTINGS_GUIDANCE
+    : null;
 }
 
 function buildPresentation(props: MicrophoneControlProps): Presentation {
@@ -144,7 +169,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       onAction: controller.selectedDeviceId ? controller.startTest : undefined,
       selectorDisabled: false,
       refreshDisabled: false,
-      guidance: null,
+      guidance: windowsUnavailableGuidance(code),
       tone: "error",
     };
   }

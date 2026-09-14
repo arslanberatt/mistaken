@@ -651,7 +651,7 @@ Fill during implementation; do not predeclare success:
   - **Not-determined → prompt:** launched the freshly built bundle (first run, and again after `tccutil reset Microphone com.mistaken.desktop`); no prompt appeared at launch or during device enumeration; clicking **Test microphone** triggered exactly one native macOS TCC sheet titled `"Mistaken", mikrofona erişmek istiyor.` (localized "wants to access the microphone") whose body was byte-for-byte the reviewed string `Mistaken uses your microphone to test and transcribe your speech locally on this device.` — confirming the built app's usage description, not source text, drives the OS prompt.
   - **Grant → capture:** clicking Allow (`İzin Ver`) transitioned the source bar through `Starting test…` to `Waiting for microphone signal…`, then to `PCM signal received` once real audio reached the device; the OS microphone-in-use menu-bar indicator appeared while capturing and cleared on Stop/quit.
   - **Denied path — partial:** the `microphone_permission_denied` mapping and its exact UI guidance (`Enable Mistaken in System Settings → Privacy & Security → Microphone.`) are implemented and covered by a permanent test (`MicrophoneControl.test.tsx`: `shows exact permission-denied guidance...`) plus the Rust `AudioErrorKind::PermissionDenied → RuntimeErrorCode::MicrophonePermissionDenied` mapping (`state::manager::tests::start_failure_enters_error_state_and_a_later_start_can_recover`). A live "Don't Allow" click could not be reliably reproduced in this automated session: repeated `tccutil reset` + relaunch + click cycles were observed to auto-resolve to "granted" before the synthetic click landed, which reads as TCC-daemon-level caching/timing specific to this remote-automation environment rather than a product defect. Recorded as a **partial** verification of AC 6, not a full pass.
-- **Windows hardware/architecture/edition/version/build:** **Blocked.** This environment is a single macOS (Apple M4) workstation with no Windows host, VM, or cross-compilation toolchain for `x86_64-pc-windows-msvc` (no `rustup` target, no MSVC linker, no WASAPI headers). Every Windows-specific acceptance criterion (AC 7 Windows privacy behavior; the Windows halves of AC 4/5/8/11/12/13/14/15) is explicitly blocked on missing hardware, per the spec's own allowance for real-hardware criteria that cannot be mocked. The Windows code path itself is written and compiles under `cargo check`'s type system reasoning (CPAL's own platform abstraction selects WASAPI at compile time on Windows; `check_permission()` for `cfg(not(target_os = "macos"))` returns `Ok(())` per the frozen "Windows has no permission gate" finding) but was never linked or run on a Windows target.
+- **Windows hardware/architecture/edition/version/build:** **Closed on real hardware in a follow-up session on 2026-09-14** — see the dedicated "Windows real-hardware verification" section below for the full record. The original implementing session had no Windows host, so this field previously read `Blocked` and the Windows halves of AC 4/5/7/8/10/11/12/13/14/15 were unverified; the Windows CPAL path had only ever passed `cargo check`'s type-system reasoning and had never been linked or run. That gap is now closed against a physical Windows 10 Education 22H2 (build 19045.6456) machine with real microphones, and two genuine Windows-surfacing defects were found and fixed (a self-join deadlock on the device-loss path and missing Windows privacy guidance).
 - **Negotiated formats/block capacities/pool memory:** Real capture on macOS negotiated `HyperX Cloud III Wireless` at its native rate (device panel showed 32 kHz mono); at 32,000 Hz, `block_capacity_for_rate` yields `640` mono samples per 20 ms block (`ceil(32000/50)`), so the 100-block pool holds `100 × 640 × 4 bytes ≈ 250 KB` of PCM, well within a two-second, allocation-free bound. `cargo test` additionally exercises `block_capacity_for_rate` at `8_000` (160), `16_000` (320), `44_100` (882, rounds up), and `48_000` (960).
 - **Real signal/block/sequence/overflow observations:** Real spoken/played audio (system alert sounds leaking into the headset's own boom mic, and ambient room/fan noise) repeatedly crossed the ≥0.01 peak threshold, transitioning the source bar from `Waiting for microphone signal…` to `PCM signal received` exactly once per session across five independent Start cycles. `cargo test` proves sequence numbers are contiguous from 0 (`try_submit_assigns_contiguous_sequence_numbers`), that `try_acquire`/`try_submit` count overflow without growing the pool when all 100 buffers are in flight (`try_acquire_returns_none_and_counts_overflow_when_pool_is_exhausted`, `try_submit_returns_the_block_and_counts_overflow_when_filled_queue_is_full`), and that thousands of acquire/submit/recycle cycles never change `POOL_CAPACITY` (`pool_never_grows_beyond_its_fixed_capacity`). No PCM sample, level, or per-block event was observed crossing Tauri IPC in any capture: the only events fired during a full session were `capture:status`, `audio:status`, and — on the one deliberately-verified overflow path — `capture:error`.
 - **Real Start → Stop → Start observations and teardown timings:** Six consecutive Test/Stop cycles on the same device via the real bundled app: each cycle returned to `Ready to test locally.` well under the one-second teardown budget (`osascript` AXPress round-trips completed in ~0.2 s including the Stop action itself). Process thread count (`ps -o thcount`) oscillated between an idle baseline of 17–20 and a capturing peak of 24–25 across all six cycles with no monotonic growth, and process RSS grew only ~2 MB over five back-to-back cycles (webview/allocator noise, not a pool leak — the pool is exactly reallocated and freed each Start/Stop). The sixth Start after five prior Stops produced a fresh `Waiting…` → `PCM signal received` transition, proving sequence/queue state resets correctly every cycle.
@@ -665,8 +665,188 @@ Fill during implementation; do not predeclare success:
 - **Real native UI/accessibility observations:** At the default `1040×720` size the source bar exposed a labeled (`sr-only` `<label for="microphone-select">`) native `<select>`, `Refresh microphones`, and `Test microphone`/`Stop test` buttons, all reachable via the accessibility tree (`AXPress` on each named button worked identically to a real click); status text is a `role="status" aria-live="polite"` region so waiting/receiving/error transitions announce without a duplicate live region; the privacy line `Test only — no recording or transcription is saved.` is always visible. The production `Start Listening` button remained visibly disabled with its existing model-missing explanation throughout every microphone state, including while actively capturing.
 - **Offline/privacy/no-transcript inspection:** `lsof -a -p <pid> -i` returned zero rows for the running app while actively capturing (no socket of any kind), so no non-loopback network route was exercised; global network disconnection was intentionally not performed because this is a shared multi-agent workstation and other concurrent spec worktrees may depend on network access. Source inspection (already covered by Spec 03's grep-based check, re-verified for the new files) shows no `fetch(`, `XMLHttpRequest`, `console.log` of payload data, or `writeTextFile` in any changed path. `find ~/Library/Application Support -iname '*mistaken*'` found no directory for `com.mistaken.desktop` (no app-specific persisted state was ever created); `~/Library/Caches/com.mistaken.desktop` contained only the standard WebKit `NetworkCache`/`CacheStorage` salt files present since Spec 02. Zero `transcript:partial`/`transcript:final` events and zero transcript-state mutations occurred across every test session (the transcript surface stayed in its empty state throughout).
 - **Temporary artifact cleanup:** All screenshots and `tccutil`-driven authorization probes lived under `/tmp/spec04-evidence/` (outside the repository) and were deleted after this evidence was transcribed; no debug recording, allocation-instrumentation flag, or ad hoc test command was left in tracked source. `git status --short` after cleanup shows only the intentional owned-path changes listed above.
-- **High-capability review findings/dispositions:** Self-reviewed against every acceptance criterion in §12 during implementation; no High/Medium finding left open. Two items are explicitly **partial/blocked** rather than fully passed, both for external-environment reasons rather than implementation defects: (1) AC 6's live "Don't Allow" click could not be reliably reproduced (grant path fully verified; denial mapping verified only by permanent unit/component test); (2) AC 7, and the Windows halves of AC 4/5/8/11/12/13/14/15, are blocked on the complete absence of Windows hardware in this environment. AC 13 (real disconnect) is blocked on the absence of a second/removable microphone. Awaiting the mandatory external high-capability review required by `spec-plan.md` before this branch is merged by the integration owner.
-- **Final Git status:** Committed locally on `spec/04-microphone-pcm-capture`; not pushed. Final commit SHA recorded in the session report delivered alongside this evidence update.
+- **High-capability review findings/dispositions:** Self-reviewed against every acceptance criterion in §12 during implementation; no High/Medium finding left open at that time. One item remains **partial** from the original macOS session: AC 6's live "Don't Allow" click could not be reliably reproduced (grant path fully verified; denial mapping verified only by permanent unit/component test). The Windows items that were blocked here — AC 7 and the Windows halves of AC 4/5/8/10/11/12/13/14/15, plus AC 13's removable-microphone disconnect — were closed on real Windows hardware in the follow-up session recorded below, which also found and fixed two genuine defects (a monitor self-join deadlock on the device-loss path, and missing Windows privacy guidance). Still awaiting the mandatory external high-capability review required by `spec-plan.md` before this branch is merged by the integration owner.
+- **Final Git status:** Implementation committed locally on `spec/04-microphone-pcm-capture` and merged into `main` at `4c46de1`; not pushed. The Windows evidence follow-up is committed locally on `spec/04-windows-evidence` (base `623e5ab`); not pushed and not merged.
+
+### Windows real-hardware verification (follow-up session, 2026-09-14)
+
+This section closes the Windows half of Spec 04 that the original implementing
+session recorded as blocked. It changes no acceptance criterion and replaces no
+macOS evidence above.
+
+- **Branch / base:** `spec/04-windows-evidence`, created from integration `main`
+  at `623e5abc51284bdb632ae5caed1e99fab826c846` (the Wave 3 integration commit).
+  Work stayed on that branch; `main` was not modified and nothing was pushed.
+- **Repository root:** `C:\Users\Berat\mistaken` (single checkout, one writer).
+- **PC / CPU / RAM / OS:** MONSTER ABRA A5 V17.2; 11th Gen Intel Core i5-11400H
+  @ 2.70 GHz, 6 cores / 12 logical, x64; **Microsoft Windows 10 Education,
+  version 22H2, OS build 19045.6456** (`ReleaseId 2009`, `UBR 6456`,
+  HAL 10.0.19041.6456). This is the same physical host Spec 08 used, and it sits
+  exactly on the Windows floor Spec 08 declared (Windows 10 22H2 / build 19045).
+- **Microphones used (real, physical):**
+  - `Mikrofon (Realtek(R) Audio)` — built-in laptop microphone, reported by
+    Windows as the default input endpoint. Negotiated by CPAL as **F32,
+    48 000 Hz, 2 channels**.
+  - `Kulaklık (JBL TUNE660NC Hands-Free AG Audio)` — removable Bluetooth headset
+    microphone, connected and disconnected by the operator during the session.
+    Negotiated by CPAL as **F32, 16 000 Hz, 1 channel**.
+  - CPAL host reported as `Wasapi`, confirming the Windows backend (not a stub)
+    was exercised.
+- **Toolchain and two disclosed host workarounds (neither is a product change):**
+  - Toolchain is `1.98.1-x86_64-pc-windows-**gnu**` (pinned by
+    `rust-toolchain.toml`) with WinLibs MinGW-w64 UCRT GCC 15.2.0. No MSVC
+    toolchain is installed on this host.
+  - *Workaround 1 — cdylib link.* `cargo build` fails linking the
+    `crate-type = [..., "cdylib", ...]` artifact with
+    `ld.exe: error: export ordinal too large: 124872`, because GNU `ld`
+    auto-exports every symbol. Building the app with
+    `RUSTFLAGS=-Clink-arg=-Wl,--exclude-all-symbols` links cleanly. This only
+    affects the export table of `mistaken_lib.dll`, which the desktop binary
+    does not load, so it does not alter any exercised runtime behavior.
+  - *Workaround 2 — test-binary manifest.* Cargo's test executables carry no
+    application manifest, so the loader binds comctl32 5.82 and the process dies
+    at load with `STATUS_ENTRYPOINT_NOT_FOUND` (0xC0000139) on the imported
+    `TaskDialogIndirect`, which only comctl32 v6 exports. Linking a
+    `RT_MANIFEST` resource that declares
+    `Microsoft.Windows.Common-Controls 6.0.0.0` into the test binary
+    (`cargo rustc --profile test --lib -- -Clink-arg=<manifest.o>`) makes the
+    suite run. `mistaken.exe` is unaffected because tauri-build already embeds
+    such a manifest.
+  - Both are recorded as **yielded findings for Spec 14 (Windows packaging)**,
+    which owns the supported Windows toolchain decision. Spec 04 changed no
+    manifest, no `Cargo.toml`, and no build configuration for them.
+
+#### Windows defects found and fixed
+
+1. **Self-join deadlock on the device-loss path (blocking, AC 12/13).**
+   `state::manager::RuntimeMonitorObserver::on_fault` clears the manager's
+   session entry so a later Stop will not join an already-exited monitor. That
+   `Option::take()` drops the `MicrophoneMonitor` **on the monitor thread
+   itself**, and `MicrophoneMonitor::request_stop_and_join` then called
+   `JoinHandle::join()` on the currently running thread. On Windows
+   `WaitForSingleObject` on one's own thread handle never returns, so the
+   monitor thread hung forever *while holding the session mutex*; the next
+   `stop_capture` would then block on that mutex and the capture lifecycle would
+   wedge. (On Unix the same call fails `EDEADLK` and aborts the thread instead,
+   which is why macOS never showed a hang — and AC 13 was blocked there, so the
+   path was never exercised at all.) AC 12 explicitly forbids `deadlock` and
+   `panic` on the callback-error path.
+   - **Reproduced first, then fixed.** New regression test
+     `audio::microphone::session::tests::dropping_the_monitor_from_its_own_fault_callback_does_not_deadlock`
+     models the manager's exact `on_fault` behavior and fails on the pre-fix code
+     with `on_fault never returned: the monitor joined its own thread` (5 s
+     timeout, observed on this Windows host).
+   - **Fix:** `request_stop_and_join` compares `join.thread().id()` with
+     `thread::current().id()` and detaches instead of joining when it is being
+     dropped on its own thread. The stop flag is already set and `run`'s tail
+     still releases the capture session, so teardown is unchanged; only the
+     illegal self-join is skipped. File: `src-tauri/src/audio/microphone/session.rs`.
+   - **Confirmed on real hardware after the fix:** three genuine
+     `device_disconnected` faults (below) were handled with the app staying
+     responsive, releasing resources, and accepting a successful retry.
+
+2. **Missing Windows privacy guidance (AC 7).** With
+   *Settings → Privacy & security → Microphone → Let desktop apps access your
+   microphone* turned **off**, CPAL's WASAPI backend maps the underlying
+   `E_ACCESSDENIED` to `ErrorKind::BackendError` (its `From<windows::core::Error>`
+   has no `E_ACCESSDENIED` arm), so Mistaken correctly and honestly reported
+   `capture_start_failed` — never `microphone_permission_denied`, and never
+   "silence means denial". But `MicrophoneControl` only rendered settings
+   guidance for the `microphone_permission_denied` code, so on the *only* code a
+   real Windows denial can produce the user got the bare message
+   "the microphone could not be started" and **no guidance at all**. §7's Windows
+   flow and AC 7 both require the narrow observed error *and* the exact Settings
+   navigation. macOS never exposed this because it classifies denial up front via
+   `AVCaptureDevice`.
+   - **Fix:** `windowsUnavailableGuidance()` attaches the exact spec string
+     `Check Settings → Privacy & security → Microphone → Let desktop apps access
+     your microphone.` to `capture_start_failed` / `microphone_unavailable` on
+     non-macOS, leaving macOS and every other error code untouched. The mandated
+     copy was not reworded and no criterion was relaxed. Files:
+     `src/features/audio/MicrophoneControl.tsx` (+ two permanent tests).
+   - **Verified on real hardware after the fix**, with the operator's explicit
+     consent to toggle the machine-wide setting; it was restored to its original
+     `Allow` immediately afterwards and re-confirmed `Allow` at session end.
+
+3. **Flaky frontend test (not a product defect).**
+   `microphone-controller.test.ts` → "refresh falls back to the new default when
+   the selected device disappears" awaited only `listMicrophones` *call count*,
+   which increments synchronously inside `refresh()`, so it could assert before
+   the resolved state landed. It failed 1 run in 5 on this host. The assertion now
+   waits on the selection state itself (and its sibling waits for `listState` to
+   return to `ready`), which strengthens rather than weakens both checks:
+   8/8 clean reruns. The controller logic was correct and was not changed.
+
+#### Windows acceptance-criterion results
+
+| AC | Windows result | Evidence |
+|---|---|---|
+| 1 | PASS | Branch `spec/04-windows-evidence` from `623e5ab`; only Spec 04-owned paths changed; an accidental `package-lock.json` rewrite by this host's npm (stripping `libc` fields) was reverted, not committed. |
+| 2 | PASS | No contract changed. Frozen command/event names, DTOs and revision ordering observed live over real IPC. |
+| 3 | PASS | `cargo check --locked --all-targets` and `cargo clippy --locked --all-targets --all-features -- -D warnings` clean on `x86_64-pc-windows-gnu`; no dependency or lockfile change. |
+| 4 | PASS | Real WASAPI enumeration returned 2 devices, 2 unique non-empty `wasapi:{0.0.…}` IDs (62 chars), exactly 1 `isDefault`, default ordered first. Selecting the non-default device by ID and pressing Refresh preserved it by ID; a fresh launch re-selected the OS default. No permission prompt during listing. |
+| 5 | PASS | Source bar verified at `1040×720` and `720×520`: selector, Refresh, Test/Stop, status, guidance and the privacy line all visible, no horizontal scroll at either size. `Start Listening` stayed disabled with "Local runtime is not available yet." in every microphone state, and no transcript row ever appeared. `<label for="microphone-select">` correctly associated, one source-local `role="status" aria-live="polite"` region, native `<select>`/`<button>` semantics, keyboard focusable. Screenshots captured. |
+| 6 | N/A (macOS-only) | Unchanged; see the macOS record above. |
+| 7 | **PASS (after fix 2)** | Access **enabled**: selected device captures. Access **disabled** (real machine-wide toggle, operator-consented): start is refused with `capture_start_failed` + the exact Settings guidance, with Test/Refresh left enabled for retry; no stream, no fake success, and silence is never treated as denial. Enumeration still listed the real device rather than falsely reporting "no microphone". Setting restored to `Allow`. |
+| 8 | PASS | Real capture: finite mono `f32`, correct source, native rate, contiguous sequence from 0, `waiting → receiving` only on a real signal. A CPAL 0.18.2 probe against the same `default_input_config()` path measured a 6 s built-in-mic capture: 287 520 mono frames (5.99 s @ 48 kHz), 299 complete 20 ms blocks, **peak 0.366** (≥ 0.01), **0 non-finite**, **0 out-of-range**. Block math on real hardware: 48 000 Hz → 960 samples/block → 100 × 960 × 4 B = **384 000 B**; 16 000 Hz → 320 → **128 000 B**; both inside the two-second bound. Only the **F32** branch runs in production on this host (both devices negotiate F32); the other 11 sample-format branches remain covered by the 9 `format` unit tests. |
+| 9 | PASS (tests + real observation) | 7 `audio::buffer` tests prove the fixed 100-block pool, newest-frame dropping, and that it never grows. On real hardware the pool kept up completely: across every session **zero** `audio_queue_overflow` `capture:error` events were emitted. A real overflow was not induced on Windows and is **not claimed** as separately observed. |
+| 10 | PASS | Over 48 recorded native events, the `waiting → receiving` transition fired **exactly once per session** (one `audio:status`, revision 46 in the sampled cycle; the following `stopping` snapshot merely carries the last state and is not a second transition). Every payload was a small full snapshot, **max 429 bytes**; only `capture:status`, `audio:status` and `capture:error` ever crossed IPC. **Zero** PCM samples, sample arrays, levels or per-block events reached React. |
+| 11 | PASS | 6 consecutive Test → Stop cycles on the built-in mic: every cycle reached `waiting` then `receiving` in **41–64 ms**, and Stop returned to idle in **42–66 ms** — far inside the 1 s teardown budget. Threads 23 → 24 and RSS 29.7 → 30.5 MB across all six (flat; no monotonic growth), handles 351 → 356. Second-device cycle on the JBL Bluetooth mic also reached `receiving`. Sequence/queue state resets each cycle and the next Start receives real PCM. |
+| 12 | PASS | Against the real backend: `stop_capture` while idle → `capture_not_active`; duplicate `start_capture` → `capture_already_active`; `systemAudioEnabled: true` → `runtime_unavailable` with `source: "system"`, rejected atomically with no microphone resource started; unknown device ID → `device_disconnected`. Each left a clean idle state with no stale controller, no panic and no deadlock — the last of which is now guarded by the new regression test and fix 1. |
+| 13 | **PASS (with one sub-clause disclosed, see below)** | Exercised with a real removable Bluetooth microphone (JBL TUNE660NC). (a) Two genuine mid-capture device losses — the second after the stream had already reached `receiving` with real PCM — each emitted `device_disconnected`, released stream/worker/pool, showed the actionable local error, left Refresh and the selector enabled, and an explicit retry on the remaining device then succeeded (`PCM signal received`). Threads returned to 19 and RSS stayed flat afterwards, so nothing leaked. (b) Deliberate operator power-off: with the headset's capture endpoints confirmed `UNPLUGGED` in `MMDevices\Audio\Capture`, selecting it and starting produced `device_disconnected` with no stream created, and explicit retry on the built-in mic succeeded. **Disclosed sub-clause:** "Refresh selects an available replacement" could not be observed, because Windows keeps a powered-off Bluetooth capture endpoint enumerable (`default_input_config()` still succeeds on an `UNPLUGGED` endpoint), so the device stays in the list instead of being replaced. That is recorded as a finding for **Spec 10** (broader lifecycle recovery), which owns hot-plug/device-availability behavior; Spec 04 explicitly puts automatic hot-plug enumeration out of scope, so the enumeration filter was deliberately **not** changed here. |
+| 14 | **PARTIAL — one half PASS, one half BLOCKED** | **PASS:** `mistaken.exe` — the process that owns every native audio path, the PCM pool and the monitor — held **zero** TCP and **zero** UDP sockets while actively capturing. No transcript event of any kind was ever emitted, the transcript stayed empty, and no ASR/correction code exists in the exercised path. No Mistaken-authored file was written: `%LOCALAPPDATA%\com.mistaken.desktop` contains only WebView2's own `EBWebView` runtime folder (variations seeds, crashpad metrics, Local State) and **no** audio, PCM, WAV, transcript, device-list, selection or preference file; `%APPDATA%` has no Mistaken directory at all. Device selection did not survive relaunch. **BLOCKED:** the "with networking disabled" clause was not exercised — disabling this host's networking would have severed the session driving the verification. **Disclosed finding:** the app's embedded WebView2 *network utility* child process (a strict descendant of `mistaken.exe`) maintained background HTTPS connections to Microsoft/Cloudflare-hosted Edge service endpoints that no Mistaken code requests, plus the loopback connection to the Vite dev server this debug build uses. Mistaken's own code opened nothing. Whether the WebView2 runtime's background traffic is acceptable is handed to **Spec 12**, which owns offline/privacy acceptance. |
+| 15 | PASS | All native on Windows, all exit 0: `cargo fmt --check` clean; `cargo check --locked --all-targets` clean; `cargo clippy --locked --all-targets --all-features -- -D warnings` clean with zero warnings (forced to re-lint, not a cache hit); `cargo test --lib` **56 passed, 0 failed** (55 pre-existing + 1 new regression test). Frontend: `npm run typecheck` clean, `npm run lint` (oxlint) clean, `npm test` **109 passed** (107 pre-existing + 2 new), `npm run build` succeeded. The real Tauri app launched and ran. Closing the window (`WM_CLOSE`) **while capture was active** exited the process in **0.06 s** with **zero** lingering `mistaken.exe` and **zero** orphaned WebView2 children. Relaunch began idle: "Ready to test locally.", `00:00:00` elapsed, empty transcript, `Start Listening` disabled, OS default re-selected with no persisted selection. |
+| 16 | Partially satisfied | The two Windows defects above were found, reproduced, fixed and re-verified in this session, and every finding is recorded with its disposition. The **external** high-capability review required by `spec-plan.md` before merge has still not been performed by a second reviewer. |
+
+#### Exact commands run on Windows
+
+```text
+npm install; npm run typecheck; npm run lint; npm test; npm run build
+cargo fmt --check
+cargo check  --locked --all-targets
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo rustc  --locked --profile test --lib -- -Clink-arg=<manifest.o>   # then ran the test exe
+RUSTFLAGS=-Clink-arg=-Wl,--exclude-all-symbols cargo build --locked --bins
+```
+
+The app was driven through its real UI over the WebView2 DevTools protocol
+(clicking the actual `Test microphone` / `Stop test` / `Refresh microphones`
+buttons and reading the rendered source bar), the same class of automation the
+macOS record used via `osascript`/`AXPress`. No production code path, test
+command, or debug hook was added to drive it.
+
+#### Privacy handling during verification
+
+No sample value, audio buffer, spoken content, or raw backend error dump was
+recorded. Device IDs appear in this record only as their sanitized
+`wasapi:{0.0.…}` shape and length. The machine-wide microphone privacy toggle was
+changed only with the operator's explicit prior consent, was restored to its
+original `Allow` immediately after each observation, and was re-confirmed
+`Allow` at session end. Screenshots and probe artifacts were written only to a
+session scratch directory outside the repository.
+
+#### Follow-up items handed to later specs (not fixed here)
+
+1. **Spec 14 (Windows packaging):** this repository does not build on the pinned
+   `x86_64-pc-windows-gnu` toolchain without the two link workarounds above.
+   Spec 14 should decide whether MSVC becomes the supported Windows toolchain or
+   whether the manifest/export-table issues are fixed in build configuration.
+2. **Spec 12 (offline/privacy acceptance):** the embedded WebView2 runtime opens
+   background HTTPS connections that Mistaken's own code never requests, and the
+   "networking disabled" clause of AC 14 still needs a host that can be taken
+   offline.
+3. **Spec 10 (lifecycle recovery):** a powered-off Bluetooth capture endpoint
+   stays enumerable on Windows, so a disconnected device is still offered in the
+   selector after Refresh.
+4. **Integration owner / §7 spec text:** Windows caches the desktop-app
+   microphone consent decision for the lifetime of the process. Verified in both
+   directions: a process started while access was allowed kept capturing after
+   the setting was set to Deny, and a process started while denied still failed
+   after the setting was restored to Allow — only a relaunch recovered. §7's
+   Windows sentence "Refresh/retry after the user changes it can recover" is
+   therefore inaccurate on Windows. The mandated guidance copy was **not** edited
+   to say "restart Mistaken", because that string is frozen by this spec and
+   changing it is the integration owner's decision, not this session's.
 
 ### Authoring evidence and sources
 

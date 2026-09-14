@@ -77,7 +77,12 @@ describe("useMicrophoneController", () => {
     expect(result.current.selectedDeviceId).toBe("a");
 
     act(() => result.current.refresh());
-    await waitFor(() => expect(client.listMicrophones).toHaveBeenCalledTimes(2));
+    // refresh() flips listState to "loading" synchronously, so waiting for
+    // "ready" proves the second list actually landed before asserting that
+    // the selection survived it.
+    expect(result.current.listState).toBe("loading");
+    await waitFor(() => expect(result.current.listState).toBe("ready"));
+    expect(client.listMicrophones).toHaveBeenCalledTimes(2);
     expect(result.current.selectedDeviceId).toBe("a");
   });
 
@@ -93,8 +98,12 @@ describe("useMicrophoneController", () => {
     act(() => result.current.selectDevice("a"));
     act(() => result.current.refresh());
 
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
-    expect(result.current.selectedDeviceId).toBe("b");
+    // `list` is called synchronously inside refresh(), so waiting on the
+    // call count alone can observe the pre-update selection. Wait on the
+    // state the criterion actually cares about instead.
+    await waitFor(() => expect(result.current.selectedDeviceId).toBe("b"));
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(result.current.devices).toEqual([deviceB]);
   });
 
   it("a failed list reports an error and does not fabricate a device", async () => {

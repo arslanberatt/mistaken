@@ -155,6 +155,76 @@ describe("MicrophoneControl", () => {
     }
   });
 
+  it("shows Windows settings guidance for a denied-access start failure and allows retry", () => {
+    // Verified on real Windows 10 22H2 hardware: turning off "Let desktop
+    // apps access your microphone" surfaces through WASAPI/CPAL as an
+    // unclassified start failure, never as microphone_permission_denied,
+    // so the exact Settings navigation has to ride along with this code.
+    const platformSpy = vi.spyOn(window.navigator, "platform", "get").mockReturnValue("Win32");
+    const uaSpy = vi
+      .spyOn(window.navigator, "userAgent", "get")
+      .mockReturnValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+    const status: AudioSourceStatus = {
+      status: "error",
+      error: {
+        code: "capture_start_failed",
+        message: "the microphone could not be started",
+        recoverable: true,
+        source: "microphone",
+      },
+    };
+    try {
+      render(
+        <MicrophoneControl
+          bridgeReady={true}
+          controller={makeController()}
+          microphoneStatus={status}
+          overflowWarning={false}
+        />,
+      );
+
+      expect(screen.getByText("the microphone could not be started")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Check Settings → Privacy & security → Microphone → Let desktop apps access your microphone.",
+        ),
+      ).toBeInTheDocument();
+      // The user can act on the guidance and retry without a relaunch.
+      expect(screen.getByRole("button", { name: "Test microphone" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeEnabled();
+    } finally {
+      platformSpy.mockRestore();
+      uaSpy.mockRestore();
+    }
+  });
+
+  it("does not show Windows settings guidance for a start failure on macOS", () => {
+    const platformSpy = vi.spyOn(window.navigator, "platform", "get").mockReturnValue("MacIntel");
+    const status: AudioSourceStatus = {
+      status: "error",
+      error: {
+        code: "capture_start_failed",
+        message: "the microphone could not be started",
+        recoverable: true,
+        source: "microphone",
+      },
+    };
+    try {
+      render(
+        <MicrophoneControl
+          bridgeReady={true}
+          controller={makeController()}
+          microphoneStatus={status}
+          overflowWarning={false}
+        />,
+      );
+
+      expect(screen.queryByText(/Let desktop apps access your microphone/)).toBeNull();
+    } finally {
+      platformSpy.mockRestore();
+    }
+  });
+
   it("shows a disconnect error as an actionable local message with Refresh enabled", () => {
     const status: AudioSourceStatus = {
       status: "error",
