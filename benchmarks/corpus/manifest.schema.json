@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mistaken.local/benchmarks/corpus/manifest.schema.json",
+  "title": "Mistaken benchmark corpus manifest",
+  "description": "Committed contract for the Spec 05 benchmark corpus. Validated by `mistaken-bench validate-corpus` and by benchmarks/harness/tests manifest-consistency tests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifestVersion", "sampleFormat", "speakerProfiles", "clips"],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "sampleFormat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codec", "channels"],
+      "properties": {
+        "codec": { "type": "string", "const": "pcm_s16le" },
+        "channels": { "type": "integer", "const": 1 }
+      }
+    },
+    "speakerProfiles": {
+      "type": "array",
+      "description": "Opaque speaker profile ledger. No name, gender, age, nationality, accent label, or other personal attribute is permitted here.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "consentGiven"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^sp-[0-9]{2}$" },
+          "consentGiven": { "type": "boolean" },
+          "notes": {
+            "type": "string",
+            "description": "Non-personal provenance note only, e.g. 'synthetic voice, no human subject, see protocol deviation record'."
+          }
+        }
+      }
+    },
+    "clips": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/clip" }
+    }
+  },
+  "definitions": {
+    "clip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "file",
+        "condition",
+        "promptFile",
+        "sampleRateHz",
+        "durationMs",
+        "sha256",
+        "speakerProfileId",
+        "reference",
+        "errorSpans",
+        "expectPhysicalSilence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z-]*-[0-9]{2}(-48k)?$"
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^clips/[a-z][a-z-]*-[0-9]{2}(-48k)?\\.wav$"
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "mistake-tense",
+            "mistake-agreement",
+            "mistake-article",
+            "mistake-preposition",
+            "mistake-order",
+            "mistake-minimal-pair",
+            "fillers-repetition",
+            "fluent-control",
+            "fast-speech",
+            "system-playback",
+            "noise-silence",
+            "long-turn"
+          ]
+        },
+        "promptFile": {
+          "type": "string",
+          "pattern": "^prompts/[a-z][a-z-]*-[0-9]{2}\\.md$"
+        },
+        "sampleRateHz": {
+          "type": "integer",
+          "enum": [16000, 48000]
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "speakerProfileId": {
+          "type": "string",
+          "pattern": "^sp-[0-9]{2}$"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Verbatim spoken text after the documented normalizer. Empty only when expectPhysicalSilence is true."
+        },
+        "errorSpans": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/errorSpan" }
+        },
+        "expectPhysicalSilence": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "expectPhysicalSilence": { "const": true } }
+          },
+          "then": {
+            "properties": {
+              "reference": { "const": "" },
+              "errorSpans": { "maxItems": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "errorSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startToken", "endToken", "kind", "spoken"],
+      "properties": {
+        "startToken": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inclusive token index into the normalized `reference`."
+        },
+        "endToken": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inclusive token index into the normalized `reference`; endToken >= startToken."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "verb-form",
+            "agreement",
+            "article",
+            "preposition",
+            "word-order",
+            "minimal-pair"
+          ]
+        },
+        "spoken": {
+          "type": "string",
+          "description": "Exact incorrect surface form, space-joined normalized tokens, matching reference[startToken..=endToken]."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3083 @@
+{
+  "manifestVersion": 1,
+  "sampleFormat": {
+    "codec": "pcm_s16le",
+    "channels": 1
+  },
+  "speakerProfiles": [
+    {
+      "id": "sp-01",
+      "consentGiven": false,
+      "notes": "Synthetic macOS `say` text-to-speech voice (Samantha, en_US); no human subject exists for this profile, so protocol.md section 3's human informed-consent step is inapplicable and was not performed. Recorded as a spec deviation and blocking limitation in reports/approval.md."
+    },
+    {
+      "id": "sp-02",
+      "consentGiven": false,
+      "notes": "Synthetic macOS `say` text-to-speech voice (Daniel, en_GB) used for system-playback second-speaker clips; no human subject exists for this profile. Same deviation as sp-01."
+    }
+  ],
+  "clips": [
+    {
+      "id": "mistake-tense-01",
+      "file": "clips/mistake-tense-01.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4490,
+      "sha256": "fdc0ac0f44e40a7f7af00340a16dd713b6a2f6ff843a5c9b4cd82670bac578a6",
+      "speakerProfileId": "sp-01",
+      "reference": "i have went there yesterday and i didn't knew anyone",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "have went"
+        },
+        {
+          "startToken": 7,
+          "endToken": 8,
+          "kind": "verb-form",
+          "spoken": "didn't knew"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-02",
+      "file": "clips/mistake-tense-02.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3607,
+      "sha256": "5f4f5d09acf43cd61a84b264650e4c1780079db45d5618eeb154612f810f1b28",
+      "speakerProfileId": "sp-01",
+      "reference": "she go to the store every day last week",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "she go"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-03",
+      "file": "clips/mistake-tense-03.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3692,
+      "sha256": "65c7d976c0d01159c4c0f09fc047e58b47e386215192f3f26954b9bc6996cbeb",
+      "speakerProfileId": "sp-01",
+      "reference": "we was gone yesterday before you arrived",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "we was"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-04",
+      "file": "clips/mistake-tense-04.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3504,
+      "sha256": "c3b7bab3bddcf6b032f8e785729848bad6afbb42b89c25e456e46d53938a2bb8",
+      "speakerProfileId": "sp-01",
+      "reference": "he don't called me back after the meeting",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "don't called"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-05",
+      "file": "clips/mistake-tense-05.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3987,
+      "sha256": "7a648345103f7b93c623559f788ed79c570563595cafcc1236da82c2004274b1",
+      "speakerProfileId": "sp-01",
+      "reference": "they has finished the project two days ago",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "they has"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-06",
+      "file": "clips/mistake-tense-06.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3120,
+      "sha256": "636646bf1f6ffe8fad8a0ac8e93920ecfa7e6116a387a634d62cbd318ee23383",
+      "speakerProfileId": "sp-01",
+      "reference": "i seen him at the market this morning",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-07",
+      "file": "clips/mistake-tense-07.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4304,
+      "sha256": "785b51f1cfbdc05a3661c01137fcc7c0ebb1674fde9b395f33381b3d63d24c04",
+      "speakerProfileId": "sp-01",
+      "reference": "she have already ate breakfast before we left",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 3,
+          "kind": "verb-form",
+          "spoken": "have already ate"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-08",
+      "file": "clips/mistake-tense-08.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4526,
+      "sha256": "524d7fd88b53db45cd5f8708ef3fad39cf998544267699ea9b3bd2d31d23a221",
+      "speakerProfileId": "sp-01",
+      "reference": "he drived to the office instead of taking the train",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "drived"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-09",
+      "file": "clips/mistake-tense-09.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-09.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3224,
+      "sha256": "39d83e15e3f3c8f410120add626e8acf173fa8315e3c95f31b1d4cb96f0b9d60",
+      "speakerProfileId": "sp-01",
+      "reference": "i would went if you had asked me sooner",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "would went"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-10",
+      "file": "clips/mistake-tense-10.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-10.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4284,
+      "sha256": "4d7bda8db48635228d71787999583897a19bf30f6544ad62cc1bfea779dc7494",
+      "speakerProfileId": "sp-01",
+      "reference": "we was waiting for an hour before the bus comes",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 8,
+          "endToken": 9,
+          "kind": "verb-form",
+          "spoken": "bus comes"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-11",
+      "file": "clips/mistake-tense-11.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-11.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4002,
+      "sha256": "e509443bb60669b95dd3f3844277ca164ea94cdfe2781d5233178fef3c0cc3be",
+      "speakerProfileId": "sp-01",
+      "reference": "she has went to paris three times this year",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "has went"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-12",
+      "file": "clips/mistake-tense-12.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-12.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3458,
+      "sha256": "c82352205ffc08dc235533edfe3e1609e9121007c23ed9b3ebfbcda5ab6c27d0",
+      "speakerProfileId": "sp-01",
+      "reference": "he don't have finished his homework yet",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 3,
+          "kind": "verb-form",
+          "spoken": "don't have finished"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-01",
+      "file": "clips/mistake-agreement-01.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4330,
+      "sha256": "afaf6dbca3423d3ee71e563ab3080ab303a0935dfaf2ce85667d2c2fe2fb07ec",
+      "speakerProfileId": "sp-01",
+      "reference": "the dogs is barking outside the window right now",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "agreement",
+          "spoken": "dogs is"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-02",
+      "file": "clips/mistake-agreement-02.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3798,
+      "sha256": "09d318d286bd1d263d2684865dc4129463a9213c0e0303061ea8c2e3981c1d37",
+      "speakerProfileId": "sp-01",
+      "reference": "my friends is coming over tonight for dinner",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "agreement",
+          "spoken": "friends is"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-03",
+      "file": "clips/mistake-agreement-03.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3685,
+      "sha256": "6578ae39b5c3e40f981d85414556292ca4577e3bc2444cec834b61b050ee16af",
+      "speakerProfileId": "sp-01",
+      "reference": "there was three books on the table this morning",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 2,
+          "kind": "agreement",
+          "spoken": "there was three"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-04",
+      "file": "clips/mistake-agreement-04.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3619,
+      "sha256": "55ed82e86072fab1014d6d61debc97b96b1c503402fae5c97b713a083d07c64e",
+      "speakerProfileId": "sp-01",
+      "reference": "each of the students have their own laptop",
+      "errorSpans": [
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "agreement",
+          "spoken": "students have"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-05",
+      "file": "clips/mistake-agreement-05.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4086,
+      "sha256": "ecf8c2adef1fc706b49c5556c73a22bc267b412f1af0987b4332e58a7dbd1d82",
+      "speakerProfileId": "sp-01",
+      "reference": "the list of items are longer than we expected",
+      "errorSpans": [
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "agreement",
+          "spoken": "items are"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-06",
+      "file": "clips/mistake-agreement-06.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 2912,
+      "sha256": "9873cd8cf377cf8fa43debea7c553d7dd37f797fa18b9ad76edae48b482bff81",
+      "speakerProfileId": "sp-01",
+      "reference": "he don't like coffee in the morning",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "agreement",
+          "spoken": "he don't"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-07",
+      "file": "clips/mistake-agreement-07.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3552,
+      "sha256": "3aa695f5e102fb08e927f8790faab6339b9b6502482e92e2cd9cb86d3b0de19d",
+      "speakerProfileId": "sp-01",
+      "reference": "the team are playing very well this season",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "agreement",
+          "spoken": "team are"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-agreement-08",
+      "file": "clips/mistake-agreement-08.wav",
+      "condition": "mistake-agreement",
+      "promptFile": "prompts/mistake-agreement-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4962,
+      "sha256": "0e9809ad8f28825ec34717aff269e4507e4f19ad88bea67d4e49fc3bda49bba7",
+      "speakerProfileId": "sp-01",
+      "reference": "neither of the answers is are correct according to the teacher",
+      "errorSpans": [
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "agreement",
+          "spoken": "is are"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-article-01",
+      "file": "clips/mistake-article-01.wav",
+      "condition": "mistake-article",
+      "promptFile": "prompts/mistake-article-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4420,
+      "sha256": "1b93d77c898d6c1ada65da910e444aff6dc520ad8ad556a23e3a09e58ad237f2",
+      "speakerProfileId": "sp-01",
+      "reference": "i saw dog running in park yesterday afternoon",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "article",
+          "spoken": "saw dog"
+        },
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "article",
+          "spoken": "in park"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-article-02",
+      "file": "clips/mistake-article-02.wav",
+      "condition": "mistake-article",
+      "promptFile": "prompts/mistake-article-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3805,
+      "sha256": "1a0ba25ce5c7f0111547adc3b38e191eed4682a6fb5ae0d44ce4d549f667b701",
+      "speakerProfileId": "sp-01",
+      "reference": "she is a best student in our whole class",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 3,
+          "kind": "article",
+          "spoken": "a best"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-article-03",
+      "file": "clips/mistake-article-03.wav",
+      "condition": "mistake-article",
+      "promptFile": "prompts/mistake-article-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4782,
+      "sha256": "b5107eed83875e04aae4f8d56542208a5eb53425beaed279202843142dd8825a",
+      "speakerProfileId": "sp-01",
+      "reference": "he bought a new car and car was very expensive",
+      "errorSpans": [
+        {
+          "startToken": 5,
+          "endToken": 6,
+          "kind": "article",
+          "spoken": "and car"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-article-04",
+      "file": "clips/mistake-article-04.wav",
+      "condition": "mistake-article",
+      "promptFile": "prompts/mistake-article-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3436,
+      "sha256": "00f18c52e9597301809a31bf20df3a83ea96cf5d515e58d917aa493da7d9d363",
+      "speakerProfileId": "sp-01",
+      "reference": "we went to a airport early in the morning",
+      "errorSpans": [
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "article",
+          "spoken": "a airport"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-article-05",
+      "file": "clips/mistake-article-05.wav",
+      "condition": "mistake-article",
+      "promptFile": "prompts/mistake-article-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3422,
+      "sha256": "9b0678fbb1ac74256aca2a36d3e8d37c756e7a47df26479de99ae028ef94d077",
+      "speakerProfileId": "sp-01",
+      "reference": "i need an information about the schedule",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 3,
+          "kind": "article",
+          "spoken": "an information"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-article-06",
+      "file": "clips/mistake-article-06.wav",
+      "condition": "mistake-article",
+      "promptFile": "prompts/mistake-article-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4068,
+      "sha256": "8279b2ebbd38b1a27b327bc504c1aca0c0220b2d320ceea34b4d3839c2a259fc",
+      "speakerProfileId": "sp-01",
+      "reference": "this is most interesting book i have ever read",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 3,
+          "kind": "article",
+          "spoken": "is most interesting"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-01",
+      "file": "clips/mistake-preposition-01.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4652,
+      "sha256": "3cc9c018acde35a717d08cb86e0d14a16163c7bd5e5082fe518b549667c2c455",
+      "speakerProfileId": "sp-01",
+      "reference": "i am waiting you since two hours in front of the store",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 3,
+          "kind": "preposition",
+          "spoken": "waiting you"
+        },
+        {
+          "startToken": 4,
+          "endToken": 6,
+          "kind": "preposition",
+          "spoken": "since two hours"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-02",
+      "file": "clips/mistake-preposition-02.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4710,
+      "sha256": "2ba3ee1ef6c870db1db85f2533143ebecfc7f53f30682848078ee7c0481aaa40",
+      "speakerProfileId": "sp-01",
+      "reference": "she arrived to the airport before the flight departed",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "preposition",
+          "spoken": "arrived to"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-03",
+      "file": "clips/mistake-preposition-03.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3307,
+      "sha256": "069d2e6903ba8290f5835867fbf034fd5a529081a7332f63054012db038ed21a",
+      "speakerProfileId": "sp-01",
+      "reference": "he is married with a woman from canada",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 3,
+          "kind": "preposition",
+          "spoken": "married with"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-04",
+      "file": "clips/mistake-preposition-04.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4133,
+      "sha256": "4d0f5b196d35664c73944265051015dc796f9e3a9842099c660e42453d68ca7f",
+      "speakerProfileId": "sp-01",
+      "reference": "we discussed about the plan for almost an hour",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "preposition",
+          "spoken": "discussed about"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-05",
+      "file": "clips/mistake-preposition-05.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3572,
+      "sha256": "7a8e0a3cac6f453719dcc7d70d3c65626c3df0aa5fcdf1efe5dbd2867a8017fe",
+      "speakerProfileId": "sp-01",
+      "reference": "i am good in math but not in science",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 4,
+          "kind": "preposition",
+          "spoken": "good in math"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-06",
+      "file": "clips/mistake-preposition-06.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3279,
+      "sha256": "4a7bcf9e6979716bb5c5fb0b094ab805276e18b9f70463ac710d001efeabf352",
+      "speakerProfileId": "sp-01",
+      "reference": "they live in the third floor of that building",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 5,
+          "kind": "preposition",
+          "spoken": "in the third floor"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-07",
+      "file": "clips/mistake-preposition-07.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4188,
+      "sha256": "0f3460143be54844c847b80a6713dc56c9d841b68d08ce1b911e6553d5c6c734",
+      "speakerProfileId": "sp-01",
+      "reference": "she apologized me for being late to the meeting",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "preposition",
+          "spoken": "apologized me"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-preposition-08",
+      "file": "clips/mistake-preposition-08.wav",
+      "condition": "mistake-preposition",
+      "promptFile": "prompts/mistake-preposition-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4190,
+      "sha256": "b9be6487c2d8b642df7b486ca9415f5ce3ef02a7fd71f00b27733dab09a5814b",
+      "speakerProfileId": "sp-01",
+      "reference": "he is afraid from spiders and other insects",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 3,
+          "kind": "preposition",
+          "spoken": "afraid from"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-order-01",
+      "file": "clips/mistake-order-01.wav",
+      "condition": "mistake-order",
+      "promptFile": "prompts/mistake-order-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4226,
+      "sha256": "778bfcb30419b2f3be781a0f4a2029b3ef0d11d97c1c689294a57ba905d5ca23",
+      "speakerProfileId": "sp-01",
+      "reference": "yesterday to the market i went with my sister",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 5,
+          "kind": "word-order",
+          "spoken": "yesterday to the market i went"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-order-02",
+      "file": "clips/mistake-order-02.wav",
+      "condition": "mistake-order",
+      "promptFile": "prompts/mistake-order-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4344,
+      "sha256": "08d12aa3b2e73dc06ef55817bab613437912a9c99fae2fc8276fe6c24a0db9b1",
+      "speakerProfileId": "sp-01",
+      "reference": "very happy i am today because of the good news",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 3,
+          "kind": "word-order",
+          "spoken": "very happy i am"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-order-03",
+      "file": "clips/mistake-order-03.wav",
+      "condition": "mistake-order",
+      "promptFile": "prompts/mistake-order-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4443,
+      "sha256": "614e0d0d2d12364226c8e403a260690513f10a29e7e35d60db3d8a58b6aae477",
+      "speakerProfileId": "sp-01",
+      "reference": "i i think that maybe we should go now i don't know",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 3,
+          "kind": "word-order",
+          "spoken": "i i think that"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-order-04",
+      "file": "clips/mistake-order-04.wav",
+      "condition": "mistake-order",
+      "promptFile": "prompts/mistake-order-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4130,
+      "sha256": "231ff5e94af29766b4d0d097c9b104f1134147f573815e6625281bed005d67fb",
+      "speakerProfileId": "sp-01",
+      "reference": "where you are going this weekend can you tell me",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 3,
+          "kind": "word-order",
+          "spoken": "where you are going"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-order-05",
+      "file": "clips/mistake-order-05.wav",
+      "condition": "mistake-order",
+      "promptFile": "prompts/mistake-order-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4034,
+      "sha256": "f4408c772cb0bf935c38b0fc8dc09237ef65cc0492d453062bafd26435fcaa4c",
+      "speakerProfileId": "sp-01",
+      "reference": "not sure i am if this is the correct address",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 3,
+          "kind": "word-order",
+          "spoken": "not sure i am"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-order-06",
+      "file": "clips/mistake-order-06.wav",
+      "condition": "mistake-order",
+      "promptFile": "prompts/mistake-order-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3853,
+      "sha256": "6c006ae1ff680736f6e7b4a257d8141ececb83ee5d5cffd4a59adc562edb017f",
+      "speakerProfileId": "sp-01",
+      "reference": "he said me that that he will not he is not coming",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 4,
+          "kind": "word-order",
+          "spoken": "said me that that"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-01",
+      "file": "clips/mistake-minimal-pair-01.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4408,
+      "sha256": "606f7dd6ee699be08f76364546fe3d9c2580f9f8cd3e7c6636fcdf556c547efc",
+      "speakerProfileId": "sp-01",
+      "reference": "i said i won't go there not that i went there already",
+      "errorSpans": [
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "minimal-pair",
+          "spoken": "won't go"
+        },
+        {
+          "startToken": 8,
+          "endToken": 9,
+          "kind": "minimal-pair",
+          "spoken": "i went"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-02",
+      "file": "clips/mistake-minimal-pair-02.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4768,
+      "sha256": "6b4abcbbf65e697b778acc09f25607bbb9c24f7929d7d862dc1283290a0103f6",
+      "speakerProfileId": "sp-01",
+      "reference": "she said she can do it but i heard her say she can't",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 4,
+          "kind": "minimal-pair",
+          "spoken": "she can do"
+        },
+        {
+          "startToken": 11,
+          "endToken": 12,
+          "kind": "minimal-pair",
+          "spoken": "she can't"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-03",
+      "file": "clips/mistake-minimal-pair-03.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3224,
+      "sha256": "d2e7984c3cc3ebe97b40e036975105df99083aa154c0de684d449008700c8523",
+      "speakerProfileId": "sp-01",
+      "reference": "i knew that book was new when i bought it",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "minimal-pair",
+          "spoken": "i knew"
+        },
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "minimal-pair",
+          "spoken": "was new"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-04",
+      "file": "clips/mistake-minimal-pair-04.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3569,
+      "sha256": "422ea119f22272685cb16d917d6d78762e4740f3c5e430e6df73c87acecd6f56",
+      "speakerProfileId": "sp-01",
+      "reference": "their house is over there past the new bridge",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "minimal-pair",
+          "spoken": "their house"
+        },
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "minimal-pair",
+          "spoken": "over there"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-05",
+      "file": "clips/mistake-minimal-pair-05.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3980,
+      "sha256": "d174acafde7bb3cd63e6aafe131dec378fc97f528de391ba1c03ce30c3ac5bf1",
+      "speakerProfileId": "sp-01",
+      "reference": "he won't admit that he went to the party last night",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "minimal-pair",
+          "spoken": "he won't"
+        },
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "minimal-pair",
+          "spoken": "he went"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-06",
+      "file": "clips/mistake-minimal-pair-06.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4455,
+      "sha256": "da1f0556798edf2336dff87db8754a488c0ecf16524135ade094fcec83bf24de",
+      "speakerProfileId": "sp-01",
+      "reference": "i can't believe you can lift that heavy box alone",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "minimal-pair",
+          "spoken": "i can't"
+        },
+        {
+          "startToken": 3,
+          "endToken": 5,
+          "kind": "minimal-pair",
+          "spoken": "you can lift"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-07",
+      "file": "clips/mistake-minimal-pair-07.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4010,
+      "sha256": "30930ddc1d93575ee4882c9afe370511890b6b1a1eed27eade4ff484662e1796",
+      "speakerProfileId": "sp-01",
+      "reference": "they put their bags there right next to the new door",
+      "errorSpans": [
+        {
+          "startToken": 2,
+          "endToken": 3,
+          "kind": "minimal-pair",
+          "spoken": "their bags"
+        },
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "minimal-pair",
+          "spoken": "bags there"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-minimal-pair-08",
+      "file": "clips/mistake-minimal-pair-08.wav",
+      "condition": "mistake-minimal-pair",
+      "promptFile": "prompts/mistake-minimal-pair-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4002,
+      "sha256": "43d3b61c5c48649519018710e978c92be8829207e16dc6f76138dddf01c67e05",
+      "speakerProfileId": "sp-01",
+      "reference": "i knew it was new but i still can't return it",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "minimal-pair",
+          "spoken": "i knew"
+        },
+        {
+          "startToken": 6,
+          "endToken": 8,
+          "kind": "minimal-pair",
+          "spoken": "i still can't"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-01",
+      "file": "clips/fillers-repetition-01.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3360,
+      "sha256": "6e61c9030ee78727ea227638467a8f672992c3a387e27989790f920b8e3ee69f",
+      "speakerProfileId": "sp-01",
+      "reference": "um i think uh we should leave now maybe",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-02",
+      "file": "clips/fillers-repetition-02.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4304,
+      "sha256": "af4d89907d4901ce8281417c8cb694057f4a29733be53b49d7364860e8eadc55",
+      "speakerProfileId": "sp-01",
+      "reference": "i i i really want to to go home early today",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-03",
+      "file": "clips/fillers-repetition-03.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4201,
+      "sha256": "fcd62b215bddae6252461a33376e58d00fcefd3ebb114211eb2670d77d73fdd5",
+      "speakerProfileId": "sp-01",
+      "reference": "so uh the meeting is um at three o'clock i think",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-04",
+      "file": "clips/fillers-repetition-04.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3841,
+      "sha256": "471644614fce67266242c8ddfd0467e1d7310ab7595cf86b240e388c417755a1",
+      "speakerProfileId": "sp-01",
+      "reference": "he said he said that he would call us back later",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-05",
+      "file": "clips/fillers-repetition-05.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4281,
+      "sha256": "c34b8e1cfec925ad54661cfd0ac0574e327ed58da5da7e4d0ee4008777668795",
+      "speakerProfileId": "sp-01",
+      "reference": "it's it's kind of um hard to explain right now",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-06",
+      "file": "clips/fillers-repetition-06.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3518,
+      "sha256": "be0cb121f67ef740066502dd19da421abefd8b84f3bb463078a992bd37b8ab93",
+      "speakerProfileId": "sp-01",
+      "reference": "we need to to buy some some milk and bread",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-07",
+      "file": "clips/fillers-repetition-07.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4615,
+      "sha256": "3bab7121f896a68b413342f183a479e982a6d5b309e93c04965eada630fc1b48",
+      "speakerProfileId": "sp-01",
+      "reference": "uh can you can you repeat the question again please",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-08",
+      "file": "clips/fillers-repetition-08.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4335,
+      "sha256": "62e606027ddee040b45f764efac01c19380abb6e300a242a6cbd61343cefb495",
+      "speakerProfileId": "sp-01",
+      "reference": "that was that was really um a strange thing to say",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-09",
+      "file": "clips/fillers-repetition-09.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-09.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4002,
+      "sha256": "9856711f138c49b3745bdf39fd2cbf6399e286090475b702906be773be3f59fd",
+      "speakerProfileId": "sp-01",
+      "reference": "i mean i mean it's not it's not that big a deal",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fillers-repetition-10",
+      "file": "clips/fillers-repetition-10.wav",
+      "condition": "fillers-repetition",
+      "promptFile": "prompts/fillers-repetition-10.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4037,
+      "sha256": "3129e7aa45a0b580563aae65ef0ce709a80dfeb85afb876e08875cae2cb53d31",
+      "speakerProfileId": "sp-01",
+      "reference": "well um i guess i guess we could try it again",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-01",
+      "file": "clips/fluent-control-01.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4234,
+      "sha256": "c3f33df963357de05aef123799a35069c7ba46dd47ec833e8ed09239adae81a4",
+      "speakerProfileId": "sp-01",
+      "reference": "i went there yesterday and i didn't know anyone",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-02",
+      "file": "clips/fluent-control-02.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3909,
+      "sha256": "78907ad107e4e804b852e80eff2577738296cec3b814c0b9f1914e5f606ce2a3",
+      "speakerProfileId": "sp-01",
+      "reference": "she goes to the store every day after work",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-03",
+      "file": "clips/fluent-control-03.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3692,
+      "sha256": "e3e44ee037af73cbaea1a08f8a348644ccd48d702f317c001c387318ff487575",
+      "speakerProfileId": "sp-01",
+      "reference": "we were gone before you arrived at the house",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-04",
+      "file": "clips/fluent-control-04.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4039,
+      "sha256": "87b3fe68096d6f1b9b2a8d14262e536021a4a6e6299206bf4e588d72b6c48c2a",
+      "speakerProfileId": "sp-01",
+      "reference": "he didn't call me back after the meeting ended",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-05",
+      "file": "clips/fluent-control-05.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4440,
+      "sha256": "c8086d27b46ff52bc83c17eb658f61006155657ecd5c3ba6e01a1d769e3f5fa2",
+      "speakerProfileId": "sp-01",
+      "reference": "they finished the project two days ahead of schedule",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-06",
+      "file": "clips/fluent-control-06.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3085,
+      "sha256": "82c36ac13007bb3cd879de7075674382c666dd5c33ca7b178b310ccde20b2266",
+      "speakerProfileId": "sp-01",
+      "reference": "i saw him at the market this morning",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-07",
+      "file": "clips/fluent-control-07.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4478,
+      "sha256": "4a6a797b7788144a508eac6c95376c277dd7b54d4e5da2820cec1a060d999d61",
+      "speakerProfileId": "sp-01",
+      "reference": "she had already eaten breakfast before we left",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-08",
+      "file": "clips/fluent-control-08.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4375,
+      "sha256": "6095decfd92ac047232349305acf96838d1adcda28f2ec5423826dde36857029",
+      "speakerProfileId": "sp-01",
+      "reference": "he drove to the office instead of taking the train",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-09",
+      "file": "clips/fluent-control-09.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-09.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3422,
+      "sha256": "d71d3caeda5112d4ee770cd2d471f13fd92b241873b197eb818dfb6e8cecdedc",
+      "speakerProfileId": "sp-01",
+      "reference": "i would have gone if you had asked me sooner",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-10",
+      "file": "clips/fluent-control-10.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-10.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4202,
+      "sha256": "d5ea7f452019542f06fffc85d967225595314df657d78d7d4b9756ca8532852e",
+      "speakerProfileId": "sp-01",
+      "reference": "we were waiting for an hour before the bus arrived",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-11",
+      "file": "clips/fluent-control-11.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-11.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4025,
+      "sha256": "45b603eec0aee4206fbf46d6587dba74393c3769ca1d59fd932004dc5c2d446a",
+      "speakerProfileId": "sp-01",
+      "reference": "she has been to paris three times this year",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-12",
+      "file": "clips/fluent-control-12.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-12.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3284,
+      "sha256": "4ab0d0dee972867a5ab7b23b396e86f07b9c16a0855db0330acdc6b9901b9688",
+      "speakerProfileId": "sp-01",
+      "reference": "he hasn't finished his homework yet",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-13",
+      "file": "clips/fluent-control-13.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-13.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4306,
+      "sha256": "90d7aff7ad1190109bed1ecb228b2be1e82bce8cbda3b534e13e143d47fcbdb3",
+      "speakerProfileId": "sp-01",
+      "reference": "the dogs are barking outside the window right now",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-14",
+      "file": "clips/fluent-control-14.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-14.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3763,
+      "sha256": "4a607f1aca843c28335e42e1bcce09480b9dc708783c0bcd8dc526525056ed9b",
+      "speakerProfileId": "sp-01",
+      "reference": "my friends are coming over tonight for dinner",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-15",
+      "file": "clips/fluent-control-15.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-15.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3673,
+      "sha256": "6044c6abb1a24642eac61ccee1af2d3d99beb79801e4d26a10792ca66d142026",
+      "speakerProfileId": "sp-01",
+      "reference": "there were three books on the table this morning",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fluent-control-16",
+      "file": "clips/fluent-control-16.wav",
+      "condition": "fluent-control",
+      "promptFile": "prompts/fluent-control-16.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3677,
+      "sha256": "9b8cba7bc35f5e17a8ca10a6145c3cc392400aeb89fd98eae1c2a9793e0afc1f",
+      "speakerProfileId": "sp-01",
+      "reference": "each of the students has their own laptop",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-01",
+      "file": "clips/fast-speech-01.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1684,
+      "sha256": "757509505103a506134cfd962198a5d137a0e958172d049343626c9773da7233",
+      "speakerProfileId": "sp-01",
+      "reference": "i have went and i don't know why he don't care",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "have went"
+        },
+        {
+          "startToken": 8,
+          "endToken": 9,
+          "kind": "agreement",
+          "spoken": "he don't"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-02",
+      "file": "clips/fast-speech-02.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1758,
+      "sha256": "ede178de4eaaa147f8fe5fc359418f48dec101a889e4dba1d709dbccb50fc013",
+      "speakerProfileId": "sp-01",
+      "reference": "she go there every day but i still didn't knew",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "she go"
+        },
+        {
+          "startToken": 8,
+          "endToken": 9,
+          "kind": "verb-form",
+          "spoken": "didn't knew"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-03",
+      "file": "clips/fast-speech-03.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1412,
+      "sha256": "675780e0d4f1f9badb2900cc52b1923dd7b44576b57c000a81a74e011c83b7cd",
+      "speakerProfileId": "sp-01",
+      "reference": "we was late and they was mad about it too",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "verb-form",
+          "spoken": "they was"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-04",
+      "file": "clips/fast-speech-04.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1835,
+      "sha256": "14b7cc2aef84ebb7d50edab16118ca1883d8eaa94c30262e6d5172b61555d693",
+      "speakerProfileId": "sp-01",
+      "reference": "he don't want it but i seen him take it anyway",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "agreement",
+          "spoken": "he don't"
+        },
+        {
+          "startToken": 5,
+          "endToken": 6,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-05",
+      "file": "clips/fast-speech-05.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1804,
+      "sha256": "a024f660cc8c8f3b193c603e9309f3c41b50f585e8e1b1cb3737c079c5644bb7",
+      "speakerProfileId": "sp-01",
+      "reference": "they has left already before we was even ready",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "they has"
+        },
+        {
+          "startToken": 5,
+          "endToken": 6,
+          "kind": "verb-form",
+          "spoken": "we was"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-06",
+      "file": "clips/fast-speech-06.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1754,
+      "sha256": "aef0e128262a993d485abb0f81d12e5144f32304422c9f2be2111c78aa0b1eb4",
+      "speakerProfileId": "sp-01",
+      "reference": "i seen it happen fast and she seen it too",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        },
+        {
+          "startToken": 6,
+          "endToken": 7,
+          "kind": "verb-form",
+          "spoken": "she seen"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-07",
+      "file": "clips/fast-speech-07.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1812,
+      "sha256": "ecbfaf1c031a3789e42ddb907f5eac160c11ce087b46ea14361b09115cb3c595",
+      "speakerProfileId": "sp-01",
+      "reference": "he drived off quick before i could catched him",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "drived"
+        },
+        {
+          "startToken": 6,
+          "endToken": 7,
+          "kind": "verb-form",
+          "spoken": "could catched"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-08",
+      "file": "clips/fast-speech-08.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1691,
+      "sha256": "2e75f7a506b8f2e701cc1d98d8577ac0cf56d1e46119ee732e4a69c462fd6372",
+      "speakerProfileId": "sp-01",
+      "reference": "we was rushing and i forgot where i putted it",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 7,
+          "endToken": 8,
+          "kind": "verb-form",
+          "spoken": "i putted"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-09",
+      "file": "clips/fast-speech-09.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-09.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1886,
+      "sha256": "233afe724b93f615e759a0e1fd91d0c81105ea526a28923d870af8ad4a0ccb81",
+      "speakerProfileId": "sp-01",
+      "reference": "she have already left and i don't never seen her",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 3,
+          "kind": "verb-form",
+          "spoken": "have already left"
+        },
+        {
+          "startToken": 6,
+          "endToken": 8,
+          "kind": "agreement",
+          "spoken": "don't never seen"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-10",
+      "file": "clips/fast-speech-10.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-10.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1962,
+      "sha256": "9b16a19dd4d7a1b3d9e62de1c70743cfc088bf099ac30158daf349fd20e15982",
+      "speakerProfileId": "sp-01",
+      "reference": "i would went faster if the bus don't was so slow",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "would went"
+        },
+        {
+          "startToken": 7,
+          "endToken": 8,
+          "kind": "agreement",
+          "spoken": "don't was"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-11",
+      "file": "clips/fast-speech-11.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-11.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1696,
+      "sha256": "4dc9ee4eb7ab124b65939ce3fa18a04993e20595d3e3b679f6666351fdcd8dad",
+      "speakerProfileId": "sp-01",
+      "reference": "he called and called but nobody don't answered",
+      "errorSpans": [
+        {
+          "startToken": 5,
+          "endToken": 7,
+          "kind": "agreement",
+          "spoken": "nobody don't answered"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "fast-speech-12",
+      "file": "clips/fast-speech-12.wav",
+      "condition": "fast-speech",
+      "promptFile": "prompts/fast-speech-12.md",
+      "sampleRateHz": 16000,
+      "durationMs": 1711,
+      "sha256": "7037882e933544187237467e08e2611d0b55dd2fc134ddcc73a46e2218baa71b",
+      "speakerProfileId": "sp-01",
+      "reference": "they runned out quick before the alarm gone off",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "runned"
+        },
+        {
+          "startToken": 6,
+          "endToken": 8,
+          "kind": "verb-form",
+          "spoken": "alarm gone off"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-01",
+      "file": "clips/system-playback-01.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3604,
+      "sha256": "d625d4f623f76af363724376f6592963fd8f4c68a7be6a767435c2f8980c362d",
+      "speakerProfileId": "sp-02",
+      "reference": "what are you going to do there this weekend",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-02",
+      "file": "clips/system-playback-02.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4591,
+      "sha256": "e20a5a728fbe9d4334bfa53f23c977f83fce445d060ba267ba0a8ce5b4493a5b",
+      "speakerProfileId": "sp-02",
+      "reference": "why not i thought you liked that place a lot",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-03",
+      "file": "clips/system-playback-03.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3735,
+      "sha256": "46cf1582e7d740ec4bd3d917935fb9eb3d0a2a1bda6e767514a7b40ed1a67d16",
+      "speakerProfileId": "sp-02",
+      "reference": "are you coming to the meeting tomorrow morning",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-04",
+      "file": "clips/system-playback-04.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4448,
+      "sha256": "4e7a9f5c9a0254c1f71f4ee7633079851003aab8cb9988d50141e2e33ba5b6de",
+      "speakerProfileId": "sp-02",
+      "reference": "i don't think that's a good idea honestly",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-05",
+      "file": "clips/system-playback-05.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4132,
+      "sha256": "a7407d8a8ed0dbb61dab917fd20f89ba96523e65730f235ae3861636abf76f23",
+      "speakerProfileId": "sp-02",
+      "reference": "how long have you been working on this project",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-06",
+      "file": "clips/system-playback-06.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4435,
+      "sha256": "1e1196c90a70308ea65a934a3ae6bb20aebc669bb9be9208e5acc892851aac4c",
+      "speakerProfileId": "sp-02",
+      "reference": "can you send me the file before five o'clock",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-07",
+      "file": "clips/system-playback-07.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4902,
+      "sha256": "681867c225d4abf28f714366c2f2fa9cbed60a88bc827579c1e43db9f25dba81",
+      "speakerProfileId": "sp-02",
+      "reference": "that's interesting tell me more about it please",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-08",
+      "file": "clips/system-playback-08.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4185,
+      "sha256": "d9169f04b7603854eb2cad66aac6a9986e8d70478d50b726911d42229c2dd03a",
+      "speakerProfileId": "sp-02",
+      "reference": "did you already talk to him about the schedule",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-09",
+      "file": "clips/system-playback-09.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-09.md",
+      "sampleRateHz": 16000,
+      "durationMs": 5128,
+      "sha256": "fe88e6dfb5d8b55f0705ab6b6d8c1073a417d63bd9c29bc2e6273c8c77209de0",
+      "speakerProfileId": "sp-02",
+      "reference": "i'm not sure let me check and get back to you",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-10",
+      "file": "clips/system-playback-10.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-10.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4777,
+      "sha256": "e13c6608c00fadb1d00fb7466d2d48ed79ba27a761f4b2cb8b36498685868499",
+      "speakerProfileId": "sp-02",
+      "reference": "we should probably leave soon if we want good seats",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-11",
+      "file": "clips/system-playback-11.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-11.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4394,
+      "sha256": "26789ed71240321a380c00f30c8d459daa0200ac05d7b052deca0b94f74621ec",
+      "speakerProfileId": "sp-02",
+      "reference": "what time does the train usually leave the station",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-12",
+      "file": "clips/system-playback-12.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-12.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4716,
+      "sha256": "432c3f84f32c2b72fb7422ecc7c7b3c617a91e2b6b8b78a898838a01a1689b52",
+      "speakerProfileId": "sp-02",
+      "reference": "i heard the weather is going to be bad this weekend",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-13",
+      "file": "clips/system-playback-13.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-13.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4377,
+      "sha256": "eb74a24eb3781deb5a643385ddc694b1fa77822a02ae7ffce8e0234458199943",
+      "speakerProfileId": "sp-02",
+      "reference": "could you repeat that last part one more time",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-14",
+      "file": "clips/system-playback-14.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-14.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4582,
+      "sha256": "18b0e9cb8f412c086740b97df21c713830577510f3546c27946d3814cb467d6e",
+      "speakerProfileId": "sp-02",
+      "reference": "let's grab lunch after the call if you're free",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-15",
+      "file": "clips/system-playback-15.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-15.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4000,
+      "sha256": "9ffb486ef0648af2f78b93511c5da0105e7d28f01a2f443f38992bb36bfcb45f",
+      "speakerProfileId": "sp-02",
+      "reference": "do you know when the results will be announced",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "system-playback-16",
+      "file": "clips/system-playback-16.wav",
+      "condition": "system-playback",
+      "promptFile": "prompts/system-playback-16.md",
+      "sampleRateHz": 16000,
+      "durationMs": 5167,
+      "sha256": "1ed0c3c8325f7036f75d9550bacaf284dd9fc5ef201908f4fd2161c7dc5844fb",
+      "speakerProfileId": "sp-02",
+      "reference": "i think we should reschedule for next tuesday instead",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-01",
+      "file": "clips/noise-silence-01.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3854,
+      "sha256": "cf621a9218de173e13038ee2f9eb0ddcd9449228d929b93e960a065e2942c600",
+      "speakerProfileId": "sp-01",
+      "reference": "can you hear me okay over this noise",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-02",
+      "file": "clips/noise-silence-02.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4573,
+      "sha256": "91d519ef5f80f22354a63762b4133ff661c326ee77b45286b52460a515f8e5c1",
+      "speakerProfileId": "sp-01",
+      "reference": "sorry it's pretty loud in here right now",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-03",
+      "file": "clips/noise-silence-03.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 3642,
+      "sha256": "dd3c53dafda19ca054e7af35965afc965d53d136e7a08452c5115fdf8abb4ced",
+      "speakerProfileId": "sp-01",
+      "reference": "i'll call you back when it's quieter",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-04",
+      "file": "clips/noise-silence-04.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4714,
+      "sha256": "b9d86d3f4af15062cbc492859ef499379d3f224e2ed236431575bbb24947ced3",
+      "speakerProfileId": "sp-01",
+      "reference": "let me close the door there's a lot of noise",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-05",
+      "file": "clips/noise-silence-05.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4772,
+      "sha256": "9cb44430112c9529a1a4f7260ac2e545f11fe0ceb479b674fcbadc749162ef33",
+      "speakerProfileId": "sp-01",
+      "reference": "the fan is really loud can you turn it down",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-06",
+      "file": "clips/noise-silence-06.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4666,
+      "sha256": "082b6d01e7e021c393f990c27b10d92728eb836f269c7621487eb5071edc63b3",
+      "speakerProfileId": "sp-01",
+      "reference": "someone is typing really fast next to me",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-07",
+      "file": "clips/noise-silence-07.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4429,
+      "sha256": "9ca397fdf6d33eaf9c24345e8385431d24effb965c9cf6d4b8319f689fe81952",
+      "speakerProfileId": "sp-01",
+      "reference": "this cafe is way too noisy for a call",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-08",
+      "file": "clips/noise-silence-08.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 4875,
+      "sha256": "2ff30f67303ebd81c8614afea7de6d696a5c1fcfb6b4cd21f249eefe74cbeca6",
+      "speakerProfileId": "sp-01",
+      "reference": "hold on let me move to a quieter room",
+      "errorSpans": [],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "noise-silence-09",
+      "file": "clips/noise-silence-09.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-09.md",
+      "sampleRateHz": 16000,
+      "durationMs": 10500,
+      "sha256": "60f027058675f72ac33193c11043147532d34a810ce26e984f86610c0affe380",
+      "speakerProfileId": "sp-01",
+      "reference": "",
+      "errorSpans": [],
+      "expectPhysicalSilence": true
+    },
+    {
+      "id": "noise-silence-10",
+      "file": "clips/noise-silence-10.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-10.md",
+      "sampleRateHz": 16000,
+      "durationMs": 10500,
+      "sha256": "f5d1849522ddeda9e1e7a0e1328ea1410ac5992dfc3746edb766036edd1040fa",
+      "speakerProfileId": "sp-01",
+      "reference": "",
+      "errorSpans": [],
+      "expectPhysicalSilence": true
+    },
+    {
+      "id": "noise-silence-11",
+      "file": "clips/noise-silence-11.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-11.md",
+      "sampleRateHz": 16000,
+      "durationMs": 10500,
+      "sha256": "b77e2dffc817ffd3d5bb5d85b10f04423dd8ddf12100834bf6befc54dc6ae0b6",
+      "speakerProfileId": "sp-01",
+      "reference": "",
+      "errorSpans": [],
+      "expectPhysicalSilence": true
+    },
+    {
+      "id": "noise-silence-12",
+      "file": "clips/noise-silence-12.wav",
+      "condition": "noise-silence",
+      "promptFile": "prompts/noise-silence-12.md",
+      "sampleRateHz": 16000,
+      "durationMs": 10500,
+      "sha256": "d514067515eb3774567b1becd782cc68c24857bab9958961ef3cb4a75a498b69",
+      "speakerProfileId": "sp-01",
+      "reference": "",
+      "errorSpans": [],
+      "expectPhysicalSilence": true
+    },
+    {
+      "id": "long-turn-01",
+      "file": "clips/long-turn-01.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-01.md",
+      "sampleRateHz": 16000,
+      "durationMs": 98723,
+      "sha256": "a61c719c912dc4b543290df7fd8f7ac2c69d203040ef3887e8593a691b07fd81",
+      "speakerProfileId": "sp-01",
+      "reference": "so yesterday i have went to the market with my sister and um we didn't knew what to buy at first the dogs is barking outside the whole time which was pretty annoying honestly i i think we spent like two hours there just walking around and looking at things she go to that market every week but i don't go there so often anymore we was talking about the new house down the street and whether they has finished the renovation yet their house is over there past the new bridge if you remember which one i mean anyway we bought some vegetables and um some bread and then we walked back home together he don't like walking that far but he came with us anyway because it was a nice day i seen a few people we knew from school which was kind of a fun surprise for both of us later on we stopped by the bakery because she wanted to buy some fresh bread for dinner the cashier was very friendly and she ask us where we was from originally i explained that we has lived in this neighborhood for almost five years now on the way home we seen a big truck blocking most of the street near the corner my sister say she don't mind waiting but honestly i was getting a little impatient by then eventually the truck moved and we was able to get back to the house before it started raining",
+      "errorSpans": [
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "verb-form",
+          "spoken": "have went"
+        },
+        {
+          "startToken": 22,
+          "endToken": 23,
+          "kind": "agreement",
+          "spoken": "dogs is"
+        },
+        {
+          "startToken": 50,
+          "endToken": 51,
+          "kind": "verb-form",
+          "spoken": "she go"
+        },
+        {
+          "startToken": 65,
+          "endToken": 66,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 77,
+          "endToken": 78,
+          "kind": "verb-form",
+          "spoken": "they has"
+        },
+        {
+          "startToken": 83,
+          "endToken": 84,
+          "kind": "minimal-pair",
+          "spoken": "their house"
+        },
+        {
+          "startToken": 86,
+          "endToken": 87,
+          "kind": "minimal-pair",
+          "spoken": "over there"
+        },
+        {
+          "startToken": 115,
+          "endToken": 116,
+          "kind": "agreement",
+          "spoken": "he don't"
+        },
+        {
+          "startToken": 133,
+          "endToken": 134,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        },
+        {
+          "startToken": 176,
+          "endToken": 177,
+          "kind": "verb-form",
+          "spoken": "she ask"
+        },
+        {
+          "startToken": 65,
+          "endToken": 66,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 187,
+          "endToken": 188,
+          "kind": "verb-form",
+          "spoken": "we has"
+        },
+        {
+          "startToken": 133,
+          "endToken": 134,
+          "kind": "word-order",
+          "spoken": "i seen"
+        },
+        {
+          "startToken": 216,
+          "endToken": 217,
+          "kind": "verb-form",
+          "spoken": "sister say"
+        },
+        {
+          "startToken": 218,
+          "endToken": 219,
+          "kind": "agreement",
+          "spoken": "she don't"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-02",
+      "file": "clips/long-turn-02.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-02.md",
+      "sampleRateHz": 16000,
+      "durationMs": 98351,
+      "sha256": "e17457e2ab1350b2c050cd1eb4b3a02a5edb55354817146fafbd3027cab6a4dd",
+      "speakerProfileId": "sp-01",
+      "reference": "well um i wanted to tell you about the trip we was planning for next month my friends is coming over tonight actually to help us figure out the details we discussed about the budget for a while and i think we finally agreed on something reasonable she arrived to the office late because the train was delayed for almost an hour he drived to the station instead but then he couldn't find anywhere to park the car i would went with him if i had known the parking was going to be such a problem each of the students have their own opinion about where we should go for the trip neither of the answers is are correct according to what the travel agent told us yesterday anyway uh we still have some time to decide before the tickets go on sale next week after the meeting he send me an email with all the updated numbers for the budget i read it twice because some of the figures didn't looked right to me at first we was going to call the accountant but she was already gone for the day by then he also mentioned that the client have some additional questions about the timeline i don't think those questions is going to be easy to answer without more information anyway we agreed to follow up again tomorrow morning once everyone has more details",
+      "errorSpans": [
+        {
+          "startToken": 10,
+          "endToken": 11,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 17,
+          "endToken": 18,
+          "kind": "agreement",
+          "spoken": "friends is"
+        },
+        {
+          "startToken": 31,
+          "endToken": 32,
+          "kind": "preposition",
+          "spoken": "discussed about"
+        },
+        {
+          "startToken": 48,
+          "endToken": 49,
+          "kind": "preposition",
+          "spoken": "arrived to"
+        },
+        {
+          "startToken": 63,
+          "endToken": 63,
+          "kind": "verb-form",
+          "spoken": "drived"
+        },
+        {
+          "startToken": 79,
+          "endToken": 80,
+          "kind": "verb-form",
+          "spoken": "would went"
+        },
+        {
+          "startToken": 99,
+          "endToken": 100,
+          "kind": "agreement",
+          "spoken": "students have"
+        },
+        {
+          "startToken": 116,
+          "endToken": 117,
+          "kind": "agreement",
+          "spoken": "is are"
+        },
+        {
+          "startToken": 148,
+          "endToken": 149,
+          "kind": "verb-form",
+          "spoken": "he send"
+        },
+        {
+          "startToken": 170,
+          "endToken": 171,
+          "kind": "verb-form",
+          "spoken": "didn't looked"
+        },
+        {
+          "startToken": 10,
+          "endToken": 11,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 199,
+          "endToken": 200,
+          "kind": "agreement",
+          "spoken": "client have"
+        },
+        {
+          "startToken": 211,
+          "endToken": 212,
+          "kind": "agreement",
+          "spoken": "questions is"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-03",
+      "file": "clips/long-turn-03.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-03.md",
+      "sampleRateHz": 16000,
+      "durationMs": 100970,
+      "sha256": "39880dd921e9023ba926302c4d6f182bffec56c3738f68f47fcaf81d9daf57e3",
+      "speakerProfileId": "sp-01",
+      "reference": "i i really need to explain what happened at work today because it was kind of a mess the list of items are longer than we expected so the whole schedule got pushed back he said me that that he will not he is not coming to the review meeting after all she have already ate lunch before the meeting even started which surprised everyone we was waiting for an hour before the bus comes and by then most people had left already i knew that book was new when i bought it but i still can't figure out why it broke so fast they put their bags there right next to the new door and nobody noticed until later um so basically the whole afternoon was just one delay after another honestly i mean i mean it's not it's not that big a deal but it was frustrating at the time after the review meeting she ask me to stay a little longer to go over the numbers again i explain that i was already running late for another appointment across town she said the client don't usually accept delays like this without a good explanation we was both a bit frustrated but we eventually finded a compromise that worked for everyone he also mention that the report have to be resubmitted before the end of the week by the time we finish it was already dark outside and the office was almost empty",
+      "errorSpans": [
+        {
+          "startToken": 21,
+          "endToken": 22,
+          "kind": "agreement",
+          "spoken": "items are"
+        },
+        {
+          "startToken": 35,
+          "endToken": 38,
+          "kind": "word-order",
+          "spoken": "said me that that"
+        },
+        {
+          "startToken": 53,
+          "endToken": 55,
+          "kind": "verb-form",
+          "spoken": "have already ate"
+        },
+        {
+          "startToken": 65,
+          "endToken": 66,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 73,
+          "endToken": 74,
+          "kind": "verb-form",
+          "spoken": "bus comes"
+        },
+        {
+          "startToken": 83,
+          "endToken": 84,
+          "kind": "minimal-pair",
+          "spoken": "i knew"
+        },
+        {
+          "startToken": 87,
+          "endToken": 88,
+          "kind": "minimal-pair",
+          "spoken": "was new"
+        },
+        {
+          "startToken": 94,
+          "endToken": 96,
+          "kind": "minimal-pair",
+          "spoken": "i still can't"
+        },
+        {
+          "startToken": 106,
+          "endToken": 107,
+          "kind": "minimal-pair",
+          "spoken": "their bags"
+        },
+        {
+          "startToken": 107,
+          "endToken": 108,
+          "kind": "minimal-pair",
+          "spoken": "bags there"
+        },
+        {
+          "startToken": 156,
+          "endToken": 157,
+          "kind": "verb-form",
+          "spoken": "she ask"
+        },
+        {
+          "startToken": 170,
+          "endToken": 171,
+          "kind": "verb-form",
+          "spoken": "i explain"
+        },
+        {
+          "startToken": 186,
+          "endToken": 187,
+          "kind": "agreement",
+          "spoken": "client don't"
+        },
+        {
+          "startToken": 65,
+          "endToken": 66,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 206,
+          "endToken": 206,
+          "kind": "verb-form",
+          "spoken": "finded"
+        },
+        {
+          "startToken": 213,
+          "endToken": 215,
+          "kind": "verb-form",
+          "spoken": "he also mention"
+        },
+        {
+          "startToken": 218,
+          "endToken": 219,
+          "kind": "agreement",
+          "spoken": "report have"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-04",
+      "file": "clips/long-turn-04.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-04.md",
+      "sampleRateHz": 16000,
+      "durationMs": 98084,
+      "sha256": "09802ac2ab4fce6fc3ceb79d728913ab22b43e3706dcf24b3cf6821e860947d4",
+      "speakerProfileId": "sp-01",
+      "reference": "so this morning i saw dog running in park near my building which was kind of funny to watch he is married with a woman from canada and they moved here about a year ago i think we went to a airport early in the morning to pick up her parents who were visiting i am waiting you since two hours in front of the store because the doors were locked they live in the third floor of that building with a really nice view of the park he is afraid from spiders and other insects so he never wants to go camping with us she apologized me for being late to the meeting but honestly it wasn't a big deal this is most interesting book i have ever read and i finished it in just two days anyway uh we ended up having a really nice afternoon despite all the small delays later that day her parents wanted to see the new apartment before flying back home we drived them around the neighborhood and showed them a few nearby shops and cafes her mother say the area remind her of a place she visited a long time ago we was running a bit behind schedule so we skipped the museum and went straight to lunch the restaurant we chose have a really nice view of the river from the upstairs seating everyone seemed happy with the day even though we didn't managed to see everything we planned",
+      "errorSpans": [
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "article",
+          "spoken": "saw dog"
+        },
+        {
+          "startToken": 7,
+          "endToken": 8,
+          "kind": "article",
+          "spoken": "in park"
+        },
+        {
+          "startToken": 21,
+          "endToken": 22,
+          "kind": "preposition",
+          "spoken": "married with"
+        },
+        {
+          "startToken": 40,
+          "endToken": 41,
+          "kind": "article",
+          "spoken": "a airport"
+        },
+        {
+          "startToken": 56,
+          "endToken": 57,
+          "kind": "preposition",
+          "spoken": "waiting you"
+        },
+        {
+          "startToken": 58,
+          "endToken": 60,
+          "kind": "preposition",
+          "spoken": "since two hours"
+        },
+        {
+          "startToken": 73,
+          "endToken": 76,
+          "kind": "preposition",
+          "spoken": "in the third floor"
+        },
+        {
+          "startToken": 90,
+          "endToken": 91,
+          "kind": "preposition",
+          "spoken": "afraid from"
+        },
+        {
+          "startToken": 106,
+          "endToken": 107,
+          "kind": "preposition",
+          "spoken": "apologized me"
+        },
+        {
+          "startToken": 122,
+          "endToken": 124,
+          "kind": "article",
+          "spoken": "is most interesting"
+        },
+        {
+          "startToken": 168,
+          "endToken": 169,
+          "kind": "verb-form",
+          "spoken": "we drived"
+        },
+        {
+          "startToken": 183,
+          "endToken": 185,
+          "kind": "verb-form",
+          "spoken": "her mother say"
+        },
+        {
+          "startToken": 199,
+          "endToken": 200,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 217,
+          "endToken": 220,
+          "kind": "agreement",
+          "spoken": "restaurant we chose have"
+        },
+        {
+          "startToken": 241,
+          "endToken": 242,
+          "kind": "verb-form",
+          "spoken": "didn't managed"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-05",
+      "file": "clips/long-turn-05.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-05.md",
+      "sampleRateHz": 16000,
+      "durationMs": 99362,
+      "sha256": "170f31c20636bd523522c8d1fd17ebeef5520eac247347eef8cec9f7c093b35d",
+      "speakerProfileId": "sp-01",
+      "reference": "yesterday to the market i went with my sister and we bought way too much food honestly very happy i am today because of the good news we got about the apartment not sure i am if this is the correct address but the map says it should be close where you are going this weekend can you tell me because i wanted to invite you somewhere he said i won't go there not that i went there already which really confused me at first i can't believe you can lift that heavy box alone without any help at all she said she can do it but i heard her say she can't a minute later which was strange um so basically the plans keep changing every single day and it's kind of hard to keep up i i think we should just wait and see what happens before we decide anything else after we finally got to the apartment the landlord was already waiting outside for us he explain that the previous tenant leaved a few things behind in the closet we was surprised because nobody had mentioned that during the earlier phone call my sister say she don't mind sorting through the boxes if we split the work evenly it took us almost two hours before the place finally start to feel like home by the end of the day we was both exhausted but really happy with the new place",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 5,
+          "kind": "word-order",
+          "spoken": "yesterday to the market i went"
+        },
+        {
+          "startToken": 17,
+          "endToken": 20,
+          "kind": "word-order",
+          "spoken": "very happy i am"
+        },
+        {
+          "startToken": 32,
+          "endToken": 35,
+          "kind": "word-order",
+          "spoken": "not sure i am"
+        },
+        {
+          "startToken": 50,
+          "endToken": 53,
+          "kind": "word-order",
+          "spoken": "where you are going"
+        },
+        {
+          "startToken": 70,
+          "endToken": 71,
+          "kind": "minimal-pair",
+          "spoken": "won't go"
+        },
+        {
+          "startToken": 4,
+          "endToken": 5,
+          "kind": "minimal-pair",
+          "spoken": "i went"
+        },
+        {
+          "startToken": 85,
+          "endToken": 86,
+          "kind": "minimal-pair",
+          "spoken": "i can't"
+        },
+        {
+          "startToken": 88,
+          "endToken": 90,
+          "kind": "minimal-pair",
+          "spoken": "you can lift"
+        },
+        {
+          "startToken": 102,
+          "endToken": 104,
+          "kind": "minimal-pair",
+          "spoken": "she can do"
+        },
+        {
+          "startToken": 111,
+          "endToken": 112,
+          "kind": "minimal-pair",
+          "spoken": "she can't"
+        },
+        {
+          "startToken": 168,
+          "endToken": 169,
+          "kind": "verb-form",
+          "spoken": "he explain"
+        },
+        {
+          "startToken": 174,
+          "endToken": 174,
+          "kind": "verb-form",
+          "spoken": "leaved"
+        },
+        {
+          "startToken": 182,
+          "endToken": 183,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 198,
+          "endToken": 199,
+          "kind": "agreement",
+          "spoken": "she don't"
+        },
+        {
+          "startToken": 219,
+          "endToken": 221,
+          "kind": "agreement",
+          "spoken": "place finally start"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-06",
+      "file": "clips/long-turn-06.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-06.md",
+      "sampleRateHz": 16000,
+      "durationMs": 98189,
+      "sha256": "f523e1c8f907e194b366130aea1e4782d8c04647c8e843b3f12dd982bbeb0d38",
+      "speakerProfileId": "sp-01",
+      "reference": "so um i have went through the whole report twice and i still don't understand some parts of it the team are playing very well this season which honestly surprised most of the coaches he don't have finished his homework yet but he says he will finish it tonight i would went to the game if i had known tickets were still available this morning we was talking about the schedule change for almost an hour before anyone agreed on anything she has went to paris three times this year for work which sounds pretty exciting to me they has finished the project two days ago but the client still hasn't reviewed it um i mean i mean it's a lot of work but i think it will be worth it in the end anyway that's basically everything that happened this week as far as i remember after the report was finally done he send it straight to the client for review the client reply almost immediately and say the numbers didn't matched what they expected we was confused because the same numbers has been approved just last week he explain that maybe the earlier version have a small calculation error somewhere it take us another hour to trace exactly where the mistake was hiding in the spreadsheet by the time we finded it everyone was ready to just go home for the night",
+      "errorSpans": [
+        {
+          "startToken": 3,
+          "endToken": 4,
+          "kind": "verb-form",
+          "spoken": "have went"
+        },
+        {
+          "startToken": 20,
+          "endToken": 21,
+          "kind": "agreement",
+          "spoken": "team are"
+        },
+        {
+          "startToken": 35,
+          "endToken": 37,
+          "kind": "verb-form",
+          "spoken": "don't have finished"
+        },
+        {
+          "startToken": 50,
+          "endToken": 51,
+          "kind": "verb-form",
+          "spoken": "would went"
+        },
+        {
+          "startToken": 65,
+          "endToken": 66,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 82,
+          "endToken": 83,
+          "kind": "verb-form",
+          "spoken": "has went"
+        },
+        {
+          "startToken": 98,
+          "endToken": 99,
+          "kind": "verb-form",
+          "spoken": "they has"
+        },
+        {
+          "startToken": 153,
+          "endToken": 154,
+          "kind": "verb-form",
+          "spoken": "he send"
+        },
+        {
+          "startToken": 163,
+          "endToken": 164,
+          "kind": "verb-form",
+          "spoken": "client reply"
+        },
+        {
+          "startToken": 171,
+          "endToken": 172,
+          "kind": "verb-form",
+          "spoken": "didn't matched"
+        },
+        {
+          "startToken": 65,
+          "endToken": 66,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 182,
+          "endToken": 183,
+          "kind": "agreement",
+          "spoken": "numbers has"
+        },
+        {
+          "startToken": 189,
+          "endToken": 190,
+          "kind": "verb-form",
+          "spoken": "he explain"
+        },
+        {
+          "startToken": 195,
+          "endToken": 196,
+          "kind": "agreement",
+          "spoken": "version have"
+        },
+        {
+          "startToken": 202,
+          "endToken": 203,
+          "kind": "verb-form",
+          "spoken": "it take"
+        },
+        {
+          "startToken": 222,
+          "endToken": 222,
+          "kind": "verb-form",
+          "spoken": "finded"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-07",
+      "file": "clips/long-turn-07.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-07.md",
+      "sampleRateHz": 16000,
+      "durationMs": 96489,
+      "sha256": "a05aa984d199433c5fa45e842606ad141f163815edea4c7eae3a7633e9d24151",
+      "speakerProfileId": "sp-01",
+      "reference": "i knew it was new but i still can't return it because i already lost the receipt somewhere their house is over there past the new bridge and honestly it's a really nice neighborhood he won't admit that he went to the party last night even though everyone saw him there i said i won't go there not that i went there already which is what i keep telling people so uh the meeting is um at three o'clock i think but i should probably double check that it's it's kind of um hard to explain right now but i'll tell you the whole story later we need to to buy some some milk and bread before the store closes tonight that was that was really um a strange thing to say honestly and i'm still thinking about it well um i guess i guess we could try it again tomorrow if today doesn't work out before the party we stopped by the store to buy some extra snacks and drinks the cashier ask if we wanted a bag and my friend say he don't need one this time we was running late so we practically runned back to the car with everything my friend mention that the traffic on the highway have been really bad all week we finded a shortcut through a side street that saved us almost fifteen minutes by the time we arrived most of the guests was already there waiting for us",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "minimal-pair",
+          "spoken": "i knew"
+        },
+        {
+          "startToken": 6,
+          "endToken": 8,
+          "kind": "minimal-pair",
+          "spoken": "i still can't"
+        },
+        {
+          "startToken": 18,
+          "endToken": 19,
+          "kind": "minimal-pair",
+          "spoken": "their house"
+        },
+        {
+          "startToken": 21,
+          "endToken": 22,
+          "kind": "minimal-pair",
+          "spoken": "over there"
+        },
+        {
+          "startToken": 34,
+          "endToken": 35,
+          "kind": "minimal-pair",
+          "spoken": "he won't"
+        },
+        {
+          "startToken": 38,
+          "endToken": 39,
+          "kind": "minimal-pair",
+          "spoken": "he went"
+        },
+        {
+          "startToken": 54,
+          "endToken": 55,
+          "kind": "minimal-pair",
+          "spoken": "won't go"
+        },
+        {
+          "startToken": 59,
+          "endToken": 60,
+          "kind": "minimal-pair",
+          "spoken": "i went"
+        },
+        {
+          "startToken": 172,
+          "endToken": 173,
+          "kind": "verb-form",
+          "spoken": "cashier ask"
+        },
+        {
+          "startToken": 181,
+          "endToken": 182,
+          "kind": "verb-form",
+          "spoken": "friend say"
+        },
+        {
+          "startToken": 183,
+          "endToken": 184,
+          "kind": "agreement",
+          "spoken": "he don't"
+        },
+        {
+          "startToken": 189,
+          "endToken": 190,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 196,
+          "endToken": 196,
+          "kind": "verb-form",
+          "spoken": "runned"
+        },
+        {
+          "startToken": 204,
+          "endToken": 205,
+          "kind": "verb-form",
+          "spoken": "friend mention"
+        },
+        {
+          "startToken": 211,
+          "endToken": 212,
+          "kind": "agreement",
+          "spoken": "highway have"
+        },
+        {
+          "startToken": 219,
+          "endToken": 219,
+          "kind": "verb-form",
+          "spoken": "finded"
+        },
+        {
+          "startToken": 240,
+          "endToken": 241,
+          "kind": "agreement",
+          "spoken": "guests was"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "long-turn-08",
+      "file": "clips/long-turn-08.wav",
+      "condition": "long-turn",
+      "promptFile": "prompts/long-turn-08.md",
+      "sampleRateHz": 16000,
+      "durationMs": 96814,
+      "sha256": "fce86df8c33e459a4f780625e68773206621fa051dab0b3b85346719e1f45ea3",
+      "speakerProfileId": "sp-01",
+      "reference": "i have went there yesterday and i didn't knew anyone which honestly felt pretty awkward at first she go to the store every day last week to pick up things for the new apartment we was gone yesterday before you arrived so i'm sorry we missed you at the house he don't called me back after the meeting which is why i had to email him directly i seen him at the market this morning and he looked like he was in a hurry he drived to the office instead of taking the train because the trains were delayed again each of the students have their own laptop now which makes the classes a lot easier the dogs is barking outside the window right now and it's honestly hard to concentrate anyway um that's basically the whole story and i think that covers everything for today after work we decided to walk home instead of taking the bus like we usually does the weather was nice and my coworker say she don't mind the extra exercise either we was talking about the new project the whole way and barely noticed the distance she mention that the manager have already approved the budget for next quarter i seen a few of our old colleagues along the way which was a nice surprise by the time we reached the house we was both pretty tired but in a good mood",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "have went"
+        },
+        {
+          "startToken": 7,
+          "endToken": 8,
+          "kind": "verb-form",
+          "spoken": "didn't knew"
+        },
+        {
+          "startToken": 17,
+          "endToken": 18,
+          "kind": "verb-form",
+          "spoken": "she go"
+        },
+        {
+          "startToken": 34,
+          "endToken": 35,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 51,
+          "endToken": 52,
+          "kind": "verb-form",
+          "spoken": "don't called"
+        },
+        {
+          "startToken": 67,
+          "endToken": 68,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        },
+        {
+          "startToken": 85,
+          "endToken": 85,
+          "kind": "verb-form",
+          "spoken": "drived"
+        },
+        {
+          "startToken": 103,
+          "endToken": 104,
+          "kind": "agreement",
+          "spoken": "students have"
+        },
+        {
+          "startToken": 117,
+          "endToken": 118,
+          "kind": "agreement",
+          "spoken": "dogs is"
+        },
+        {
+          "startToken": 159,
+          "endToken": 161,
+          "kind": "agreement",
+          "spoken": "we usually does"
+        },
+        {
+          "startToken": 168,
+          "endToken": 169,
+          "kind": "verb-form",
+          "spoken": "coworker say"
+        },
+        {
+          "startToken": 170,
+          "endToken": 171,
+          "kind": "agreement",
+          "spoken": "she don't"
+        },
+        {
+          "startToken": 34,
+          "endToken": 35,
+          "kind": "verb-form",
+          "spoken": "we was"
+        },
+        {
+          "startToken": 192,
+          "endToken": 193,
+          "kind": "verb-form",
+          "spoken": "she mention"
+        },
+        {
+          "startToken": 196,
+          "endToken": 197,
+          "kind": "agreement",
+          "spoken": "manager have"
+        },
+        {
+          "startToken": 67,
+          "endToken": 68,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-01-48k",
+      "file": "clips/mistake-tense-01-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-01.md",
+      "sampleRateHz": 48000,
+      "durationMs": 4490,
+      "sha256": "3a16a8678253b59f0c6221ceb5efae6e1f11d261bf6fb831508396ea337e74ad",
+      "speakerProfileId": "sp-01",
+      "reference": "i have went there yesterday and i didn't knew anyone",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "have went"
+        },
+        {
+          "startToken": 7,
+          "endToken": 8,
+          "kind": "verb-form",
+          "spoken": "didn't knew"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-02-48k",
+      "file": "clips/mistake-tense-02-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-02.md",
+      "sampleRateHz": 48000,
+      "durationMs": 3607,
+      "sha256": "8b26de9ded1085ffff3289538f86c533756e83275bdf9ba130cd770b6d24f112",
+      "speakerProfileId": "sp-01",
+      "reference": "she go to the store every day last week",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "she go"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-03-48k",
+      "file": "clips/mistake-tense-03-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-03.md",
+      "sampleRateHz": 48000,
+      "durationMs": 3692,
+      "sha256": "3adb450a399877e4bf7f2e6fefcb7bb5fefdc59f42fc4da2f6337ce0662f16ff",
+      "speakerProfileId": "sp-01",
+      "reference": "we was gone yesterday before you arrived",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "we was"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-04-48k",
+      "file": "clips/mistake-tense-04-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-04.md",
+      "sampleRateHz": 48000,
+      "durationMs": 3504,
+      "sha256": "b40e689754e5c1541bd9436ec411ad09a0e443a2bc35486440860487036cfa0c",
+      "speakerProfileId": "sp-01",
+      "reference": "he don't called me back after the meeting",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 2,
+          "kind": "verb-form",
+          "spoken": "don't called"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-05-48k",
+      "file": "clips/mistake-tense-05-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-05.md",
+      "sampleRateHz": 48000,
+      "durationMs": 3987,
+      "sha256": "06f1b9de4337e486fa6e949ec9a1cb5b50c7b7c3d07ce15b0f71b7ac5bb04150",
+      "speakerProfileId": "sp-01",
+      "reference": "they has finished the project two days ago",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "they has"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-06-48k",
+      "file": "clips/mistake-tense-06-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-06.md",
+      "sampleRateHz": 48000,
+      "durationMs": 3120,
+      "sha256": "0c3597479d40d56d2697bc1f79714f530f67669976ac0c4b719e8932a430ae78",
+      "speakerProfileId": "sp-01",
+      "reference": "i seen him at the market this morning",
+      "errorSpans": [
+        {
+          "startToken": 0,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "i seen"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-07-48k",
+      "file": "clips/mistake-tense-07-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-07.md",
+      "sampleRateHz": 48000,
+      "durationMs": 4304,
+      "sha256": "e770b3f84fe59c06195f29194948d9c29279ceba1ea79e04ab43b3c9b1e2bcdd",
+      "speakerProfileId": "sp-01",
+      "reference": "she have already ate breakfast before we left",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 3,
+          "kind": "verb-form",
+          "spoken": "have already ate"
+        }
+      ],
+      "expectPhysicalSilence": false
+    },
+    {
+      "id": "mistake-tense-08-48k",
+      "file": "clips/mistake-tense-08-48k.wav",
+      "condition": "mistake-tense",
+      "promptFile": "prompts/mistake-tense-08.md",
+      "sampleRateHz": 48000,
+      "durationMs": 4526,
+      "sha256": "1c96622241584509f502957bd9b6cde5ac9cd9a74aea6d11d93852ee57405697",
+      "speakerProfileId": "sp-01",
+      "reference": "he drived to the office instead of taking the train",
+      "errorSpans": [
+        {
+          "startToken": 1,
+          "endToken": 1,
+          "kind": "verb-form",
+          "spoken": "drived"
+        }
+      ],
+      "expectPhysicalSilence": false
+    }
+  ]
+}

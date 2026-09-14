@@ -1,0 +1,29 @@
+{
+  "candidateId": "whisper-base-en-ggml",
+  "adapter": "whisper-cpp",
+  "runtime": {
+    "repo": "ggml-org/whisper.cpp",
+    "tag": "v1.9.4",
+    "buildType": "Release",
+    "linkedRuntime": "ggml (vendored in-tree by tag)"
+  },
+  "streamingMode": "simulated-rolling-window",
+  "model": {
+    "repo": "ggerganov/whisper.cpp",
+    "revision": "80da2d8bfee42b0e836fc3a9890373e5defc00a6",
+    "files": [
+      {
+        "path": "ggml-base.en.bin",
+        "bytes": 147964211,
+        "sha256": "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002"
+      }
+    ]
+  },
+  "decoding": {
+    "method": "greedy_search",
+    "numThreads": 2,
+    "provider": "cpu",
+    "enableEndpoint": false
+  },
+  "payloadBytes": 147964211
+}

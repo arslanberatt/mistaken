@@ -1,0 +1,43 @@
+{
+  "candidateId": "sherpa-zipformer-en-20M-2023-02-17-int8",
+  "adapter": "sherpa-onnx",
+  "runtime": {
+    "repo": "k2-fsa/sherpa-onnx",
+    "tag": "v1.13.8",
+    "buildType": "Release",
+    "linkedRuntime": "onnxruntime (vendored by tag)"
+  },
+  "streamingMode": "native-streaming",
+  "model": {
+    "repo": "csukuangfj/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17",
+    "revision": "d42f2d9f7ca24806fb667456a18a9f1b60f70d16",
+    "files": [
+      {
+        "path": "encoder-epoch-99-avg-1.int8.onnx",
+        "bytes": 42845182,
+        "sha256": "3810755ce7c3ab26b42a8bcf39d191308fa27fb0f53358823ba46141d03b7eb3"
+      },
+      {
+        "path": "decoder-epoch-99-avg-1.int8.onnx",
+        "bytes": 539499,
+        "sha256": "21e2a2acd961b3ac72f55be2f10f1a285e1b0b0ba010d7c0b6eab141411b163c"
+      },
+      {
+        "path": "joiner-epoch-99-avg-1.int8.onnx",
+        "bytes": 259572,
+        "sha256": "e085d73b593cf9b0707f370dbd656d58327d3fe36d80d849202ef81df02cb01e"
+      },
+      {
+        "path": "tokens.txt",
+        "bytes": 5048
+      }
+    ]
+  },
+  "decoding": {
+    "method": "greedy_search",
+    "numThreads": 2,
+    "provider": "cpu",
+    "enableEndpoint": true
+  },
+  "payloadBytes": 43649301
+}
