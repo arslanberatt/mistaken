@@ -1,7 +1,20 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "Least-privilege capability for the main window: renders/closes the window and allows plain-text clipboard writes only.",
+  "description": "Least-privilege capability for the main window: renders/closes the window, invokes the four typed runtime commands, listens for the six typed native runtime events (no frontend emit), and allows plain-text clipboard writes only.",
   "windows": ["main"],
-  "permissions": ["core:default", "clipboard-manager:allow-write-text"]
+  "permissions": [
+    "core:app:default",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:image:default",
+    "core:menu:default",
+    "core:path:default",
+    "core:resources:default",
+    "core:tray:default",
+    "core:webview:default",
+    "core:window:default",
+    "clipboard-manager:allow-write-text",
+    "runtime"
+  ]
 }
