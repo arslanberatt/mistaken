@@ -285,33 +285,10 @@ impl RuntimeState {
         }
     }
 
-    /// Truthful pre-backend device listing: no backend means no real
-    /// device can be enumerated, so this always reports `runtime_unavailable`
-    /// and never returns a fabricated device.
-    pub fn list_microphones(&self) -> Result<Vec<MicrophoneDevice>, RuntimeError> {
-        let _ = self;
-        Err(RuntimeError::runtime_unavailable())
+    /// The current overall capture lifecycle status.
+    pub fn capture_status(&self) -> CaptureStatus {
+        self.capture_status
     }
-
-    /// Truthful pre-backend start: no backend exists to satisfy any
-    /// request, so this rejects without mutating state or resources.
-    pub fn begin_start_capture(
-        &mut self,
-        request: &StartCaptureRequest,
-    ) -> Result<CaptureStatus, RuntimeError> {
-        let _ = request;
-        Err(RuntimeError::runtime_unavailable())
-    }
-
-    /// Truthful pre-backend stop: capture can only ever be idle before a
-    /// backend exists, so stopping always reports `capture_not_active`.
-    pub fn begin_stop_capture(&mut self) -> Result<CaptureStatus, RuntimeError> {
-        if self.capture_status == CaptureStatus::Idle {
-            return Err(RuntimeError::capture_not_active());
-        }
-        Err(RuntimeError::runtime_unavailable())
-    }
-
     /// Applies a new capture status. This is a successor contract used by
     /// later specs to drive real transitions; nothing in Spec 03 calls it
     /// in production. Every accepted mutation increments the revision
@@ -384,56 +361,6 @@ mod tests {
             snapshot.system_audio,
             AudioSourceStatus::Unavailable { .. }
         ));
-    }
-
-    #[test]
-    fn list_microphones_rejects_without_a_fake_device() {
-        let state = RuntimeState::new();
-        let error = state.list_microphones().unwrap_err();
-        assert_eq!(error.code, RuntimeErrorCode::RuntimeUnavailable);
-        assert!(error.recoverable);
-    }
-
-    #[test]
-    fn valid_start_capture_rejects_without_mutating_state() {
-        let mut state = RuntimeState::new();
-        let request = StartCaptureRequest {
-            microphone_device_id: Some("default".to_string()),
-            system_audio_enabled: false,
-        };
-        request.validate().expect("request is structurally valid");
-
-        let before = state.snapshot();
-        let error = state.begin_start_capture(&request).unwrap_err();
-        let after = state.snapshot();
-
-        assert_eq!(error.code, RuntimeErrorCode::RuntimeUnavailable);
-        assert_eq!(before, after);
-    }
-
-    #[test]
-    fn stop_while_idle_rejects_with_capture_not_active() {
-        let mut state = RuntimeState::new();
-        let before = state.snapshot();
-        let error = state.begin_stop_capture().unwrap_err();
-        let after = state.snapshot();
-
-        assert_eq!(error.code, RuntimeErrorCode::CaptureNotActive);
-        assert_eq!(before, after);
-    }
-
-    #[test]
-    fn start_stop_start_is_idempotent_before_a_backend_exists() {
-        let mut state = RuntimeState::new();
-        let request = StartCaptureRequest {
-            microphone_device_id: None,
-            system_audio_enabled: true,
-        };
-
-        assert!(state.begin_start_capture(&request).is_err());
-        assert!(state.begin_stop_capture().is_err());
-        assert!(state.begin_start_capture(&request).is_err());
-        assert_eq!(state.snapshot().revision, 0);
     }
 
     #[test]

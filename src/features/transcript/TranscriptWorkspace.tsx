@@ -10,8 +10,9 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
-import { Mic, MonitorSpeaker } from "lucide-react";
+import { MonitorSpeaker } from "lucide-react";
 import type { CaptureStatus } from "../../types/runtime";
 import type { TranscriptSegment } from "../../types/transcript";
 import {
@@ -26,7 +27,7 @@ export interface TranscriptWorkspaceProps {
   readonly sessionError: TranscriptSessionError | null;
   readonly captureStatus: CaptureStatus;
   readonly modelStatusLabel: string;
-  readonly microphoneLabel: string;
+  readonly microphoneControl: ReactNode;
   readonly systemAudioLabel: string;
   readonly elapsedMs: number;
   readonly canStart: boolean;
@@ -91,7 +92,7 @@ export function TranscriptWorkspace({
   sessionError,
   captureStatus,
   modelStatusLabel,
-  microphoneLabel,
+  microphoneControl,
   systemAudioLabel,
   elapsedMs,
   canStart,
@@ -247,10 +248,7 @@ export function TranscriptWorkspace({
         aria-label="Audio sources"
         className="flex flex-wrap items-center gap-4 border-b border-[var(--border-default)] px-6 py-3 text-sm text-[var(--text-secondary)]"
       >
-        <span className="flex items-center gap-2">
-          <Mic aria-hidden="true" className="h-4 w-4" />
-          Mic: {microphoneLabel}
-        </span>
+        <div className="flex items-center gap-2">{microphoneControl}</div>
         <span className="flex items-center gap-2">
           <MonitorSpeaker aria-hidden="true" className="h-4 w-4" />
           System Audio: {systemAudioLabel}

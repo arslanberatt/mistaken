@@ -5,15 +5,20 @@ pub mod commands;
 pub mod events;
 pub mod state;
 
-use std::sync::Mutex;
+use std::sync::Arc;
 
-use state::RuntimeState;
+use audio::microphone::CpalMicrophoneBackend;
+use state::RuntimeManager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let manager = Arc::new(RuntimeManager::<tauri::Wry>::new(Arc::new(
+        CpalMicrophoneBackend,
+    )));
+
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
-        .manage(Mutex::new(RuntimeState::new()))
+        .manage(manager)
         .invoke_handler(tauri::generate_handler![
             commands::runtime::get_runtime_snapshot,
             commands::runtime::list_microphones,
