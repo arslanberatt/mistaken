@@ -1,26 +1,35 @@
 /**
- * Honest desktop bootstrap surface.
+ * Root composition: the honest, unavailable-runtime transcript workspace.
  *
- * Spec 01 owns only this static, truthful shell: the desktop runtime is
- * ready, audio capture and transcription are not configured yet. There is
- * no working-looking control, fake transcript, or hidden startup work.
- * Spec 02 replaces this component with the real transcript workspace.
+ * Native audio/ASR runtime work is not integrated yet, so the committed app
+ * supplies empty transcript state, `captureStatus="idle"`, truthful
+ * unavailable labels, `canStart=false`, and no start/stop callback. It does
+ * not simulate readiness or seed sample transcript content. Later specs
+ * (03 for typed IPC, 04 for microphone integration) map real native state
+ * into this same presentation boundary.
  */
+import { TranscriptWorkspace } from "./features/transcript/TranscriptWorkspace";
+import { useTranscriptSession } from "./features/transcript/use-transcript-session";
+import { writeTranscriptToClipboard } from "./features/transcript/transcript-clipboard";
+
 function App() {
+  const { state, clear } = useTranscriptSession();
+
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
-      <header className="border-b border-[var(--border-default)] px-6 py-4">
-        <h1 className="text-lg font-semibold tracking-tight">Mistaken</h1>
-      </header>
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <p className="text-base font-medium text-[var(--text-primary)]">
-          Desktop runtime ready
-        </p>
-        <p className="max-w-md text-sm text-[var(--text-secondary)]">
-          Audio capture and transcription are not configured yet.
-        </p>
-      </main>
-    </div>
+    <TranscriptWorkspace
+      segments={state.segments}
+      sessionError={state.lastError}
+      captureStatus="idle"
+      modelStatusLabel="Local • Runtime unavailable"
+      microphoneLabel="No microphone available"
+      systemAudioLabel="Not connected"
+      elapsedMs={0}
+      canStart={false}
+      onStartRequested={null}
+      onStopRequested={null}
+      onClearRequested={clear}
+      writeClipboard={writeTranscriptToClipboard}
+    />
   );
 }
 
