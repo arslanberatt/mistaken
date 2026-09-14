@@ -1,0 +1,37 @@
+[package]
+name = "windows-system-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Windows WASAPI loopback system-audio capture adapter for Mistaken. Windows-only, standalone: no dependency on the Mistaken application crate, Tauri, serde, or an ASR crate."
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Frozen: this crate must never be absorbed into the application crate's (or
+# any sibling platform crate's) dependency resolution. See
+# docs/specs/spec-08-windows-system-audio-adapter.md section 5.
+[workspace]
+
+[lib]
+name = "windows_system_audio"
+path = "src/lib.rs"
+
+# Only Microsoft's official `windows` crate resolves, and only on Windows
+# targets. Building this crate for a non-Windows target still resolves an
+# empty dependency set and fails at `lib.rs`'s `compile_error!` guard instead
+# of silently compiling a stub.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", default-features = false, features = [
+    "Win32_Foundation",
+    "Win32_Media_Audio",
+    "Win32_Security",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_Variant",
+    "Wdk_System_SystemServices",
+] }
+
+[[example]]
+name = "system_audio_probe"
+path = "examples/system_audio_probe.rs"
