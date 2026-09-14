@@ -73,8 +73,21 @@ Run on real Windows hardware, with networking disabled, from this directory:
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
+cargo build --all-targets
 cargo run --example system_audio_probe -- 15
 ```
+
+The probe takes options for the scenarios that need them:
+
+```powershell
+cargo run --example system_audio_probe -- 4 --cycles 6
+cargo run --example system_audio_probe -- 12 --sink-queue 4 --sink-delay-ms 200
+```
+
+`--cycles N` runs N consecutive Start → Stop → Start cycles and reports each
+one's start and stop duration; `--sink-queue N` bounds the sink at N pending
+blocks so a slow consumer (`--sink-delay-ms M`) makes `on_block` return
+`false`, exercising the drop-newest path.
 
 Then follow the developer verification flow in spec section 7: known
 playback, idle timeline, resume, long-idle cap, default-endpoint switch,
@@ -82,9 +95,17 @@ device unplug, five Start → Stop → Start cycles with handle/thread/working-s
 inspection, and (optionally) DRM-protected content to confirm it appears as
 silence rather than a diagnosed bug.
 
+**Results actually recorded on real hardware, and the items still not
+exercised, are in `platform-notes-windows.md` under "Real-hardware
+verification status".** Read that before assuming any step of the flow above
+has been run.
+
 The probe never writes audio to disk and never prints a sample value; its
-output is aggregate statistics only (rate, channel count, source encoding
-branch, block count, windowed peak/RMS, and the full counter set).
+output is aggregate statistics only: sample rate, source encoding branch,
+block count and block length, windowed and cumulative peak/RMS, and the full
+counter set. Note that the reported `channels` is always `1` — it is the
+delivered mono count, not the endpoint's channel count, which no public API
+exposes.
 
 ## Public API
 
