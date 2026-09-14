@@ -44,9 +44,43 @@ pub struct ModelStatusEvent {
 /// to a structured internal error instead of panicking; callers decide
 /// whether that failure should replace or accompany the error already being
 /// reported to the command's own caller.
-pub fn emit_capture_error(app: &AppHandle, error: &RuntimeError) -> Result<(), RuntimeError> {
+pub fn emit_capture_error<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    error: &RuntimeError,
+) -> Result<(), RuntimeError> {
     app.emit_to("main", CAPTURE_ERROR_EVENT, error)
         .map_err(|_| RuntimeError::internal("failed to emit capture:error to the main window"))
+}
+
+/// Emits a `capture:status` full-snapshot payload to the `main` window.
+/// Callers apply the state transition, release the state lock, and only
+/// then call this — no Tauri emission happens while the runtime lock is
+/// held.
+pub fn emit_capture_status<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    snapshot: RuntimeSnapshot,
+) -> Result<(), RuntimeError> {
+    app.emit_to(
+        "main",
+        CAPTURE_STATUS_EVENT,
+        CaptureStatusEvent { snapshot },
+    )
+    .map_err(|_| RuntimeError::internal("failed to emit capture:status to the main window"))
+}
+
+/// Emits an `audio:status` full-snapshot payload, tagged with the source
+/// whose status changed, to the `main` window.
+pub fn emit_audio_status<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    source: TranscriptSource,
+    snapshot: RuntimeSnapshot,
+) -> Result<(), RuntimeError> {
+    app.emit_to(
+        "main",
+        AUDIO_STATUS_EVENT,
+        AudioStatusEvent { source, snapshot },
+    )
+    .map_err(|_| RuntimeError::internal("failed to emit audio:status to the main window"))
 }
 
 #[cfg(test)]

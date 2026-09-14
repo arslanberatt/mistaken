@@ -10,7 +10,7 @@ function renderWorkspace(overrides: Partial<TranscriptWorkspaceProps> = {}) {
     sessionError: null,
     captureStatus: "idle",
     modelStatusLabel: "Local • Runtime unavailable",
-    microphoneLabel: "No microphone available",
+    microphoneControl: "No microphone available",
     systemAudioLabel: "Not connected",
     elapsedMs: 0,
     canStart: false,
@@ -335,7 +335,7 @@ describe("TranscriptWorkspace copy behavior", () => {
           sessionError={null}
           captureStatus="idle"
           modelStatusLabel="Local • Runtime unavailable"
-          microphoneLabel="No microphone available"
+          microphoneControl="No microphone available"
           systemAudioLabel="Not connected"
           elapsedMs={0}
           canStart={false}

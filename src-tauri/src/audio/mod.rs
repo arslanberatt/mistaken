@@ -13,6 +13,12 @@
 
 use std::num::{NonZeroU16, NonZeroU32};
 
+// Spec 04 focused registration: the frozen contract below is unchanged;
+// these are the concrete producer implementations (bounded block pool) and
+// the microphone capture backend that consume it.
+pub mod buffer;
+pub mod microphone;
+
 /// Structural origin of captured audio. Never inferred from content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioSource {
