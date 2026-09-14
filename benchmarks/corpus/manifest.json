@@ -8,12 +8,12 @@
     {
       "id": "sp-01",
       "consentGiven": false,
-      "notes": "Synthetic macOS `say` text-to-speech voice (Samantha, en_US); no human subject exists for this profile, so protocol.md section 3's human informed-consent step is inapplicable and was not performed. Recorded as a spec deviation and blocking limitation in reports/approval.md."
+      "notes": "PENDING real human recording (Spec 05 remediation, branch spec/05-remediation). Prior TTS-synthesized evidence for this profile id was discarded; do not reuse it. consentGiven must be flipped to true only after the speaker has actually given informed consent per protocol.md section 3, and only by the operator who obtained that consent."
     },
     {
       "id": "sp-02",
       "consentGiven": false,
-      "notes": "Synthetic macOS `say` text-to-speech voice (Daniel, en_GB) used for system-playback second-speaker clips; no human subject exists for this profile. Same deviation as sp-01."
+      "notes": "PENDING real human recording (Spec 05 remediation, branch spec/05-remediation), used for system-playback second-speaker clips per protocol.md section 6b. Prior TTS-synthesized evidence for this profile id was discarded; do not reuse it. consentGiven must be flipped to true only after the speaker has actually given informed consent per protocol.md section 3, and only by the operator who obtained that consent."
     }
   ],
   "clips": [
