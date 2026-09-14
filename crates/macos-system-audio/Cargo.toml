@@ -1,0 +1,55 @@
+[package]
+name = "macos-system-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Standalone macOS ScreenCaptureKit system-audio capture adapter for Mistaken."
+publish = false
+
+# Deliberately empty: this crate must never be absorbed into the application
+# crate's workspace/dependency resolution while other Wave 3 worktrees have
+# parallel writers. It owns its own Cargo.lock.
+[workspace]
+
+[lib]
+name = "macos_system_audio"
+path = "src/lib.rs"
+
+[[example]]
+name = "system_audio_probe"
+path = "examples/system_audio_probe.rs"
+
+[dependencies]
+parking_lot = "0.12"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+dispatch2 = { version = "0.3", features = ["objc2"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSObject", "NSString", "NSProcessInfo", "NSArray", "NSError"] }
+objc2-screen-capture-kit = { version = "0.3", default-features = false, features = [
+  "std",
+  "objc2-core-foundation",
+  "objc2-core-graphics",
+  "objc2-core-media",
+  "dispatch2",
+  "block2",
+  "SCStream",
+  "SCShareableContent",
+] }
+objc2-core-media = { version = "0.3", default-features = false, features = [
+  "std",
+  "objc2",
+  "block2",
+  "dispatch2",
+  "CMBase",
+  "CMSampleBuffer",
+  "CMFormatDescription",
+  "CMBlockBuffer",
+  "CMTime",
+  "objc2-core-audio-types",
+] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGWindow"] }
+objc2-core-audio-types = { version = "0.3", default-features = false, features = ["std"] }
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std"] }
+
+[dev-dependencies]
