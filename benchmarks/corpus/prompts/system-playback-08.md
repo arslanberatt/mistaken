@@ -1,0 +1,12 @@
+# system-playback-08
+
+**Condition:** `system-playback` — Second-speaker utterance for loudspeaker playback
+**Speaker profile:** `sp-02`
+**Delivery:** Speak at a natural, relaxed conversational pace.
+**Recording method:** capture via loudspeaker playback per protocol.md §6b, simulating a second/system speaker.
+
+Read exactly as written, including any deliberately incorrect grammar. Do not correct the sentence while reading it.
+
+```text
+Did you already talk to him about the schedule?
+```

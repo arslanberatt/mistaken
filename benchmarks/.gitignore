@@ -1,0 +1,23 @@
+# Spec 05 benchmark subtree ignores.
+# Recordings, model weights, vendored runtime sources, and run outputs are
+# operator-local evidence. They are reproducible from the committed manifest,
+# candidate descriptors, and protocol, so they never enter version control.
+
+# Real/synthesized speech recordings (never commit audio).
+corpus/clips/
+
+# Downloaded/verified local ASR model weight files.
+models/
+
+# Per-run scored artifacts, hypotheses, and logs.
+runs/
+
+# Vendored upstream runtime source checkouts (sherpa-onnx, whisper.cpp).
+.vendor/
+
+# Adapter build output directories.
+adapters/**/build/
+adapters/**/target/
+
+# Harness build output (kept out of the app workspace; still ignore locally).
+harness/target/

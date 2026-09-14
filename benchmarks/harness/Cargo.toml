@@ -1,0 +1,25 @@
+[package]
+name = "mistaken-bench"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.98.1"
+description = "Spec 05 local ASR benchmark harness: corpus validation, adapter orchestration, scoring, and reporting. Standalone crate, never joins the Mistaken application workspace."
+publish = false
+
+# Deliberately empty workspace table: this crate never joins the root
+# Mistaken application workspace. See docs/specs/spec-05-asr-benchmark-license-gate.md
+# section 6, "Produced -- harness CLI".
+[workspace]
+
+[[bin]]
+name = "mistaken-bench"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+hound = "3.5"
+sha2 = "0.10"
+
+[dev-dependencies]
