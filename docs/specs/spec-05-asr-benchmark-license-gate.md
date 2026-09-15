@@ -184,7 +184,7 @@ Minimum corpus: **122 clips, ≥ 20 minutes total**, 16 kHz mono `pcm_s16le`, wi
 | `fast-speech` | 12 | Rapid delivery of the same error families. |
 | `system-playback` | 16 | Second-speaker style utterances captured from loudspeaker playback for later `- ` source work. |
 | `noise-silence` | 12 | Room noise, typing, music bed, plus at least four clips of ≥ 10 s physical silence with `expectPhysicalSilence: true` and an empty `reference`. |
-| `long-turn` | 8 | 60–120 s continuous speech mixing conditions, for drift and memory growth. |
+| `long-turn` | 8 | 60–180 s continuous speech mixing conditions, for drift and memory growth. |
 
 Recording protocol (`corpus/protocol.md`) fixes: one quiet room, one microphone per speaker profile, no post-processing, no noise suppression, no normalization, no trimming beyond leading/trailing silence bounds stated in the protocol, and explicit informed consent from every recorded speaker with the consent fact recorded as a boolean per profile and no identity stored.
 
@@ -406,7 +406,7 @@ Runs execute with the machine on AC power, no other benchmark load, and the reco
 
 ### Bounded buffering
 
-- The adapter reads each WAV in bounded frames (≤ 1 s) and feeds the recognizer in `chunkMs` blocks; it does not load a 120 s long-turn clip into a recognizer-sized single buffer beyond that bound.
+- The adapter reads each WAV in bounded frames (≤ 1 s) and feeds the recognizer in `chunkMs` blocks; it does not load a 180 s long-turn clip into a recognizer-sized single buffer beyond that bound.
 - The harness holds at most the current clip’s event list in memory and appends scored results to disk per clip; it never accumulates all hypotheses for all candidates in memory.
 - Adapter stdout is consumed continuously so a chatty partial stream cannot fill an OS pipe buffer and deadlock the run.
 - NDJSON lines are capped at 64 KiB; a longer line is a protocol error for that clip, not an unbounded allocation.
@@ -448,7 +448,7 @@ Any clip failure is reported; aggregate metrics state how many clips contributed
 11. **Accuracy gate — both hosts:** The approved candidate achieves **WER ≤ 0.25** on the full Mistaken corpus and **WER ≤ 0.12** on the `fluent-control` subset on both hosts.
 12. **Hallucination gate — both hosts:** On `expectPhysicalSilence` clips the approved candidate emits zero non-empty finals; on the remaining `noise-silence` clips its insertion rate is ≤ 0.02 tokens per second of audio.
 13. **Latency and throughput gate — both hosts:** In `realtime` pace, median first-partial latency ≤ 900 ms and p95 final-after-endpoint latency ≤ 1500 ms; in `asap` pace, RTF ≤ 0.6 single-stream and ≤ 0.9 with two concurrent streams of the same candidate.
-14. **Resource gate — both hosts:** Peak RSS ≤ 700 MB single-stream and ≤ 1.4 GB for two concurrent streams; sustained CPU during a `long-turn` clip ≤ 60% of one performance core per stream; a 120 s clip shows no monotonic RSS growth beyond 5% after the first 30 s.
+14. **Resource gate — both hosts:** Peak RSS ≤ 700 MB single-stream and ≤ 1.4 GB for two concurrent streams; sustained CPU during a `long-turn` clip ≤ 60% of one performance core per stream; a 180 s clip shows no monotonic RSS growth beyond 5% after the first 30 s.
 15. **Size gate and payload record — report:** The approved candidate’s total model payload is ≤ 120 MB uncompressed per platform and its measured compressed payload is recorded; any candidate exceeding it is marked bundling-blocked with its exact payload, and the record states whether a separately packaged local resource is required.
 16. **License gate — license record:** Every candidate row is complete: runtime license, linked inference-runtime license, weight license, upstream provenance license (including “none declared” where true), training-data terms, required attribution text, redistribution verdict, primary source URL, and retrieval date. A candidate with an `unclear` verdict cannot be approved. The approved candidate’s attribution text is written out verbatim for Specs 13–14 to ship.
 17. **Explicit approval or explicit blocker — report:** `reports/approval.md` names exactly one approved candidate with per-gate measured values from both hosts, or records a blocker naming the failing gate and measurement for every candidate, plus the recommended next action. No approval exists without both hosts’ numbers.

@@ -33,7 +33,7 @@ pub const MIN_TOTAL_DURATION_MS: u64 = 20 * 60 * 1000;
 pub const MIN_PHYSICAL_SILENCE_CLIPS: usize = 4;
 pub const MIN_PHYSICAL_SILENCE_MS: u64 = 10_000;
 pub const LONG_TURN_MIN_MS: u64 = 60_000;
-pub const LONG_TURN_MAX_MS: u64 = 120_000;
+pub const LONG_TURN_MAX_MS: u64 = 180_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SampleFormat {
