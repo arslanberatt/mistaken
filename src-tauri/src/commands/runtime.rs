@@ -2,17 +2,15 @@
 //!
 //! Every handler validates its own input (if any) and delegates to
 //! [`RuntimeManager`], which owns the actual state machine, native
-//! microphone lifecycle, and event emission. No command performs audio or
+//! audio lifecycle, and event emission. No command performs audio or
 //! ASR work directly.
 
 use std::sync::Arc;
 
 use tauri::{AppHandle, State};
 
-use crate::events;
 use crate::state::runtime::{
     CaptureStatus, MicrophoneDevice, RuntimeError, RuntimeSnapshot, StartCaptureRequest,
-    TranscriptSource,
 };
 use crate::state::RuntimeManager;
 
@@ -39,15 +37,13 @@ pub async fn start_capture(
 ) -> Result<CaptureStatus, RuntimeError> {
     request.validate()?;
 
-    if request.system_audio_enabled {
-        let error = RuntimeError::runtime_unavailable().with_source(TranscriptSource::System);
-        let _ = events::emit_capture_error(&app, &error);
-        return Err(error);
-    }
-
     let manager = manager.inner().clone();
     manager
-        .start_microphone(app, request.microphone_device_id)
+        .start_capture(
+            app,
+            request.microphone_device_id,
+            request.system_audio_enabled,
+        )
         .await
 }
 
@@ -57,5 +53,5 @@ pub async fn stop_capture(
     app: AppHandle,
 ) -> Result<CaptureStatus, RuntimeError> {
     let manager = manager.inner().clone();
-    manager.stop_microphone(app).await
+    manager.stop_capture(app).await
 }

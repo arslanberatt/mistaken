@@ -39,7 +39,11 @@ strip = true
 block2 = "0.6.2"
 objc2 = { version = "0.6.4", default-features = false, features = ["std"] }
 objc2-av-foundation = { version = "0.3.2", default-features = false, features = ["std", "AVCaptureDevice", "AVMediaFormat", "block2"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSProcessInfo"] }
+macos-system-audio = { path = "../crates/macos-system-audio" }
 
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-system-audio = { path = "../crates/windows-system-audio" }
 [dev-dependencies]
 parking_lot = "0.12.5"
 tauri = { version = "2", features = ["test"] }

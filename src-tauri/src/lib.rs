@@ -17,6 +17,7 @@ use state::RuntimeManager;
 pub fn run() {
     let manager = Arc::new(RuntimeManager::<tauri::Wry>::new(
         Arc::new(CpalMicrophoneBackend),
+        audio::system::default_backend(),
         Arc::new(SherpaModelLoader::new(&DEVELOPMENT_MANIFEST)),
     ));
     let setup_manager = manager.clone();
@@ -29,6 +30,7 @@ pub fn run() {
             // an honest `Development ASR • Not release approved` /
             // `Model missing` state before the user ever presses Start.
             setup_manager.initialize_model_presence(app.handle());
+            setup_manager.initialize_system_audio_presence(app.handle());
             Ok(())
         })
         .manage(manager)

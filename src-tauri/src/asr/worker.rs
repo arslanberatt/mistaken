@@ -9,21 +9,30 @@ use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
 use super::chunk_pool::AsrChunkConsumer;
-use super::recognizer::{AsrError, RecognizedSegment, StreamingRecognizer};
+use super::recognizer::{RecognizedSegment, StreamingRecognizer};
+use super::AsrError;
 use super::{LAGGING_REPORT_INTERVAL, PARTIAL_THROTTLE, WORKER_TICK};
+use crate::audio::AudioSource;
 
 /// Observed directly on the worker thread; implemented by the Tauri-facing
 /// runtime layer. Every method must be cheap, non-blocking, and
 /// panic-free.
 pub trait AsrWorkerObserver: Send + Sync + 'static {
-    fn on_partial(&self, segment_id: &str, text: &str, started_at_ms: u64);
-    fn on_final(&self, segment_id: &str, text: &str, started_at_ms: u64, ended_at_ms: u64);
+    fn on_partial(&self, source: AudioSource, segment_id: &str, text: &str, started_at_ms: u64);
+    fn on_final(
+        &self,
+        source: AudioSource,
+        segment_id: &str,
+        text: &str,
+        started_at_ms: u64,
+        ended_at_ms: u64,
+    );
     /// The ASR chunk pool dropped at least one chunk's worth of audio
     /// since the last report; capture and transcription continue.
-    fn on_lagging(&self);
+    fn on_lagging(&self, source: AudioSource);
     /// A recognizer error ended the session; every resource is released
     /// by the caller, the existing transcript is preserved.
-    fn on_error(&self, error: AsrError);
+    fn on_error(&self, source: AudioSource, error: AsrError);
 }
 
 /// Collapses runs of internal whitespace to one space; trimming already
@@ -36,9 +45,11 @@ fn collapse_whitespace(text: &str) -> String {
 }
 
 struct SegmentTracker {
+    source: AudioSource,
     session_id: u64,
     segment_index: u64,
     sample_rate_hz: u32,
+    source_start_offset_ms: u64,
     fed_samples: u64,
     started_at_ms: Option<u64>,
     last_partial_text: Option<String>,
@@ -46,11 +57,18 @@ struct SegmentTracker {
 }
 
 impl SegmentTracker {
-    fn new(session_id: u64, sample_rate_hz: u32) -> Self {
+    fn new(
+        source: AudioSource,
+        session_id: u64,
+        sample_rate_hz: u32,
+        source_start_offset_ms: u64,
+    ) -> Self {
         Self {
+            source,
             session_id,
             segment_index: 0,
             sample_rate_hz,
+            source_start_offset_ms,
             fed_samples: 0,
             started_at_ms: None,
             last_partial_text: None,
@@ -59,11 +77,15 @@ impl SegmentTracker {
     }
 
     fn segment_id(&self) -> String {
-        format!("mic-{}-{}", self.session_id, self.segment_index)
+        match self.source {
+            AudioSource::Microphone => format!("mic-{}-{}", self.session_id, self.segment_index),
+            AudioSource::System => format!("sys-{}-{}", self.session_id, self.segment_index),
+        }
     }
 
     fn ms_for(&self, samples: u64) -> u64 {
-        (u128::from(samples) * 1000 / u128::from(self.sample_rate_hz.max(1))) as u64
+        self.source_start_offset_ms
+            + (u128::from(samples) * 1000 / u128::from(self.sample_rate_hz.max(1))) as u64
     }
 
     fn current_ms(&self) -> u64 {
@@ -81,7 +103,7 @@ impl SegmentTracker {
             if !text.is_empty() {
                 let started = self.started_at_ms.unwrap_or_else(|| self.current_ms());
                 let ended = self.current_ms();
-                observer.on_final(&self.segment_id(), &text, started, ended);
+                observer.on_final(self.source, &self.segment_id(), &text, started, ended);
                 self.segment_index += 1;
             }
             self.started_at_ms = None;
@@ -107,7 +129,12 @@ impl SegmentTracker {
         }
         self.last_partial_text = Some(text.clone());
         self.last_partial_emit = Some(now);
-        observer.on_partial(&self.segment_id(), &text, self.started_at_ms.unwrap_or(0));
+        observer.on_partial(
+            self.source,
+            &self.segment_id(),
+            &text,
+            self.started_at_ms.unwrap_or(self.source_start_offset_ms),
+        );
     }
 }
 
@@ -121,23 +148,36 @@ pub struct AsrWorker {
 
 impl AsrWorker {
     pub fn spawn(
+        source: AudioSource,
         consumer: AsrChunkConsumer,
         stream: Box<dyn StreamingRecognizer>,
         sample_rate_hz: u32,
         session_id: u64,
+        source_start_offset_ms: u64,
         observer: Arc<dyn AsrWorkerObserver>,
     ) -> Self {
+        let name = match source {
+            AudioSource::Microphone => "mistaken-asr-mic-worker",
+            AudioSource::System => "mistaken-asr-sys-worker",
+        };
         let join = thread::Builder::new()
-            .name("mistaken-asr-worker".into())
-            .spawn(move || run(consumer, stream, sample_rate_hz, session_id, observer))
+            .name(name.into())
+            .spawn(move || {
+                run(
+                    source,
+                    consumer,
+                    stream,
+                    sample_rate_hz,
+                    session_id,
+                    source_start_offset_ms,
+                    observer,
+                )
+            })
             .expect("failed to spawn ASR worker thread");
         Self { join: Some(join) }
     }
 
-    /// Blocks until the worker has drained remaining chunks, run the
-    /// bounded finish drain, and exited. Safe to call at most once;
-    /// `Drop` is the fallback for callers that skip it.
-    pub fn stop(mut self) {
+    pub fn stop(&mut self) {
         if let Some(join) = self.join.take() {
             join_unless_self(join);
         }
@@ -146,31 +186,28 @@ impl AsrWorker {
 
 impl Drop for AsrWorker {
     fn drop(&mut self) {
-        if let Some(join) = self.join.take() {
-            join_unless_self(join);
-        }
+        self.stop();
     }
 }
 
-/// Mirrors `MicrophoneMonitor`'s self-join guard: an observer callback
-/// that drops the worker from inside the worker thread itself must not
-/// join that thread (`pthread_join`/`WaitForSingleObject` on one's own
-/// thread deadlocks or hangs forever).
 fn join_unless_self(join: JoinHandle<()>) {
-    if join.thread().id() == thread::current().id() {
+    if thread::current().id() == join.thread().id() {
         return;
     }
     let _ = join.join();
 }
 
 fn run(
+    source: AudioSource,
     mut consumer: AsrChunkConsumer,
     mut stream: Box<dyn StreamingRecognizer>,
     sample_rate_hz: u32,
     session_id: u64,
+    source_start_offset_ms: u64,
     observer: Arc<dyn AsrWorkerObserver>,
 ) {
-    let mut tracker = SegmentTracker::new(session_id, sample_rate_hz);
+    let mut tracker =
+        SegmentTracker::new(source, session_id, sample_rate_hz, source_start_offset_ms);
     let mut segments: Vec<RecognizedSegment> = Vec::new();
     let mut last_overflow_report: Option<Instant> = None;
     let mut last_overflow_total = 0_u64;
@@ -182,14 +219,14 @@ fn run(
             let valid = &chunk.samples[..chunk.valid_samples];
 
             if let Err(error) = stream.accept(valid) {
-                observer.on_error(error);
+                observer.on_error(source, error);
                 break 'outer;
             }
             tracker.record_fed_samples(chunk.valid_samples);
 
             segments.clear();
             if let Err(error) = stream.poll(&mut segments) {
-                observer.on_error(error);
+                observer.on_error(source, error);
                 break 'outer;
             }
             for segment in segments.drain(..) {
@@ -206,7 +243,7 @@ fn run(
                 .map(|previous| now.duration_since(previous) >= LAGGING_REPORT_INTERVAL)
                 .unwrap_or(true);
             if should_report {
-                observer.on_lagging();
+                observer.on_lagging(source);
                 last_overflow_report = Some(now);
             }
             last_overflow_total = overflow_total;
@@ -222,7 +259,7 @@ fn run(
 
     segments.clear();
     if let Err(error) = stream.finish(&mut segments) {
-        observer.on_error(error);
+        observer.on_error(source, error);
         return;
     }
     for segment in segments.drain(..) {
@@ -241,18 +278,20 @@ mod tests {
     #[derive(Debug, Clone, PartialEq)]
     enum Event {
         Partial {
+            source: AudioSource,
             id: String,
             text: String,
             started_at_ms: u64,
         },
         Final {
+            source: AudioSource,
             id: String,
             text: String,
             started_at_ms: u64,
             ended_at_ms: u64,
         },
-        Lagging,
-        Error,
+        Lagging(AudioSource),
+        Error(AudioSource),
     }
 
     #[derive(Default)]
@@ -260,33 +299,44 @@ mod tests {
         events: PlMutex<Vec<Event>>,
     }
     impl AsrWorkerObserver for RecordingObserver {
-        fn on_partial(&self, segment_id: &str, text: &str, started_at_ms: u64) {
+        fn on_partial(
+            &self,
+            source: AudioSource,
+            segment_id: &str,
+            text: &str,
+            started_at_ms: u64,
+        ) {
             self.events.lock().push(Event::Partial {
+                source,
                 id: segment_id.to_string(),
                 text: text.to_string(),
                 started_at_ms,
             });
         }
-        fn on_final(&self, segment_id: &str, text: &str, started_at_ms: u64, ended_at_ms: u64) {
+        fn on_final(
+            &self,
+            source: AudioSource,
+            segment_id: &str,
+            text: &str,
+            started_at_ms: u64,
+            ended_at_ms: u64,
+        ) {
             self.events.lock().push(Event::Final {
+                source,
                 id: segment_id.to_string(),
                 text: text.to_string(),
                 started_at_ms,
                 ended_at_ms,
             });
         }
-        fn on_lagging(&self) {
-            self.events.lock().push(Event::Lagging);
+        fn on_lagging(&self, source: AudioSource) {
+            self.events.lock().push(Event::Lagging(source));
         }
-        fn on_error(&self, _error: AsrError) {
-            self.events.lock().push(Event::Error);
+        fn on_error(&self, source: AudioSource, _error: AsrError) {
+            self.events.lock().push(Event::Error(source));
         }
     }
 
-    /// A fake recognizer that echoes scripted `RecognizedSegment`s back
-    /// verbatim on the next `poll()`/`finish()` call. Proves the worker
-    /// applies no transformation beyond whitespace collapsing — there is
-    /// no dictionary, no correction, no dependency on sherpa-onnx.
     struct ScriptedRecognizer {
         accepted_samples: StdAtomicU64,
         script: PlMutex<Vec<RecognizedSegment>>,
@@ -309,8 +359,10 @@ mod tests {
     }
 
     fn spawn_worker_with_script(
+        source: AudioSource,
         script: Vec<RecognizedSegment>,
         finish_script: Vec<RecognizedSegment>,
+        offset_ms: u64,
     ) -> (AsrChunkFeeder, AsrWorker, Arc<RecordingObserver>) {
         let (producer, consumer) = build_asr_pool(4);
         let feeder = AsrChunkFeeder::new(producer, 4);
@@ -320,18 +372,28 @@ mod tests {
             finish_script: PlMutex::new(finish_script),
         });
         let observer = Arc::new(RecordingObserver::default());
-        let worker = AsrWorker::spawn(consumer, recognizer, 16_000, 7, observer.clone());
+        let worker = AsrWorker::spawn(
+            source,
+            consumer,
+            recognizer,
+            16_000,
+            7,
+            offset_ms,
+            observer.clone(),
+        );
         (feeder, worker, observer)
     }
 
     #[test]
     fn emits_verbatim_text_with_only_whitespace_collapsed() {
-        let (mut feeder, worker, observer) = spawn_worker_with_script(
+        let (mut feeder, mut worker, observer) = spawn_worker_with_script(
+            AudioSource::Microphone,
             vec![RecognizedSegment {
                 text: "I  actually   have went".to_string(),
                 is_final: false,
             }],
             Vec::new(),
+            0,
         );
         feeder.accept(&[0.0; 4]);
         std::thread::sleep(Duration::from_millis(80));
@@ -342,6 +404,7 @@ mod tests {
         assert_eq!(
             events,
             vec![Event::Partial {
+                source: AudioSource::Microphone,
                 id: "mic-7-0".to_string(),
                 text: "I actually have went".to_string(),
                 started_at_ms: 0,
@@ -351,18 +414,20 @@ mod tests {
 
     #[test]
     fn final_segment_increments_segment_index_and_resets_partial_state() {
-        let (mut feeder, worker, observer) = spawn_worker_with_script(
+        let (mut feeder, mut worker, observer) = spawn_worker_with_script(
+            AudioSource::Microphone,
             vec![
                 RecognizedSegment {
-                    text: "hello".to_string(),
-                    is_final: false,
+                    text: "first sentence".to_string(),
+                    is_final: true,
                 },
                 RecognizedSegment {
-                    text: "hello there".to_string(),
-                    is_final: true,
+                    text: "second".to_string(),
+                    is_final: false,
                 },
             ],
             Vec::new(),
+            0,
         );
         feeder.accept(&[0.0; 4]);
         std::thread::sleep(Duration::from_millis(80));
@@ -370,14 +435,30 @@ mod tests {
         worker.stop();
 
         let events = observer.events.lock().clone();
-        assert_eq!(events.len(), 2);
-        assert!(matches!(&events[0], Event::Partial { id, .. } if id == "mic-7-0"));
-        assert!(matches!(&events[1], Event::Final { id, .. } if id == "mic-7-0"));
+        assert_eq!(
+            events,
+            vec![
+                Event::Final {
+                    source: AudioSource::Microphone,
+                    id: "mic-7-0".to_string(),
+                    text: "first sentence".to_string(),
+                    started_at_ms: 0,
+                    ended_at_ms: 0,
+                },
+                Event::Partial {
+                    source: AudioSource::Microphone,
+                    id: "mic-7-1".to_string(),
+                    text: "second".to_string(),
+                    started_at_ms: 0,
+                },
+            ]
+        );
     }
 
     #[test]
     fn empty_text_segments_are_never_emitted() {
-        let (mut feeder, worker, observer) = spawn_worker_with_script(
+        let (mut feeder, mut worker, observer) = spawn_worker_with_script(
+            AudioSource::Microphone,
             vec![
                 RecognizedSegment {
                     text: "   ".to_string(),
@@ -389,45 +470,137 @@ mod tests {
                 },
             ],
             Vec::new(),
+            0,
         );
         feeder.accept(&[0.0; 4]);
         std::thread::sleep(Duration::from_millis(80));
         drop(feeder);
         worker.stop();
 
-        assert!(observer.events.lock().is_empty());
+        let events = observer.events.lock().clone();
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn system_source_generates_sys_ids_and_offsets() {
+        let (mut feeder, mut worker, observer) = spawn_worker_with_script(
+            AudioSource::System,
+            vec![
+                RecognizedSegment {
+                    text: "Hello from system".to_string(),
+                    is_final: false,
+                },
+                RecognizedSegment {
+                    text: "Hello from system".to_string(),
+                    is_final: true,
+                },
+            ],
+            Vec::new(),
+            150, // 150 ms offset
+        );
+        feeder.accept(&[0.0; 16]);
+        std::thread::sleep(Duration::from_millis(50));
+        drop(feeder);
+        worker.stop();
+
+        let events = observer.events.lock().clone();
+        assert_eq!(events.len(), 2);
+        match &events[0] {
+            Event::Partial {
+                source,
+                id,
+                text,
+                started_at_ms,
+            } => {
+                assert_eq!(*source, AudioSource::System);
+                assert_eq!(id, "sys-7-0");
+                assert_eq!(text, "Hello from system");
+                assert_eq!(*started_at_ms, 150);
+            }
+            other => panic!("expected partial, got {:?}", other),
+        }
+        match &events[1] {
+            Event::Final {
+                source,
+                id,
+                text,
+                started_at_ms,
+                ended_at_ms,
+            } => {
+                assert_eq!(*source, AudioSource::System);
+                assert_eq!(id, "sys-7-0");
+                assert_eq!(text, "Hello from system");
+                assert_eq!(*started_at_ms, 150);
+                assert_eq!(*ended_at_ms, 150);
+                // Spec 09 AC 10: native text must NEVER contain leading "- "!
+                assert!(!text.starts_with("- "));
+            }
+            other => panic!("expected final, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn worker_exits_promptly_once_feeder_finishes_with_no_pending_chunks() {
+        let (producer, consumer) = build_asr_pool(4);
+        let feeder = AsrChunkFeeder::new(producer, 4);
+        let recognizer: Box<dyn StreamingRecognizer> = Box::new(ScriptedRecognizer {
+            accepted_samples: StdAtomicU64::new(0),
+            script: PlMutex::new(Vec::new()),
+            finish_script: PlMutex::new(Vec::new()),
+        });
+        let observer = Arc::new(RecordingObserver::default());
+        let mut worker = AsrWorker::spawn(
+            AudioSource::Microphone,
+            consumer,
+            recognizer,
+            16_000,
+            1,
+            0,
+            observer,
+        );
+
+        drop(feeder);
+        let start = Instant::now();
+        worker.stop();
+        assert!(start.elapsed() < Duration::from_millis(300));
     }
 
     #[test]
     fn finish_drain_emits_the_closing_final_after_teardown() {
-        let (mut feeder, worker, observer) = spawn_worker_with_script(
-            Vec::new(),
-            vec![RecognizedSegment {
-                text: "closing line".to_string(),
+        let (producer, consumer) = build_asr_pool(4);
+        let feeder = AsrChunkFeeder::new(producer, 4);
+        let recognizer: Box<dyn StreamingRecognizer> = Box::new(ScriptedRecognizer {
+            accepted_samples: StdAtomicU64::new(0),
+            script: PlMutex::new(Vec::new()),
+            finish_script: PlMutex::new(vec![RecognizedSegment {
+                text: "closing utterance".to_string(),
                 is_final: true,
-            }],
+            }]),
+        });
+        let observer = Arc::new(RecordingObserver::default());
+        let mut worker = AsrWorker::spawn(
+            AudioSource::Microphone,
+            consumer,
+            recognizer,
+            16_000,
+            42,
+            0,
+            observer.clone(),
         );
-        feeder.accept(&[0.0; 2]); // partial chunk, flushed by feeder's finish()
-        drop(feeder); // signals finished; worker proceeds to bounded finish drain
+
+        drop(feeder);
         worker.stop();
 
         let events = observer.events.lock().clone();
         assert_eq!(
             events,
             vec![Event::Final {
-                id: "mic-7-0".to_string(),
-                text: "closing line".to_string(),
+                source: AudioSource::Microphone,
+                id: "mic-42-0".to_string(),
+                text: "closing utterance".to_string(),
                 started_at_ms: 0,
                 ended_at_ms: 0,
             }]
         );
-    }
-
-    #[test]
-    fn worker_exits_promptly_once_feeder_finishes_with_no_pending_chunks() {
-        let (feeder, worker, _observer) = spawn_worker_with_script(Vec::new(), Vec::new());
-        drop(feeder);
-        // `stop()` blocks until the thread exits; a hang here fails the test.
-        worker.stop();
     }
 }

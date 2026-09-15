@@ -28,7 +28,8 @@ export interface TranscriptWorkspaceProps {
   readonly captureStatus: CaptureStatus;
   readonly modelStatusLabel: string;
   readonly microphoneControl: ReactNode;
-  readonly systemAudioLabel: string;
+  readonly systemAudioControl?: ReactNode;
+  readonly systemAudioLabel?: string;
   readonly elapsedMs: number;
   readonly canStart: boolean;
   readonly onStartRequested: (() => void) | null;
@@ -93,6 +94,7 @@ export function TranscriptWorkspace({
   captureStatus,
   modelStatusLabel,
   microphoneControl,
+  systemAudioControl,
   systemAudioLabel,
   elapsedMs,
   canStart,
@@ -249,10 +251,12 @@ export function TranscriptWorkspace({
         className="flex flex-wrap items-center gap-4 border-b border-[var(--border-default)] px-6 py-3 text-sm text-[var(--text-secondary)]"
       >
         <div className="flex items-center gap-2">{microphoneControl}</div>
-        <span className="flex items-center gap-2">
-          <MonitorSpeaker aria-hidden="true" className="h-4 w-4" />
-          System Audio: {systemAudioLabel}
-        </span>
+        {systemAudioControl ?? (
+          <span className="flex items-center gap-2">
+            <MonitorSpeaker aria-hidden="true" className="h-4 w-4" />
+            System Audio: {systemAudioLabel ?? "Not connected"}
+          </span>
+        )}
       </section>
 
       <section

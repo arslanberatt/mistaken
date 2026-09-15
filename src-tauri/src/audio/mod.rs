@@ -18,6 +18,7 @@ use std::num::{NonZeroU16, NonZeroU32};
 // the microphone capture backend that consume it.
 pub mod buffer;
 pub mod microphone;
+pub mod system;
 
 /// Structural origin of captured audio. Never inferred from content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

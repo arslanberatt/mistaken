@@ -14,6 +14,7 @@
  */
 import { useState } from "react";
 import { MicrophoneControl } from "./features/audio/MicrophoneControl";
+import { SystemAudioControl } from "./features/audio/SystemAudioControl";
 import { useMicrophoneController } from "./features/audio/microphone-controller";
 import { TranscriptWorkspace } from "./features/transcript/TranscriptWorkspace";
 import { useTranscriptSession } from "./features/transcript/use-transcript-session";
@@ -42,7 +43,7 @@ function modelStatusLabel(modelStatus: ModelStatus | undefined, isListening: boo
 function App() {
   const { state, receiveSegment, clear } = useTranscriptSession();
   const [overflowWarning, setOverflowWarning] = useState(false);
-
+  const [systemAudioEnabled, setSystemAudioEnabled] = useState(false);
   const bridge = useRuntimeBridge({
     onCaptureError: (error) => {
       if (
@@ -72,17 +73,21 @@ function App() {
   }
 
   const captureStatus = snapshot?.captureStatus ?? "idle";
+  const isTransitioning = captureStatus === "starting" || captureStatus === "stopping";
+  const hasSelectedSource =
+    microphoneController.selectedDeviceId !== null || systemAudioEnabled;
   const canStart =
     bridge.bridgeReady &&
     snapshot?.modelStatus.status === "ready" &&
-    microphoneController.selectedDeviceId !== null;
+    hasSelectedSource &&
+    captureStatus === "idle";
 
   function handleStart(): void {
     const deviceId = microphoneController.selectedDeviceId;
-    if (!deviceId) return;
+    if (!deviceId && !systemAudioEnabled) return;
     void bridge.client.startCapture({
       microphoneDeviceId: deviceId,
-      systemAudioEnabled: false,
+      systemAudioEnabled,
     });
   }
 
@@ -104,7 +109,14 @@ function App() {
           overflowWarning={overflowWarning}
         />
       }
-      systemAudioLabel="Not connected"
+      systemAudioControl={
+        <SystemAudioControl
+          enabled={systemAudioEnabled}
+          onChange={setSystemAudioEnabled}
+          disabled={isTransitioning || captureStatus === "listening"}
+          systemAudioStatus={snapshot?.systemAudio}
+        />
+      }
       elapsedMs={0}
       canStart={canStart}
       onStartRequested={handleStart}
