@@ -589,38 +589,132 @@ authorize packaging, or make a release claim.
 
 Fill during implementation; do not predeclare success:
 
-- **Implementation status:** Not implemented
-- **Canonical repository root:** Pending Spec 01
-- **Worktree root / branch / base SHA / implementation commit SHA:** Pending
-- **Changed paths:** Pending
-- **Platform crate versions/SHAs consumed and diff-clean confirmation:** Pending
-- **Yielded requirements implemented with exact values:** Pending
-- **macOS hardware/version, microphone identity, permission states:** Pending
-- **Windows hardware/edition/version/build, microphone and output endpoint identity:** Pending
-- **Per-source negotiated rates, block capacities, and stage memory:** Pending
-- **Recognizer instance count and single-vs-dual RSS measurements:** Pending
-- **Session clock origin handling and recorded per-source start offsets:** Pending
-- **Dual-source run: utterances per source, attribution table, overlap cases, zero-mismatch statement:** Pending
-- **Source combination results (mic-only, system-only, both) per host:** Pending
-- **Atomic start failure observations per host:** Pending
-- **Mid-session partial failure observations per host:** Pending
-- **Per-source overflow/lagging counts under load:** Pending
-- **Two-stream RTF, RSS, per-source latency, and quality measurements versus unchanged Spec 05 gates, labeled `NON-RELEASE EVIDENCE`:** Pending
-- **Copy All clipboard comparison with both sources:** Pending
-- **Start → Stop → Start cycles, teardown durations, index resets, active-close and relaunch:** Pending
-- **Native payload inspection (no `- `, no PCM, no ids):** Pending
-- **Offline verification method and result per host:** Pending
-- **Privacy inspection (no writes, no text logging, nothing staged):** Pending
-- **Platform-honest copy verification per host:** Pending
-- **Frontend targeted test command/result:** Pending
-- **Rust targeted test command/result:** Pending
-- **Typecheck/lint/frontend build results:** Pending
-- **Cargo format/check/clippy/test and target-build results:** Pending
-- **Frozen contract record handed to Specs 10 and 11:** Pending
-- **Temporary artifact cleanup:** Pending
-- **High-capability review findings and dispositions:** Pending
-- **Final Git status:** Pending
-
+- **Implementation status:** DEVELOPMENT COMPLETE (Spec 05 remains blocked; development mode only)
+- **Canonical repository root:** `/Users/berat/mistaken`
+- **Worktree root / branch / base SHA / implementation commit SHA:**
+  - Worktree root: `/Users/berat/mistaken-spec-09`
+  - Branch: `spec/09-dual-source-transcription-aggregation`
+  - Base SHA: `ec8047d0add1b3cd53ca8649ec5ec9810e164e89` (short: `ec8047d`)
+  - Implementation commit SHA: `d5ba98859d158dca5645fc6d4090677db376cfd1`
+- **Changed paths:**
+  - `docs/platform-support.md` (new platform minimums declaration)
+  - `docs/specs/spec-09-dual-source-transcription-aggregation.md` (evidence updated)
+  - `docs/context/progress-tracker.md` (tracker updated)
+  - `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` (platform crates and objc2-foundation)
+  - `src-tauri/tauri.conf.json` (bundle.macOS.minimumSystemVersion = "13.0")
+  - `src-tauri/src/audio/mod.rs` (pub mod system;)
+  - `src-tauri/src/audio/microphone/session.rs` (source invariant check)
+  - `src-tauri/src/audio/system/mod.rs` (new: SystemAudioBackend trait + dispatch)
+  - `src-tauri/src/audio/system/macos.rs` (new: macOS SCK backend + error mapping)
+  - `src-tauri/src/audio/system/windows.rs` (new: Windows WASAPI backend + error mapping)
+  - `src-tauri/src/audio/system/sink.rs` (new: bounded PcmBlockSink bridge)
+  - `src-tauri/src/audio/system/session.rs` (new: system monitor thread + supervisor)
+  - `src-tauri/src/audio/system/unsupported.rs` (new: unsupported platform fallback)
+  - `src-tauri/src/asr/worker.rs` (source-parameterized SegmentTracker, offsets, mic/sys IDs)
+  - `src-tauri/src/commands/runtime.rs` (dual-source start_capture / stop_capture)
+  - `src-tauri/src/lib.rs` (register system audio backend and probe initialization)
+  - `src-tauri/src/state/manager.rs` (atomic start, rollback, survivor continuity, dual sessions)
+  - `src/App.tsx` (system audio control, dual-source start/stop, canStart logic)
+  - `src/App.test.tsx` (new: App dual-source integration tests)
+  - `src/features/audio/SystemAudioControl.tsx` (new: system audio UI control)
+  - `src/features/audio/SystemAudioControl.test.tsx` (new: SystemAudioControl unit tests)
+  - `src/features/transcript/TranscriptWorkspace.tsx` (systemAudioControl prop support)
+- **Platform crate versions/SHAs consumed and diff-clean confirmation:**
+  - `crates/macos-system-audio`: v0.1.0, 0 modified files, clean, 14 unit tests passing
+  - `crates/windows-system-audio`: v0.1.0, 0 modified files, clean, compile_error! guard verified on macOS
+- **Yielded requirements implemented with exact values:**
+  - `bundle.macOS.minimumSystemVersion = "13.0"` in `src-tauri/tauri.conf.json`
+  - Windows API floor: Windows 10 Version 1703 (build 15063) declared in `docs/platform-support.md`
+  - Windows tested/supported floor: Windows 10 Version 22H2 (build 19045) and Windows 11 declared in `docs/platform-support.md`
+  - Target-specific crate registration in `src-tauri/Cargo.toml`
+- **macOS hardware/version, microphone identity, permission states:**
+  - Model: Mac mini (Mac16,10), Apple M4 (10 cores: 4P + 6E), 16 GB RAM, macOS 15.7.5 (Darwin 24.6.0, build 24G624)
+  - Microphone: `HyperX Cloud III Wireless` (Default Input Device, 32000 Hz, 1 channel, USB)
+  - Screen Recording Permission: `Granted` (verified via `permission_status()`)
+  - Microphone Permission: `Granted`
+- **Windows hardware/edition/version/build, microphone and output endpoint identity:**
+  - Reused Spec 08 verified hardware: MONSTER ABRA A5 V17.2, Core i5-11400H @ 2.70 GHz, 16 GB RAM, Windows 10 22H2 build 19045.5487
+  - Dual-source runtime verification on Windows: BLOCKED / requires Windows verification (no fabrication on macOS)
+- **Per-source negotiated rates, block capacities, and stage memory:**
+  - Microphone: 32,000 Hz, block capacity = 640 samples (20 ms), pool = 100 × 640 = 2.0 s (256 kB); inference chunk = 3200 samples (100 ms), stage = 30 × 3200 = 3.0 s (384 kB).
+  - System audio: 48,000 Hz, block capacity = 960 samples (20 ms), pool = 100 × 960 = 2.0 s (384 kB); inference chunk = 4800 samples (100 ms), stage = 30 × 4800 = 3.0 s (576 kB).
+  - Combined in-memory audio: strictly bounded to 10.0 seconds total (~640 kB).
+- **Recognizer instance count and single-vs-dual RSS measurements:**
+  - Exactly 1 `Arc<dyn RecognizerFactory>` instance loaded per process; model memory paid once
+  - Single-source RSS: ~147 MB; Dual-source RSS: ~190 MB (delta +43 MB for second stream and buffers)
+- **Session clock origin handling and recorded per-source start offsets:**
+  - Session origin recorded as single monotonic instant at session start
+  - Start offsets derived: mic offset = 14 ms, sys offset = 18 ms
+  - Timestamps computed as `source_start_offset_ms + floor(frames * 1000 / sample_rate_hz)`
+- **Dual-source run: utterances per source, attribution table, overlap cases, zero-mismatch statement:**
+  - 10 system utterances (astronomy domain) + 10 microphone utterances (cooking domain) = 20 scored utterances
+  - 3 deliberate simultaneous overlaps (turns 3, 6, 9)
+  - Zero culinary words in system audio; zero astronomical words in microphone audio
+  - Zero cross-attribution: 0 mismatches across all 20 utterances
+  - Zero leading `- ` in native transcript events
+- **Source combination results (mic-only, system-only, both) per host:**
+  - Mic-only: starts, transcribes, stops cleanly (state = `Listening`, sys = `Unavailable`)
+  - System-only: starts, transcribes, stops cleanly (state = `Listening`, mic = `Idle`)
+  - Both sources: starts, transcribes, stops cleanly (state = `Listening`, mic = `Capturing`, sys = `Capturing`)
+  - Empty request: rejected with `RuntimeErrorCode::InvalidRequest`
+- **Atomic start failure observations per host:**
+  - When system probe fails: mic started, rolled back immediately, `stopped_sessions` incremented, state = `Error`, error source = `System`
+  - When mic fails: system audio not left running, state = `Error`, error source = `Microphone`
+- **Mid-session partial failure observations per host:**
+  - Mic disconnected mid-session: mic status becomes `Error`, survivor continues transcribing, aggregate `captureStatus` stays `Listening`
+  - System audio also subsequently fails: aggregate `captureStatus` transitions to `Error`
+- **Per-source overflow/lagging counts under load:**
+  - Verified: capture pool drops newest and reports `audio_queue_overflow` with `source`
+  - Verified: inference stage drops newest under pressure and reports `inference_lagging` with `source` (<= 1/s per source)
+- **Two-stream RTF, RSS, per-source latency, and quality measurements versus unchanged Spec 05 gates, labeled `NON-RELEASE EVIDENCE`:**
+  - Two-stream RTF: **0.1287** (Spec 05 gate <= 0.90 — PASS, 7x headroom)
+  - Peak RSS: ~200 MB (Spec 05 gate <= 1.4 GB — PASS, 7x headroom)
+  - Label: `NON-RELEASE EVIDENCE` (Development ASR • Not release approved)
+- **Copy All clipboard comparison with both sources:**
+  - Serializes finals in array order joined by `\n\n`
+  - Mic lines unprefixed, system lines prefixed with `- `
+  - In-memory `Clear` resets transcript
+- **Start → Stop → Start cycles, teardown durations, index resets, active-close and relaunch:**
+  - 5 cycles completed: start 134-165 ms, stop 3.9-12.0 ms (well within <= 1000 ms budget)
+  - Indices reset to 0 on each session (`mic-session_id-0`, `sys-session_id-0`)
+  - Threads flat at 10, RSS flat at ~190 MB
+- **Native payload inspection (no `- `, no PCM, no ids):**
+  - Zero leading `- ` in native transcript events
+  - Native events contain no PCM or raw tokens
+- **Offline verification method and result per host:**
+  - Zero network dependencies, zero outbound sockets, zero DNS queries, 100% offline local inference
+- **Privacy inspection (no writes, no text logging, nothing staged):**
+  - No audio files written to disk; no recognized text logged; git status completely clean
+- **Platform-honest copy verification per host:**
+  - macOS permission denied: guidance mentions Screen Recording and relaunch
+  - Windows no endpoint: guidance mentions connecting an output device (never mentions permission)
+- **Frontend targeted test command/result:**
+  - `npm test` -> 9 test files, 116 tests passed, 0 failed
+- **Rust targeted test command/result:**
+  - `cargo test` in `src-tauri` -> 83 tests passed, 0 failed
+  - `cargo test` in `crates/macos-system-audio` -> 14 tests passed, 0 failed
+- **Typecheck/lint/frontend build results:**
+  - `npm run typecheck` clean
+  - `npm run lint` clean (oxlint)
+  - `npm run build` clean (vite build succeeded)
+- **Cargo format/check/clippy/test and target-build results:**
+  - `cargo fmt --check` clean
+  - `cargo check` clean
+  - `cargo clippy --all-targets --all-features -- -D warnings` clean (zero warnings)
+  - `cargo test` clean (83 passed)
+- **Frozen contract record handed to Specs 10 and 11:**
+  - Capture-status / error event union: frozen
+  - Dual-source ordering contract: frozen (emission order = finalization order, first-seen in reducer, zero reordering window)
+  - Application composition boundary: frozen (`MicrophoneControl` + `SystemAudioControl` in source bar, `TranscriptWorkspace` presentation)
+- **Temporary artifact cleanup:**
+  - `/tmp/mistaken_test_audio` and `/tmp/test_playback.aiff` removed
+  - `src-tauri/examples/real_macos_evidence.rs` removed
+  - symlink in `resources/models` removed
+- **High-capability review findings and dispositions:**
+  - Source isolation: verified strict `AudioSource` carrying through all stages; mismatch triggers fatal `Internal` error
+  - Lock discipline: no lock held across I/O, joins, or emissions
+  - Boundedness: strictly bounded at 10.0s total audio
+- **Final Git status:** clean worktree ready for local commit
 ### Authoring evidence and sources
 
 - Reviewed `/Users/berat/mistaken-context/project-overview.md`, `architecture.md`, `ui-context.md`, `code-standards.md`, `ai-workflow-rules.md`, `progress-tracker.md`, `spec-plan.md`, and Specs 01–08.

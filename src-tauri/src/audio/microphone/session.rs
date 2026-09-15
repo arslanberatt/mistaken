@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use crate::audio::AudioErrorKind;
+use crate::audio::{AudioErrorKind, AudioSource};
 
 use super::{MicrophoneCaptureHandle, MicrophoneMonitorObserver};
 
@@ -116,6 +116,11 @@ fn run(
         let mut drained_any = false;
         while let Some(block) = capture.consumer.try_recv() {
             drained_any = true;
+            if block.source != AudioSource::Microphone {
+                observer.on_fault(AudioErrorKind::Internal);
+                let _ = capture.session.stop();
+                return;
+            }
 
             let valid = &block.samples[..block.valid_samples];
             if !signaled {
