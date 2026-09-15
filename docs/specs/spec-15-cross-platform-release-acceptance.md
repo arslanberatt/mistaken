@@ -2,25 +2,26 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
-- **Implementation owner:** One Spec 15 branch with exactly one writer, who is also the integration owner for the whole repository during this spec. This is the only spec that may fix a defect anywhere in the application, and therefore the only spec that must never run concurrently with another writing spec. High-capability implementation is required; a mandatory independent high-capability review closes the spec.
-- **Required base:** One clean integration SHA containing implemented, reviewed, merged, and evidenced Specs 01-14. Specs 13 and 14 must both be merged, and their recorded packaging base SHAs must be the **same** post-Spec-12 SHA. Code merely present in another worktree, an unmerged packaging branch, or two packaging manifests built from two different base SHAs are not a satisfied dependency.
-- **Allowed implementation predecessors:** Specs 13 and 14. Everything else is inherited transitively through them.
-- **Parallel safety:** None. Spec 15 is serialized by construction. No other spec, worktree, or writer may touch the repository while release acceptance runs, because every accepted measurement is tied to one immutable source SHA and two immutable artifacts. If any other branch lands during the run, every artifact-dependent criterion is invalidated and rerun from a new release SHA.
-- **Host gate:** Both a qualifying macOS host (Apple Silicon, macOS 13.x floor host plus the current development host) and a qualifying Windows host (x64, Windows 11 plus a Windows 10 22H2 floor host) are required. A cross-platform release claim is never derived from one platform; macOS evidence never substitutes for Windows evidence or vice versa.
-- **Credential gate:** A `Developer ID Application` identity with reachable Apple notarization service (macOS) and an Authenticode identity with a reachable RFC 3161 timestamp service (Windows) are external prerequisites inherited from Specs 13 and 14. An unsigned, ad-hoc, or notary-blocked artifact is local evidence only and can never be part of a release-ready candidate.
-- **Publication gate:** A distribution destination (download host, domain, or storage bucket) and its credentials are external product inputs. Release artifacts, checksums, notes, rollback checklist, and the local tag are produced unconditionally; actual publication happens only when the user supplies an explicit destination. Absent that, publication criteria close as exactly `BLOCKED` and nothing is uploaded. A guessed host, a personal cloud folder, or a silent public upload is prohibited.
-- **Successor gate:** None. Spec 15 is the terminal spec and the only point at which Mistaken may be called release-ready.
-- **Review level:** High for both implementation and review. This spec produces the single public trust claim of the product: that two signed artifacts built from one source revision behave identically, run entirely locally, and preserve the user's spoken English without correction.
+- **Status:** Authored; **HARD BLOCKED** until Spec 05 approves a production model, Spec 12 returns production `PASS`, and Specs 13/14 produce eligible artifacts. Not implemented.
+- **Implementation owner:** One Spec 15 branch with exactly one writer, who is also the repository integration owner. This is the only spec that may fix a defect anywhere in the application and must never run concurrently with another writer. High-capability implementation and independent high-capability review are mandatory.
+- **Required base:** One clean integration SHA containing implemented, reviewed, merged, and evidenced Specs 01–14. Specs 13/14 must share the same production-approved post-Spec-12 base. Development-only evidence, no-authorization records, unmerged work, or different packaging bases do not satisfy this dependency.
+- **Allowed implementation predecessors:** Specs 13 and 14. Everything else is inherited transitively through their production-approved Spec 12 base.
+- **Parallel safety:** None. No other spec, worktree, or writer may touch the repository while acceptance runs, because every measurement binds one immutable source SHA and two immutable artifacts. Any landing branch invalidates artifact-dependent criteria and requires new artifacts/evidence.
+- **Production ASR gate:** `RELEASE-READY` requires exactly one Spec 05 `ProductionApproved` candidate passing every unchanged quality, performance, license, provenance, redistribution, and platform gate; Spec 12 and both artifacts must carry its exact approval identity. `DevelopmentOnly`, a blocked approval, temporary files, or `NON-RELEASE EVIDENCE` forces hard `BLOCKED` preflight and can never be waived by downstream success.
+- **Host gate:** Both a qualifying macOS host (Apple Silicon, macOS 13.x floor plus current development host) and qualifying Windows hosts (x64 Windows 11 plus Windows 10 22H2 floor) are required. No platform substitutes for another.
+- **Credential gate:** A `Developer ID Application` identity with Apple notarization and an Authenticode identity with RFC 3161 timestamping are external prerequisites. Unsigned, ad-hoc, or notary-blocked artifacts are local evidence only and never release-ready.
+- **Publication gate:** A distribution destination and credentials are external inputs. Release assets are produced only after candidate eligibility; upload occurs only with an explicit user-supplied destination. Otherwise publication is exactly `BLOCKED`; guessed/personal/silent upload is prohibited.
+- **Successor gate:** None. Spec 15 is terminal and the only point at which Mistaken may be called release-ready.
+- **Review level:** High implementation and review. This spec owns the public claim that two signed artifacts use production-approved local ASR, behave identically, run locally, and preserve spoken English without application correction.
 
 ## 2. Goal and User-Visible / Measurable Result
 
-Prove that one Mistaken release candidate - one source revision, two signed platform artifacts - is a single coherent product, then either declare it release-ready with evidence or refuse to.
+Prove that one production-approved Mistaken release candidate — one source revision and two signed platform artifacts — is coherent, then either declare it release-ready with evidence or refuse to.
 
 The visible result:
 
 - One release SHA, one version `0.1.0`, and exactly two distributable artifacts: `Mistaken_0.1.0_aarch64.dmg` (macOS, Apple Silicon) and `Mistaken_0.1.0_x64-setup.exe` (Windows, x64).
-- Both artifacts carry the same approved model id, model file digests, runtime tag, configuration identity, and third-party notice digest; a payload difference outside the documented platform-specific set is a release failure.
+- Both artifacts carry `ProductionApproved` maturity, the same Spec 05 approval digest, model id/files/digests, runtime/configuration identity, delivery manifest, and notices; a temporary adapter or unexplained payload difference is a hard blocker.
 - A user on either platform installs from a real download path on a clean account, launches with the network disconnected, speaks into the microphone, plays system audio, and sees a live dual-source transcript where their own speech renders as plain lines and computer speech renders with a `- ` prefix.
 - The same scripted conversation produces the same transcript structure on both platforms: same speaker prefixes, same first-seen final ordering rules, same verbatim preservation of incorrect English, same final-only `Copy All` output shape.
 - Neither installed application makes a non-loopback network attempt, writes a transcript or audio byte to disk, or asks for a permission unrelated to microphone and (on macOS) screen recording.
@@ -77,7 +78,7 @@ Nothing about release readiness is assumed from this authoring pass. Every value
 - Any new product feature, UI surface, command, event, setting, capability, permission, or platform target. Spec 15 fixes defects; it does not add behavior.
 - Transcript persistence, transcript history, export formats, cloud sync, account, backend, database, remote API, telemetry, analytics, crash reporting, remote logging, or usage measurement of any kind.
 - An updater, update endpoint, update signing key, differential artifact, background update check, or version-check request. A future version remains a manually installed artifact.
-- Selecting a different model, relaxing any Spec 05 gate, editing the benchmark corpus or scorer, substituting published third-party numbers, or re-opening model provenance. The approved candidate and its license verdict are inputs.
+- Selecting/promoting a model, relaxing any Spec 05 gate, editing the corpus/scorer, substituting third-party numbers, or treating `NON-RELEASE EVIDENCE` as approval. Production approval is a read-only predecessor input.
 - Intel/universal macOS artifacts, Windows ARM64 or 32-bit artifacts, Mac App Store, Microsoft Store, App Sandbox, MSIX, Homebrew, winget, Chocolatey, Sparkle, or a second installer per platform.
 - Lowering a platform floor, adding an entitlement or hardened-runtime exception, adding a registry/startup entry, adding elevation, or bundling a new system dependency to make a gate pass.
 - Marketing copy, landing page design, screenshots for stores, pricing, license-key infrastructure, or support tooling.
@@ -141,9 +142,9 @@ Nothing about release readiness is assumed from this authoring pass. Every value
 Before any release work runs, the following must hold exactly; each failure has a named consequence:
 
 1. Spec 13 and Spec 14 record the **same** post-Spec-12 base SHA. Different bases mean the two artifacts are not one product: both packaging branches are recreated from one reviewed SHA and both artifacts rebuilt.
-2. Spec 12's cross-host report is `PASS` for both `mac-arm64` and `win-x64`, and its successor freeze manifest recomputes identically from the release SHA. A mismatch stops release acceptance until the divergence is root-caused.
-3. Both packaging manifests report the same version `0.1.0`, the same model id, the same per-file model digests, the same runtime tag, the same configuration identity, and the same `THIRD_PARTY_NOTICES.txt` digest. Any difference is a release-blocking defect, not a platform nuance.
-4. Neither packaging spec left an unresolved High or Medium review finding, and neither reports a runnable product failure as `BLOCKED`.
+2. Spec 12's cross-host report is production `PASS`, its successor freeze recomputes identically, and it records `ProductionApproved` maturity plus the exact Spec 05 approval digest. A development-only/no-authorization record stops release acceptance.
+3. Both packaging manifests report `ProductionApproved`, the same Spec 05 approval digest, model id/files/digests, runtime/configuration identity, delivery manifest, and notice digest. Any difference or temporary-adapter artifact is a hard blocker.
+4. Neither packaging spec left an unresolved High/Medium finding or reports a runnable product failure as `BLOCKED`.
 5. Both packaging manifests point at artifacts that still exist at their recorded immutable locations with their recorded byte sizes and SHA-256 values. A missing or mutated artifact is rebuilt, not re-described.
 
 ### Produced - release identity
@@ -165,11 +166,13 @@ Before any release work runs, the following must hold exactly; each failure has 
     "rebuiltAfterFix": false
   },
   "frozenInputs": {
+    "asrMaturity": "production-approved",
+    "spec05ApprovalDigest": "<64 hex>",
     "modelId": "<approved id>",
     "runtimeTag": "<tag>",
     "modelFileCount": 0,
     "modelFiles": [{ "relativePath": "<path>", "bytes": 0, "sha256": "<64 hex>" }],
-    "resourcePath": "$RESOURCE/resources/models/<model_id>/",
+    "delivery": { "mode": "bundled | separately-provisioned-local", "manifestDigest": "<64 hex>", "runtimePath": "<frozen path>" },
     "noticeDigest": "<64 hex>",
     "lockfileDigests": { "<path>": "<64 hex>" },
     "spec12FreezeManifestDigest": "<64 hex>"
@@ -259,18 +262,18 @@ Before any release work runs, the following must hold exactly; each failure has 
 }
 ```
 
-The schema is closed: unknown top-level fields fail validation. Contradictory combinations are rejected by tests, including `RELEASE-READY` with any `FAIL` or `BLOCKED` gate, `RELEASE-READY` with `highOpen`/`mediumOpen` above zero, `RELEASE-READY` with an unsigned or ad-hoc artifact, `RELEASE-READY` with fewer than two artifacts, `RELEASE-READY` with mismatched `spec12BaseSha` between the two packaging SHAs, `BLOCKED` alongside a runnable product failure, `publication.executed: true` with a null destination, `notaryStatus: "Accepted"` with a null submission id, `signtoolVerify: "pass"` with an absent timestamp, and any artifact whose `sha256` does not appear verbatim in `release/CHECKSUMS.txt`.
+The schema is closed. Contradiction tests reject `RELEASE-READY` with any `FAIL`/`BLOCKED` gate; ASR maturity other than `production-approved`; missing/mismatched Spec 05 approval digest; a temporary adapter or non-release evidence reference; open High/Medium finding; unsigned/ad-hoc artifact; fewer than two artifacts; mismatched Spec 12 bases; invalid publication state; invalid signature/notary state; or artifact checksum absent from `CHECKSUMS.txt`.
 
 ### Produced - verdict semantics
 
 - `PASS` per host: every applicable criterion for that platform has a recorded observed value meeting its threshold, and no High or Medium finding is open against it.
 - `FAIL` per host: any runnable defect. A defect is always `FAIL`, never `BLOCKED`, regardless of how small or how late it is found.
-- `BLOCKED` per host: only when an external prerequisite is genuinely unavailable - signing identity, notary or timestamp service, a qualifying floor host, or a publication destination - **and** every reachable criterion on that host passed.
-- `RELEASE-READY` cross-host: both platforms `PASS`, parity `PASS`, review closed, documentation reconciled, manifest/checksums/notes/rollback complete, and the local tag created on the release SHA.
-- `NOT-RELEASE-READY`: any `FAIL`, any open High/Medium finding, any unreconciled documentation claim, or any missing evidence field.
-- `BLOCKED` cross-host: no `FAIL` anywhere, but at least one external prerequisite prevents a mandatory signed/floor/publication criterion. A `BLOCKED` candidate is explicitly **not** release-ready and must not be distributed.
+- `BLOCKED` per host: an unavailable external prerequisite, or the inherited production-ASR/predecessor gate, prevents mandatory work after every reachable criterion is completed. A runnable product defect remains `FAIL`, never `BLOCKED`.
+- `RELEASE-READY` cross-host: ASR maturity is `production-approved`, the Spec 05 approval digest matches every freeze/artifact, both platforms `PASS`, parity/review/docs/assets are complete, and the local tag exists.
+- `NOT-RELEASE-READY`: any runnable `FAIL`, open High/Medium finding, unreconciled claim, missing evidence, or artifact defect.
+- `BLOCKED` cross-host: no runnable `FAIL`, but production ASR/predecessor or an allowed external prerequisite prevents a mandatory criterion. It is not release-ready and must not be distributed.
 
-Publication is tracked separately from release readiness: an artifact set can be `RELEASE-READY` while `publication.executed` is `false` with a recorded blocker. Release readiness is a property of the candidate; publication is an operator action.
+Publication is tracked separately only after release eligibility. Missing publication destination cannot conceal an unresolved production-ASR gate or make a development artifact releasable.
 
 ## 7. User Flow and Developer Verification Flow
 
@@ -471,10 +474,10 @@ Intel and universal macOS builds, Windows ARM64 and 32-bit builds, and the Windo
 
 ## 12. Numbered Measurable Acceptance Criteria
 
-1. **Predecessors and base - integration:** Specs 01-14 are implemented, reviewed, merged, and evidenced; Specs 13 and 14 record the same post-Spec-12 base SHA; Spec 12's cross-host report is `PASS` for both hosts; the recomputed successor freeze manifest matches field for field and lockfile for lockfile; and the manifest records canonical root, branch, base SHA, release SHA, and a clean final Git state.
+1. **Production predecessors and base — integration:** Specs 01–14 are reviewed/merged/evidenced; Spec 05 names one gate-passing `ProductionApproved` candidate; Spec 12 is production `PASS` and its freeze recomputes; Specs 13/14 share that base and approval digest; the manifest records canonical/base/release SHAs and a clean tree. Any `DevelopmentOnly` or blocked-ASR input makes this criterion `BLOCKED` and forbids release work.
 2. **Serialized single-writer ownership - integration:** Exactly one writer owns the repository for the whole run; no other branch or worktree modifies any path; every changed path is either under `release/**` or tied to a named failed criterion with a recorded root cause; and Spec 12's frozen schema, scenario thresholds, and `benchmarks/**` records are unmodified.
 3. **One release candidate identity - integration:** Exactly two distributable artifacts exist, both provably built from the single release SHA, both at version `0.1.0`, each recorded with name, byte size, SHA-256, normalized payload digest, target, floor, and immutable location; any artifact from a different SHA is discarded and rebuilt rather than described.
-4. **Frozen input parity - both platforms:** Both artifacts contain the same approved model id, the same model file count and per-file relative paths, byte sizes, and SHA-256 values recomputed from inside the installed artifacts, the same runtime tag and configuration identity, the same `THIRD_PARTY_NOTICES.txt` digest, and the same single resource mapping; no model weight is committed to Git.
+4. **Frozen production input parity — both platforms:** Both artifacts report `production-approved` maturity and the same Spec 05 approval digest, model identity/files/digests, runtime/configuration, delivery manifest, and notices; no temporary adapter or model weight committed to Git exists.
 5. **Payload reconciliation - both platforms:** The two payload inventories differ only within the documented platform-specific set (bundle vs installer layout, `.icns` vs `.ico`, `Info.plist` vs version resource, platform system-audio adapter code, embedded WebView2 offline installer, container metadata); every other difference is recorded as a defect and fixed, and neither payload contains source, tests, `.env`, credentials, absolute developer paths, benchmark recordings, transcripts, audio, raw traces, updater metadata, or unexpected third-party binaries.
 6. **macOS artifact trust - macOS:** `Mistaken_0.1.0_aarch64.dmg` and the contained `Mistaken.app` are signed with a valid `Developer ID Application` identity, have the hardened runtime enabled with no unevidenced exception and no App Sandbox or `get-task-allow`, carry a secure timestamp, have an `Accepted` notarization with recorded submission id and reviewed log digest, are stapled, and pass Gatekeeper assessment; every application-owned Mach-O is arm64 only with the 13.0 minimum declared.
 7. **Windows artifact trust - Windows:** `Mistaken_0.1.0_x64-setup.exe` and the installed application executable carry SHA-256 Authenticode signatures with an RFC 3161 timestamp from a recorded authority, `signtool verify /pa /all` passes on both, the certificate subject/thumbprint/expiry are recorded, and the observed SmartScreen/Defender behavior is recorded verbatim with no protection disabled or bypassed.
@@ -498,16 +501,16 @@ Intel and universal macOS builds, Windows ARM64 and 32-bit builds, and the Windo
 25. **Publication honesty - integration:** Publication executes only with a user-supplied destination and credentials, in which case the published URLs, published checksums, and one real download-and-install verification per platform are recorded; otherwise `publication.executed` is `false` with the exact missing input recorded as `BLOCKED`, nothing is uploaded, no destination is invented, and no credential appears in evidence.
 26. **Documentation reconciliation - integration:** Every spec's evidence record is filled from real runs with no `Pending` field remaining, every context document matches shipped reality with each correction and its reason recorded, no document claims a capability the release lacks, no shipped behavior is undocumented, the final tracker records release SHA, tag, both artifact digests, per-host verdicts, cross-host verdict, publication state, and remaining product decisions, and canonical documentation lives in the repository rather than the staging bundle.
 27. **Complete check matrix - both platforms:** After the final source change, typecheck, lint, frontend tests and build, Rust format/check/clippy/tests, both platform adapter check sets, Spec 12 frozen consistency checks, both packaging test sets, both package builds, and the final installed smoke all pass on their respective hosts with exact commands, tool versions, and exit codes recorded, and no changed lockfile or unintended shared-source change remains.
-28. **High review and final verdict - integration:** An independent high-capability review covers candidate identity, payload reconciliation, signature and trust facts, installed flows, parity, soak and resource results, privacy evidence, documentation reconciliation, verdict semantics, and blocker honesty; every High and Medium finding is fixed with regenerated artifacts and evidence and recorded rerun ids; the annotated tag `v0.1.0` exists locally on the release SHA and is unpushed unless explicitly requested; and exactly one cross-host verdict - `RELEASE-READY`, `NOT-RELEASE-READY`, or `BLOCKED` - is recorded with reasons, where `RELEASE-READY` requires both platforms `PASS`, parity `PASS`, zero open High/Medium findings, and complete reconciled documentation.
+28. **High review and final verdict — integration:** Independent review covers ASR maturity/approval identity, payload/delivery reconciliation, artifact trust, installed flows, parity, resources, privacy, docs, verdict semantics, and blockers; every High/Medium finding is fixed with regenerated evidence. `RELEASE-READY` additionally requires `production-approved` maturity, matching Spec 05 approval digests, both platforms/parity `PASS`, complete docs/assets, and the unpushed local tag; unresolved production ASR yields only `BLOCKED`.
 
 ## 13. Acceptance Criterion -> Verification / Test Mapping
 
 | # | Verification method | Evidence |
 | --- | --- | --- |
-| 1 | Worktree/branch inspection, packaging manifest comparison, Spec 12 report read, freeze manifest recomputation | Base/release SHAs, per-field freeze comparison, both packaging base SHAs, clean-state output |
-| 2 | Worktree listing, changed-path classification, digest comparison of frozen schema/scenario/benchmark files | Writer inventory, changed-path table with criterion attribution, frozen-file digests |
-| 3 | Artifact provenance check against release SHA, digest and size recomputation, discard/rebuild log | Artifact table with name, bytes, SHA-256, normalized digest, target, floor, location |
-| 4 | Digest recomputation from inside both installed artifacts, notice digest comparison, Git object scan | Per-file digest tables per platform, notice digest, Git scan result |
+| 1 | Inspect Spec 05 approval/maturity, Spec 12 production report/freeze, worktrees, packaging manifests, and clean state | Approval digest/maturity, base/release SHAs, per-field freeze comparison |
+| 2 | Worktree listing, changed-path classification, digest comparison of frozen schema/scenario/benchmark files | Writer inventory, criterion-attributed paths, frozen-file digests |
+| 3 | Artifact provenance check against release SHA, digest/size recomputation, discard/rebuild log | Artifact identities and locations |
+| 4 | Recompute production maturity/approval/model/delivery/notice values from both artifacts; scan Git | Cross-platform frozen-input table, zero temporary-adapter finding |
 | 5 | Inventory diff of both payloads against the documented difference set, forbidden-content scan | `parity.json` payload section, allowed-difference list, scan findings and dispositions |
 | 6 | `codesign` display/verify, entitlement enumeration, `lipo`/Mach-O inspection, `notarytool` log review, `stapler`, `spctl` assessment | Signature authority chain, entitlement list, architecture output, submission id and log digest, staple and Gatekeeper results |
 | 7 | `signtool verify /pa /all` on setup and application executables, certificate and timestamp inspection, protection-behavior observation | Verify output, certificate facts, timestamp authority and time, verbatim SmartScreen/Defender observation |
@@ -539,8 +542,8 @@ Permanent tests required for release semantics rather than one-off scripts: rele
 
 1. Confirm serialized ownership: one clean checkout, no other worktree or writer, recorded canonical root, branch, and base SHA.
 2. Re-read canonical context, `spec-plan.md`, Specs 01-15, source and tests, manifests and lockfiles, Spec 12 freeze/evidence, both packaging manifests, and installed Tauri 2 documentation.
-3. Verify the predecessor consistency contract item by item and recompute Spec 12's successor freeze manifest. Stop on any mismatch and root-cause it before proceeding.
-4. Record all four host profiles and verify both artifacts exist unmutated at their recorded locations; copy them into read-only release-candidate locations.
+3. Verify production ASR maturity and Spec 05 approval digest first, then every predecessor-consistency item and the Spec 12 freeze. On `DevelopmentOnly` or blocked approval, emit the exact blocker and stop before copying artifacts or creating a release tag.
+4. Record all four host profiles and verify both production-approved artifacts exist unmutated; copy only eligible artifacts into read-only release-candidate locations.
 5. Derive the release SHA and verify both artifacts' provenance against it; rebuild any artifact whose source SHA differs.
 6. Author `release/schema.json` and the permanent tests for schema validation and verdict contradiction rejection.
 7. Author `release/README.md` and the platform script sets for installed preflight, install, offline run, sampling, parity capture, soak, removal, and cleanup, invoking Spec 12's scenario definitions read-only.
@@ -571,7 +574,7 @@ Permanent tests required for release semantics rather than one-off scripts: rele
 - **Two artifacts from two source revisions:** the most likely way to ship an incoherent product. Mitigation: release identity is a single SHA, provenance is verified per artifact, and any fix rebuilds both sides. A "macOS is already fine" shortcut is prohibited.
 - **Platform evidence substitution:** one platform's success standing in for the other. Mitigation: every criterion names its platform, and cross-host verdicts require both hosts' recorded runs.
 - **Verifying the wrong thing:** measuring a development build instead of the installed distributed artifact. Mitigation: every runtime criterion is defined against the installed artifact on a clean account, with install path recorded.
-- **Gate gaming at the last gate:** relaxing a threshold, shortening the soak, dropping slow samples, reducing sources, or editing the corpus to close a release. Mitigation: Spec 05/12 gates and scenario definitions are read-only inputs; the closed schema and permanent tests reject contradictory or incomplete evidence.
+- **Gate gaming at the last gate:** promoting a temporary adapter, importing non-release evidence, relaxing thresholds, shortening soak, dropping samples, reducing sources, or editing corpus is invalid. Spec 05/12 gates are read-only and schema tests fail closed on maturity/approval mismatch.
 - **Release-time feature creep:** adding a small setting, telemetry ping, update check, or "helpful" correction while fixing defects. Mitigation: scope forbids new behavior; the capability set, command/event count, and correction-free path are re-verified in the shipped artifacts.
 - **Security-control theater:** disabling Gatekeeper, SmartScreen, or Defender to produce a clean screenshot. Mitigation: protections stay enabled, observations are recorded verbatim, and bypass is a failure.
 - **Credential and destination leakage:** signing secrets, notary tokens, or upload credentials landing in evidence, logs, or commits. Mitigation: credential-free evidence rules, redaction, and a final Git object scan.
@@ -600,7 +603,7 @@ Permanent tests required for release semantics rather than one-off scripts: rele
 ### Preservation rules
 
 - Preserve every product invariant at release: local-only core transcription, two separate sources, source-based separation, no correction or rewriting, bounded buffers, in-memory transcript, explicit final-only Copy All, no account/backend/database/updater/telemetry, and verified model-weight licensing with required attribution.
-- Preserve Spec 05's gates, Spec 12's freeze and schema, and Spec 13/14's artifact immutability and traceability. Spec 15 consumes them; it does not renegotiate them.
+- Preserve Spec 05’s unchanged gates and production approval digest, Spec 12’s production freeze/schema, and Spec 13/14 artifact immutability. `DevelopmentOnly` can never enter `release/**`.
 - Preserve artifact-to-source traceability: from each published or candidate artifact digest back to the release SHA, the freeze manifest, and the staged tool digests.
 - Preserve the user's environment and unrelated work: never reset or clean unrelated changes, never delete operator credentials, never remove model or corpus files outside the run-scoped scratch area.
 - Preserve honesty of scope in the release notes: state the tested hosts and the untested ranges rather than implying broader support.
@@ -614,19 +617,20 @@ Permanent tests required for release semantics rather than one-off scripts: rele
 
 ## 16. Definition of Done and Evidence Record
 
-Spec 15 is done only when one release candidate - one release SHA, version `0.1.0`, and exactly two signed artifacts whose payloads reconcile to the same frozen inputs - passes the complete installed user flow, source-separation corpus, fidelity/latency/resource gates, parity comparison, accessibility checks, privacy inspection, lifecycle and removal checks, and the 60-minute installed dual soak on both platforms including their floor hosts; when `release/**` contains a schema-valid manifest, recomputed checksums, traceable release notes, a rehearsed rollback checklist, and redacted per-host evidence; when every spec's evidence record and every context document match shipped reality; when the independent high-capability review closes with zero open High or Medium findings; when the annotated local tag `v0.1.0` exists on the release SHA; and when exactly one cross-host verdict is recorded with reasons.
+Spec 15 is complete only when one `ProductionApproved` release candidate — one SHA, version `0.1.0`, two signed artifacts with identical Spec 05 approval/model/runtime/delivery inputs — passes all installed-flow, source-separation, fidelity/latency/resource, parity, accessibility, privacy, lifecycle/removal, and 60-minute soak criteria on both primary/floor platforms; release assets validate; documentation matches; review closes; and exactly one honest verdict is recorded.
 
-A `RELEASE-READY` verdict additionally requires both platforms `PASS` with real signed artifacts, real clean-account installs, real offline flows, and real floor-host runs. If the only unavailable inputs are release credentials, a signing/notary/timestamp service, a qualifying floor host, or a publication destination, the spec may close as precisely `BLOCKED` after every reachable criterion passes; a `BLOCKED` candidate is not release-ready and must not be distributed. An unsigned or ad-hoc artifact is never release-ready. No other spec may declare release readiness.
+`RELEASE-READY` additionally requires production maturity and matching approval digests everywhere. If production ASR remains unresolved, the only permissible outcome is `BLOCKED`; no artifact is eligible for distribution and no release tag is created. No other spec may declare release readiness.
 
 ### Required implementation evidence
 
 - **Canonical repository root:** Pending
 - **Branch / base SHA / release SHA / final clean Git state:** Pending
 - **Serialized ownership confirmation and worktree inventory:** Pending
-- **Spec 12 cross-host report verdict and freeze manifest recomputation:** Pending
-- **Spec 13 SHA / Spec 14 SHA / shared post-Spec-12 base SHA:** Pending
+- **Spec 05 production approval digest/maturity and unchanged-gate result:** Pending
+- **Spec 12 cross-host production verdict and freeze recomputation:** Pending
+- **Spec 13 SHA / Spec 14 SHA / shared production-approved base:** Pending
 - **Artifact table (name, bytes, SHA-256, normalized digest, target, floor, location) x 2:** Pending
-- **Frozen input parity result (model id, file digests, runtime tag, notice digest, resource path, lockfiles):** Pending
+- **Frozen input parity (maturity, approval digest, model/runtime/delivery/notices/locks):** Pending
 - **Payload reconciliation result and allowed-difference set:** Pending
 - **macOS signing/notary/staple/Gatekeeper facts or exact blocker:** Pending
 - **Windows Authenticode/timestamp/`signtool verify` facts, SmartScreen observation, or exact blocker:** Pending

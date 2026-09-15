@@ -4,6 +4,9 @@
 // parser: the harness that produces job lines is this repository's own
 // Rust code, so every key name below is known and unique within the job
 // object, and a substring search on `"<key>"` is safe and sufficient.
+// Identical copy to the sherpa-onnx/whisper-cpp adapters' own json_lite.h
+// (each adapter is a standalone process per Spec 05 section 6; sharing a
+// header across adapter directories would blur that boundary).
 #pragma once
 
 #include <cctype>
@@ -62,47 +65,6 @@ inline std::optional<long long> ExtractInt(const std::string &json,
   }
   if (pos == start) return std::nullopt;
   return std::stoll(json.substr(start, pos - start));
-}
-
-inline std::optional<double> ExtractFloat(const std::string &json,
-                                           const std::string &key) {
-  const std::string needle = "\"" + key + "\"";
-  auto pos = json.find(needle);
-  if (pos == std::string::npos) return std::nullopt;
-  pos = json.find(':', pos + needle.size());
-  if (pos == std::string::npos) return std::nullopt;
-  ++pos;
-  while (pos < json.size() &&
-         std::isspace(static_cast<unsigned char>(json[pos]))) {
-    ++pos;
-  }
-  size_t start = pos;
-  if (pos < json.size() && (json[pos] == '-' || json[pos] == '+')) ++pos;
-  while (pos < json.size() &&
-         (std::isdigit(static_cast<unsigned char>(json[pos])) ||
-          json[pos] == '.' || json[pos] == 'e' || json[pos] == 'E' ||
-          json[pos] == '-' || json[pos] == '+')) {
-    ++pos;
-  }
-  if (pos == start) return std::nullopt;
-  return std::stod(json.substr(start, pos - start));
-}
-
-inline std::optional<bool> ExtractBool(const std::string &json,
-                                        const std::string &key) {
-  const std::string needle = "\"" + key + "\"";
-  auto pos = json.find(needle);
-  if (pos == std::string::npos) return std::nullopt;
-  pos = json.find(':', pos + needle.size());
-  if (pos == std::string::npos) return std::nullopt;
-  ++pos;
-  while (pos < json.size() &&
-         std::isspace(static_cast<unsigned char>(json[pos]))) {
-    ++pos;
-  }
-  if (json.compare(pos, 4, "true") == 0) return true;
-  if (json.compare(pos, 5, "false") == 0) return false;
-  return std::nullopt;
 }
 
 // Escapes a string for embedding as a JSON string value (used only for our

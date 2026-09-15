@@ -2,13 +2,13 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Implemented benchmark/remediation evidence; **BLOCKED — no production candidate approved**.
 - **Implementation owner:** One Spec 05 branch/worktree with one writer.
 - **Required base:** One clean SHA containing implemented, reviewed, and merged Spec 01.
 - **Allowed implementation predecessors:** Spec 01 only.
 - **Parallel-safe peers:** Specs 02 and 03 in Wave 2, and Specs 04, 07, 08 if benchmarking is still running in Wave 3. Spec 05 touches no application, runtime, UI, native audio, root manifest, lockfile, capability, or context file, so it stays disjoint from every other wave.
 - **Shared dependency gate:** Spec 05 must not add, remove, or version-change any dependency in `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, or `src-tauri/Cargo.lock`. All benchmark dependencies live in the benchmark subtree with their own manifests and lockfiles.
-- **Successor gate:** Spec 06 may start only after this spec merges with either (a) one approved default model configuration plus a complete license record, or (b) an explicitly recorded blocker naming the failed gate. Specs 13 and 14 consume the recorded payload size and redistribution terms.
+- **Successor gate:** Spec 06 may start in **DEVELOPMENT** mode only under the explicit product-owner exception recorded in this spec and `docs/context/spec-plan.md`, using the named temporary local adapter. Spec 05 remains unsatisfied for production: Spec 12 cannot return `PASS`, Specs 13–14 cannot produce distributable `PASS` artifacts, and Spec 15 cannot return `RELEASE-READY` until this spec later records exactly one production-approved candidate that passes every unchanged gate on every required host. Specs 13 and 14 consume payload size and redistribution terms only from that future production approval.
 - **Review level:** High. This spec decides the shipped recognizer, the redistribution rights of the shipped weights, and the accuracy definition of the product’s core promise: recognized speech must not be silently corrected.
 
 ## 2. Goal and Measurable Result
@@ -184,7 +184,7 @@ Minimum corpus: **122 clips, ≥ 20 minutes total**, 16 kHz mono `pcm_s16le`, wi
 | `fast-speech` | 12 | Rapid delivery of the same error families. |
 | `system-playback` | 16 | Second-speaker style utterances captured from loudspeaker playback for later `- ` source work. |
 | `noise-silence` | 12 | Room noise, typing, music bed, plus at least four clips of ≥ 10 s physical silence with `expectPhysicalSilence: true` and an empty `reference`. |
-| `long-turn` | 8 | 60–120 s continuous speech mixing conditions, for drift and memory growth. |
+| `long-turn` | 8 | 60–180 s continuous speech mixing conditions, for drift and memory growth. |
 
 Recording protocol (`corpus/protocol.md`) fixes: one quiet room, one microphone per speaker profile, no post-processing, no noise suppression, no normalization, no trimming beyond leading/trailing silence bounds stated in the protocol, and explicit informed consent from every recorded speaker with the consent fact recorded as a boolean per profile and no identity stored.
 
@@ -360,7 +360,7 @@ Data-flow rules:
 - Audio flows file → adapter only. No PCM enters the harness’s report artifacts.
 - Recognizer text flows adapter → harness verbatim; normalization occurs once in the scorer and is applied symmetrically to references.
 - No stage may consult a grammar checker, spell checker, language-model rewriter, or LLM. The scorer’s only text transformation is the four-step normalizer in section 6.
-- Spec 06 consumes the approved candidate descriptor and license row as data; it does not import harness code into the application.
+- Spec 06 normally consumes a production-approved candidate descriptor and license row as data. Under the explicit development exception, it instead consumes the exact descriptor and complete license row for `sherpa-zipformer-en-20M-2023-02-17-int8` solely as a **DEVELOPMENT ASR ADAPTER**; this does not alter `reports/approval.md` or imply approval.
 
 ## 10. Platform, Permissions, Offline, Privacy, and Fallback
 
@@ -406,7 +406,7 @@ Runs execute with the machine on AC power, no other benchmark load, and the reco
 
 ### Bounded buffering
 
-- The adapter reads each WAV in bounded frames (≤ 1 s) and feeds the recognizer in `chunkMs` blocks; it does not load a 120 s long-turn clip into a recognizer-sized single buffer beyond that bound.
+- The adapter reads each WAV in bounded frames (≤ 1 s) and feeds the recognizer in `chunkMs` blocks; it does not load a 180 s long-turn clip into a recognizer-sized single buffer beyond that bound.
 - The harness holds at most the current clip’s event list in memory and appends scored results to disk per clip; it never accumulates all hypotheses for all candidates in memory.
 - Adapter stdout is consumed continuously so a chatty partial stream cannot fill an OS pipe buffer and deadlock the run.
 - NDJSON lines are capped at 64 KiB; a longer line is a protocol error for that clip, not an unbounded allocation.
@@ -448,7 +448,7 @@ Any clip failure is reported; aggregate metrics state how many clips contributed
 11. **Accuracy gate — both hosts:** The approved candidate achieves **WER ≤ 0.25** on the full Mistaken corpus and **WER ≤ 0.12** on the `fluent-control` subset on both hosts.
 12. **Hallucination gate — both hosts:** On `expectPhysicalSilence` clips the approved candidate emits zero non-empty finals; on the remaining `noise-silence` clips its insertion rate is ≤ 0.02 tokens per second of audio.
 13. **Latency and throughput gate — both hosts:** In `realtime` pace, median first-partial latency ≤ 900 ms and p95 final-after-endpoint latency ≤ 1500 ms; in `asap` pace, RTF ≤ 0.6 single-stream and ≤ 0.9 with two concurrent streams of the same candidate.
-14. **Resource gate — both hosts:** Peak RSS ≤ 700 MB single-stream and ≤ 1.4 GB for two concurrent streams; sustained CPU during a `long-turn` clip ≤ 60% of one performance core per stream; a 120 s clip shows no monotonic RSS growth beyond 5% after the first 30 s.
+14. **Resource gate — both hosts:** Peak RSS ≤ 700 MB single-stream and ≤ 1.4 GB for two concurrent streams; sustained CPU during a `long-turn` clip ≤ 60% of one performance core per stream; a 180 s clip shows no monotonic RSS growth beyond 5% after the first 30 s.
 15. **Size gate and payload record — report:** The approved candidate’s total model payload is ≤ 120 MB uncompressed per platform and its measured compressed payload is recorded; any candidate exceeding it is marked bundling-blocked with its exact payload, and the record states whether a separately packaged local resource is required.
 16. **License gate — license record:** Every candidate row is complete: runtime license, linked inference-runtime license, weight license, upstream provenance license (including “none declared” where true), training-data terms, required attribution text, redistribution verdict, primary source URL, and retrieval date. A candidate with an `unclear` verdict cannot be approved. The approved candidate’s attribution text is written out verbatim for Specs 13–14 to ship.
 17. **Explicit approval or explicit blocker — report:** `reports/approval.md` names exactly one approved candidate with per-gate measured values from both hosts, or records a blocker naming the failing gate and measurement for every candidate, plus the recommended next action. No approval exists without both hosts’ numbers.
@@ -578,6 +578,201 @@ Fill during implementation; do not predeclare success:
 - **Temporary artifact cleanup:** All scratch/reproduction run directories not part of the canonical 11-run evidence set (asap ×5, realtime ×5, two-stream ×1) were removed after use (e.g. the second-operator subset-reproduction run, and two earlier realtime runs that were interrupted mid-run by a session restart and re-run from scratch rather than kept partial). `benchmarks/{corpus/clips,models,.vendor,*/build,harness/target,runs}` remain locally on disk (large, reproducible, correctly Git-ignored) for anyone continuing from this worktree; they are not committed and may be deleted after this spec merges per the task's instruction.
 - **High-capability review findings and dispositions:** Self-reviewed during implementation, not a separate high-capability pass: (1) the report renderer originally copied the single-stream RTF/RSS numbers into the two-stream gate fields for every candidate instead of measuring them — found and fixed by making `rtf_two_stream`/`peak_rss_two_stream_bytes` `Option` fields wired from a real two-stream aggregate, `NOT MEASURED` when absent, with `ClipRunRecord`/`ClipScore` gaining `concurrency`/`chunk_index` fields (backward-compatible via `serde(default)`) to support it; (2) the original `verify_model_files` rejected any candidate declaring a non-SHA256-bearing file (e.g. `tokens.txt`) as a hard failure — found via the real AC7 corruption test and fixed to a documented `NoChecksumRecorded` (size-only) outcome, matching each candidate descriptor's own stated convention; (3) a background realtime-pace run silently died mid-run across a session boundary (interrupted at 116/130 clips) — detected via directory clip-count inspection, the partial directory was discarded, and the run was redone from scratch as a supervised, restartable process.
 - **Final Git status:** Recorded below after commit.
+
+### Remediation evidence (branch `spec/05-remediation`, 2026-09-15)
+
+The block above is the original Spec 05 implementation's evidence record
+and is preserved unedited as history. This addendum records the
+remediation run against a real human-recorded corpus, superseding only
+the corpus-authenticity blocker above; nothing below changes a threshold,
+scoring rule, candidate set, or license verdict.
+
+- **Corpus:** 122 real human-recorded primary clips (29.6 minutes) + the
+  8-clip 48 kHz duplicate subset = 130 manifest entries, replacing the
+  prior TTS audio. `speakerProfiles` now record `consentGiven: true` for
+  `sp-01`/`sp-02` with real-recording provenance notes (prior
+  `PENDING`/`false` placeholders removed). `long-turn` accepted duration
+  window widened 60,000–120,000 ms → 60,000–180,000 ms by an explicit
+  product-owner decision (`docs/context/progress-tracker.md`,
+  2026-09-15) to accommodate the real speaker's natural pace; no other
+  threshold changed.
+- **`validate-corpus`:** `PASS (122 primary clips, 29.6 minutes, 130 total
+  manifest entries)`.
+- **Staging performed fresh in the `mistaken-spec-05-remediation`
+  worktree:** sherpa-onnx vendored at resolved commit
+  `11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf` (tag `v1.13.8`), whisper.cpp
+  at resolved commit `927cfce34f31707e17f2bff35c349632fb9e2c3a` (tag
+  `v1.9.4`); both adapters built Release with CMake `4.4.3` / Apple clang
+  `17.0.0`; all 5 candidates' model files re-downloaded from the recorded
+  Hugging Face repo/revision/path triples and checksum-verified via
+  `mistaken-bench fetch --candidate <id>` (`VERIFIED` for every
+  SHA-256-bearing file).
+- **`mac-arm64` host:** Apple M4, 10 cores (4P+6E), 16 GB RAM, macOS
+  15.7.5, AC power — same approved reference-profile host as the original
+  evidence.
+- **`win-x64`:** still **BLOCKED — no host accessible this session**
+  (checked: no Windows machine, VM, or configured SSH host reachable from
+  this workstation). This is now the only structural blocker; the
+  corpus-authenticity blocker above is resolved.
+- **Real measured results, `asap` pace, 3 repetitions, 390/390
+  clip-repetitions contributed per candidate, zero timeouts:** full tables
+  in `reports/2026-09-15-mac-arm64.md`. MPR overall (gate ≥ 0.90): 20M
+  int8 0.3241, 2023-06-26 int8 0.5417, 2023-06-26 fp32 0.5231, whisper-base
+  0.5926, whisper-small 0.6667 (closest, still FAIL). Every candidate's
+  MPR fell relative to the prior TTS-corpus run (e.g. whisper-small
+  0.8611 → 0.6667), confirming real disfluent speech is harder to
+  preserve than clean TTS. Concrete false-correction examples inspected
+  from real whisper-small output: `"the dogs is barking..."` →
+  `"The dogs are barking..."`; `"we was rushing...i putted it"` → `"We
+  were rushing...I put it"`; `"she arrived to the airport..."` → `"She
+  arrived at the airport..."`; `"he drived off quick before i could
+  catched him"` → `"He drives off quick before I could catch him."` —
+  each scored `false_correction`, not `misrecognized`.
+- **`realtime` pace:** 1 repetition × 130 clips per candidate (same
+  disclosed wall-clock-time reduction as the original evidence; the
+  5-candidate batch took 3h28m wall time this run against the longer 29.6
+  minute corpus), 130/130 contributed per candidate, zero timeouts. Median
+  first-partial 1446–3091 ms (gate ≤ 900), p95 final-after-endpoint
+  9726–127235 ms (gate ≤ 1500) — every candidate fails both latency gates.
+- **Two-stream concurrency (`whisper-small-en-ggml`, leading candidate by
+  MPR):** `throughput.rtf_two_stream` 0.3133 (PASS, ≤ 0.9),
+  `resource.peak_rss_two_stream_mb` 1879.67 (FAIL, ≤ 1400).
+- **`resource.rss_growth_after_30s_fraction`:** still `NOT MEASURED` — a
+  pre-existing harness gap (hard-coded `None` in `main.rs`, not something
+  this remediation introduced or was asked to fix) that does not change
+  the outcome, since every candidate already fails the fidelity gate
+  independent of this metric.
+- **License record:** unchanged and not re-verified this session (the
+  corpus swap does not affect any candidate's license or provenance
+  facts); `mistaken-bench licenses --check` → `PASS (5 candidate(s)
+  complete)`.
+- **`cargo fmt --check` / `cargo test`:** clean / 70 passed, 0 failed, in
+  `benchmarks/harness`, run fresh in this worktree before and after the
+  manifest metadata fix below.
+- **Manifest metadata fix:** `speakerProfiles[].notes` for `sp-01`/`sp-02`
+  still read "PENDING real human recording... do not flip [consentGiven]
+  until consent is real" while `consentGiven` was already `true` — a
+  stale/self-contradictory leftover from the prior remediation commit that
+  registered the real corpus. Corrected to accurately describe the
+  completed, consented real recording; `benchmarks/corpus/RECORDING_CHECKLIST.md`
+  §1 updated to match. `validate-corpus` re-run clean after the fix.
+- **Approval decision:** **BLOCKED.** `reports/approval.md`. Every
+  candidate fails the fidelity gate (AC10) on real `mac-arm64` evidence
+  against a real human corpus; the `win-x64` structural blocker would
+  independently block approval even if a candidate had passed.
+- **Privacy/offline:** `git check-ignore` reconfirmed all local-only paths
+  ignored; `git status` shows only the manifest metadata fix and new
+  report/evidence files tracked, nothing under `corpus/clips`, `models`,
+  `.vendor`, `runs`, or `*/build`; zero network-code hits on fresh
+  inspection; zero `timeout`/`error` events across 1,950 `asap` +
+  650 `realtime` + 260 two-stream clip-repetitions.
+- **Final Git status / commit SHA:** recorded below after commit.
+
+### Remediation engineering experiments (branch `spec/05-remediation`, 2026-09-15, same session)
+
+Full detail: `benchmarks/reports/2026-09-15-remediation-experiments.md`
+(exact configurations, before/after numbers) and `benchmarks/reports/approval.md`
+("Remediation experiments performed"). Summary: after the Mac-arm64 re-run
+above confirmed every candidate still fails the fidelity gate, ran
+representative-subset experiments to test whether any in-scope decoder or
+runtime configuration change could close the gap. Diagnosis: only
+`sherpa-zipformer-en-20M-2023-02-17-int8` is small enough (41.6 MB / 164.5
+MB RSS) to ever satisfy the payload/RSS gates among the three
+license-clean candidates, and it is also furthest from the fidelity gate;
+both `whisper-*` candidates are closer on fidelity but unfixably over the
+120 MB payload gate regardless of configuration. Tested against
+`sherpa-zipformer-en-20M-2023-02-17-int8`: `modified_beam_search` decoding
+(real WER improvement 5–39% relative depending on condition; MPR
+unchanged at ~0.31–0.32 overall; a new silence-hallucination regression)
+and an optional synthetic-silence cold-start warm-up (`warmupSilenceMs`,
+a new backward-compatible field in `DecodingDescriptor`/`Job`, unused by
+every frozen candidate descriptor, implemented in the sherpa-onnx adapter
+with regression tests in `benchmarks/harness/src/candidate.rs`; no
+measurable improvement, occasionally worse). Neither closed the gap to
+MPR ≥ 0.90, so no full 3-repetition re-run was performed and no frozen
+candidate descriptor was changed. `cargo fmt --check`, `cargo clippy
+--all-targets --all-features -- -D warnings`, and `cargo test` (72
+passed, 0 failed) all still pass in `benchmarks/harness` after the
+`warmupSilenceMs` addition. Decision unchanged: **BLOCKED**. Next
+legitimate action is model selection (a smaller license-clean Whisper
+export) plus Whisper-specific `initial_prompt`/`no_speech_thold` tuning
+against it, not further configuration of the current frozen set.
+- **Final Git status / commit SHA:** recorded below after commit.
+
+### Remediation — payload-policy decision and candidate-set research (branch `spec/05-remediation`, 2026-09-15, later same day)
+
+Full detail: `benchmarks/reports/2026-09-15-candidate-expansion-research.md`,
+`benchmarks/reports/2026-09-15-fundamentally-different-architecture-research.md`,
+`benchmarks/reports/2026-09-15-larger-model-payload-policy-research.md`, and
+`benchmarks/reports/approval.md`. This addendum records two further
+product-owner decisions and their resulting evidence, none of which
+lowers MPR, false-correction, WER, silence, latency, or resource gates.
+
+**Decision 1 (candidate-set expansion, no gate relaxed):** after the
+remediation experiments above proved the original five candidates
+exhausted, the product owner authorized adding new candidates through the
+normal Spec 05 process. `whisper-base-en-q8-ggml` (Q8_0 quantization of
+the already-verified `whisper-base-en-ggml`, 81.78 MB) and
+`vosk-small-en-us` (a brand-new adapter/runtime, Kaldi HMM-DNN+WFST,
+first-party Apache-2.0, 70.9 MB) were added, license-verified, and
+focus-tested. Neither approached the MPR gate (`whisper-base-en-q8-ggml`
+MPR 0.5323; `vosk-small-en-us` MPR 0.5349, though `vosk-small-en-us` was
+the first candidate in the series to pass false-correction, WER, and
+silence individually). Two CTC candidates (icefall zipformer-CTC, NVIDIA
+NeMo Citrinet-512) were paper-screened and rejected before benchmarking
+on the same upstream-provenance-license gap already documented for the
+`2023-06-26` zipformer candidates.
+
+**Decision 2 (payload-gate policy revision, AC15 reinterpreted, no
+numeric gate relaxed for the frozen set):** since every architecture
+family evaluated so far was blocked at least in part by the ≤ 120 MB
+bundled-payload ceiling, the product owner recorded that a local ASR
+model resource may now be delivered as a separately downloaded,
+checksum-pinned local resource rather than bundled inside the initial
+installer, decoupling AC15's payload ceiling from the installer-size
+question Specs 13–14 own. This is a packaging-delivery-mechanism change,
+not a relaxation of MPR/false-correction/WER/silence/latency/resource
+gates, and no specific new numeric ceiling is adopted here — one is
+deferred until a concrete approved candidate's real payload justifies it,
+per the product owner's explicit instruction not to silently remove the
+constraint. Under this policy, `vosk-en-us-0.22-lgraph` (204 MB
+extracted, the same Kaldi/WFST architecture as `vosk-small-en-us` at
+~3× the acoustic-model and decoding-graph capacity) was fetched,
+license-verified (same first-party Apache-2.0 chain), and focus-tested.
+Result: MPR 0.5532 combined — the `mistake-tense` per-condition sub-gate
+measured **exactly** 0.4348, identical to the small model, and
+`mistake-minimal-pair` measured *worse* (0.5625 vs. 0.6250); a new
+silence-hallucination regression appeared (6 tokens across the 4
+physical-silence clips, vs. 0 for the small model). WER and
+false-correction improved, but the primary fidelity gate did not move on
+its most informative sub-condition despite a materially larger model.
+**Conclusion: model size is not the limiting factor for this
+architecture family** — a further, much larger Vosk model was not
+benchmarked (deliberate scope decision, not an oversight: the identical
+`mistake-tense` result across a 3× capacity jump gives no evidence basis
+to expect a qualitatively different outcome from a further jump).
+
+**No candidate — six evaluated across three architecturally distinct
+families — clears the fidelity gate.** `reports/approval.md` records an
+explicit product-constraint statement for the product owner naming the
+remaining legitimate choices (commission/train a purpose-built
+anti-normalization model, revise the MPR/false-correction thresholds as
+a recorded decision, or keep Spec 05 blocked); none is selected by this
+session. Decision unchanged: **BLOCKED**.
+- **Final Git status / commit SHA:** recorded below after commit.
+
+### Product-owner dependency-contract decision (2026-09-15)
+
+The benchmark result remains **BLOCKED — no candidate approved**. All prior reports, measured failures, corpus evidence, thresholds, and license/provenance findings remain authoritative and are preserved without reinterpretation.
+
+Two ASR maturity states are now normative:
+
+- **DEVELOPMENT ASR ADAPTER:** a real, fully local, replaceable recognizer used to implement capture, IPC, lifecycle, buffering, transcript, and source-separation architecture. The temporary adapter authorized for Spec 06 is `sherpa-zipformer-en-20M-2023-02-17-int8` with `sherpa-onnx` `v1.13.8`, exact candidate descriptor/checksums, greedy-search configuration, and the recorded `permitted-with-attribution` license verdict. Selection rationale is architectural fit only: native streaming, existing abstraction compatibility, recorded provenance, and small local payload. Its measured real-human-corpus MPR is 0.3241 against the unchanged ≥ 0.90 gate; it is not a default, recommendation, fallback, production candidate, or release input.
+- **PRODUCTION APPROVED ASR MODEL:** exactly one future candidate explicitly approved by this spec after passing every unchanged fidelity, false-correction, WER, hallucination, latency, throughput, CPU, RSS, stability, license, provenance, redistribution, and required-platform gate.
+
+This decision changes dependency timing, not benchmark truth. Spec 06 and downstream Specs 09–11 may proceed in `DEVELOPMENT` mode and may merge as `DEVELOPMENT COMPLETE` after their architecture criteria pass. Every transcript-quality measurement produced with the temporary adapter is labeled `NON-RELEASE EVIDENCE` and cannot satisfy any Spec 05 gate. Spec 12 remains unable to return `PASS` or authorize packaging; Specs 13–14 cannot produce distributable `PASS` artifacts; Spec 15 must reject `RELEASE-READY` while this approval record remains blocked.
+
+The temporary adapter must remain fully local, use no cloud or paid fallback, transcribe the real microphone path, preserve the frozen IPC/lifecycle/buffering contracts, support Start → Stop → Start and clean shutdown, display `Development ASR • Not release approved`, and remain replaceable through the existing recognizer abstraction. Failure of any of those requirements blocks development completion; success satisfies architecture only.
 
 ### Authoring evidence and sources
 

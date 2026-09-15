@@ -93,7 +93,7 @@ on non-speech audio.
 | `fast-speech` | 12 | Rapid delivery of the same error families as above. |
 | `system-playback` | 16 | Second-speaker style utterances captured from loudspeaker playback (see §6b), for later `- ` source work. |
 | `noise-silence` | 12 | Room noise, typing, music bed, plus ≥ 4 clips of ≥ 10 s physical silence with `expectPhysicalSilence: true` and an empty `reference`. |
-| `long-turn` | 8 | 60–120 s continuous speech mixing conditions above, for drift and memory-growth measurement. |
+| `long-turn` | 8 | 60–180 s continuous speech mixing conditions above, for drift and memory-growth measurement. |
 
 Total: 122 clips, ≥ 20 minutes.
 

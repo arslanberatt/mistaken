@@ -2,18 +2,19 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Authorized for implementation in **DEVELOPMENT** mode after Spec 06 reaches `DEVELOPMENT COMPLETE`; not implemented. Spec 05 remains blocked.
 - **Implementation owner:** One Spec 09 branch/worktree with **one writer**. This is the highest shared-file integration boundary in the project; no concurrent spec may run against the same checkout.
-- **Required base:** One clean integration SHA containing implemented, reviewed, and merged Specs 01–08, including Spec 05’s approved model, Spec 06’s microphone transcription evidence, and Spec 07/08’s real platform-capture evidence on their own hosts.
-- **Allowed implementation predecessors:** Specs 06, 07, and 08. Specs 01–05 are inherited transitively.
+- **Required base:** One clean integration SHA containing implemented, reviewed, and merged Specs 01–08, including Spec 06’s `DevelopmentOnly` adapter/microphone evidence and Spec 07/08’s real platform-capture evidence.
+- **Allowed implementation predecessors:** Specs 06, 07, and 08. Specs 01–05 are inherited transitively; Spec 05’s benchmark result remains `BLOCKED — no candidate approved`.
 - **Parallel-safe peers:** none. Spec 09 owns the shared runtime, both platform integrations, the ASR orchestration, the root manifests, and the application UI at once.
-- **Consumed yielded requirements:** the shared-file changes Specs 07 and 08 recorded rather than edited — macOS `minimumSystemVersion` `13.0`, the Windows API/tested floor declaration, and the registration of both platform crates — are implemented here.
-- **Successor gate:** Specs 10 and 11 may start in parallel only after this spec merges **and** freezes the complete capture-status/error event contract, the dual-source ordering contract, and the application composition boundary. If either successor needs a change to those, it is serialized behind the other.
-- **Review level:** High, mandatory. This spec decides source isolation, cross-source ordering, dual-stream resource bounds, partial-failure honesty, and the first moment the product’s two-speaker promise is actually observable.
+- **Consumed yielded requirements:** the shared-file changes Specs 07 and 08 recorded rather than edited — macOS `minimumSystemVersion` `13.0`, the Windows API/tested floor declaration, and registration of both platform crates — are implemented here.
+- **Successor gate:** Specs 10 and 11 may start in **DEVELOPMENT** mode only after this spec merges as `DEVELOPMENT COMPLETE` and freezes the capture-status/error event, dual-source ordering, and composition contracts. Architectural completion does not approve transcript fidelity or release.
+- **ASR maturity gate:** The exact Spec 06 adapter remains `DevelopmentOnly`, and the UI must keep `Development ASR • Not release approved` visible. All quality/performance measurements are `NON-RELEASE EVIDENCE`. No code, config, build flag, or successful dual-source run may promote the adapter.
+- **Review level:** High, mandatory. This spec decides source isolation, cross-source ordering, dual-stream bounds, and partial-failure honesty. Those results are architecture evidence only while Spec 05 is blocked.
 
 ## 2. Goal and User-Visible Result
 
-Make Mistaken transcribe both sides of a conversation at once, locally, with sources that can never be confused.
+Make Mistaken transcribe both sides of a conversation at once, locally, through two isolated streams on the temporary development adapter, with sources that can never be confused and without implying release readiness.
 
 - The source bar exposes a real **System audio** control next to the microphone selector, with platform-honest availability and error text.
 - With system audio enabled and a microphone selected, **Start Listening** starts two independent capture paths and two independent recognizer streams.
@@ -28,6 +29,8 @@ Make Mistaken transcribe both sides of a conversation at once, locally, with sou
 
 The result must be observed in the real Tauri application on a supported macOS machine **and** a supported Windows machine, with networking disabled, while real speech and real playback happen simultaneously.
 
+The persistent adapter label from Spec 06 remains visible throughout every source combination. Working dual-source transcription and zero cross-attribution do not satisfy any Spec 05 fidelity gate.
+
 ## 3. Verified Current Behavior
 
 Verified while authoring this spec:
@@ -37,7 +40,7 @@ Verified while authoring this spec:
 - Spec 03 explicitly left transcript ordering across sources to this spec: revision comparison never discards transcript events, and “transcript idempotency/order is governed by Spec 02’s segment identity contract and later Spec 09 integration”.
 - Spec 02 froze the transcript domain this spec feeds: unique segment id per session, **first occurrence appended in first-seen order**, interim replaced in place only by a newer interim/final with the same id, source, and `startedAtMs`, finals immutable against later updates, a same-id source/`startedAtMs` change rejected as `segment_identity_conflict` without altering the original row, `- ` applied **only** from structural `source === "system"`, `Copy All` serializing finals only in array order joined by `\n\n`, and no sorting by text or timestamp inside the reducer.
 - Spec 04 delivers the microphone path: CPAL capture, exact 20 ms mono `f32` blocks at the device’s native rate, a fixed 100-block two-second pool, allocation-free callback, monitor thread, and `waiting`/`receiving` activity gated on a peak ≥ 0.01.
-- Spec 06 delivers the recognizer boundary: the official `sherpa-onnx` crate linked from a locally verified archive, lazy verified model load cached for the process, an internal `StreamingRecognizer`/`RecognizerFactory` trait pair, a bounded 30 × 100 ms inference stage per source, segment ids of the form `mic-<sessionId>-<segmentIndex>`, audio-time timestamps from fed-sample counts, partial throttling at 150 ms, exactly one immutable final per segment, verbatim text, frozen endpoint rules 2.4 s / 1.0 s / 15 s, and the fatal constraint that one recognizer stream must be fed exactly one sample rate for its life.
+- Spec 06 delivers a `DevelopmentOnly` `sherpa-onnx` adapter and the replaceable `StreamingRecognizer`/`RecognizerFactory` boundary: lazy verified load, a bounded 30 × 100 ms inference stage per source, segment ids, audio-time timestamps, 150 ms partial throttling, one final per segment, recognizer-output passthrough, frozen endpoint rules, and one constant sample rate per stream. Its quality measurements are explicitly non-release.
 - Spec 07 delivers `crates/macos-system-audio`: ScreenCaptureKit audio-only capture with `excludesCurrentProcessAudio`, non-prompting permission inspection plus TCC-gated authoritative availability, a distinct restart-required state, runtime format validation, exact 20 ms mono blocks through a non-blocking `SystemAudioSink`, and a mapping table from its error kinds onto Spec 03’s `AudioErrorKind`/`RuntimeError` that **this spec implements**.
 - Spec 08 delivers `crates/windows-system-audio`: event-driven WASAPI loopback on the default render endpoint, mix-format validation with explicit conversion branches, a continuous timeline whose captured, silent-flagged, and synthesized frames are counted separately, once-per-second default-endpoint change detection, COM scoped to its own thread, **no permission API and no permission error kind**, and its own mapping table that this spec implements.
 - Spec 08 also froze that synthesized silence must never satisfy a `receiving` activity condition, and that DRM-protected content is indistinguishable from genuine silence.
@@ -59,14 +62,14 @@ No implementation report is authoritative. During implementation the merged sour
 - Mid-session single-source failure handling that keeps the surviving source transcribing and never mutates finalized transcript content.
 - The system-audio UI control, platform-honest availability/permission/error copy, and workspace integration that renders both sources with Spec 02’s existing formatter.
 - Implementing the shared-file changes Specs 07 and 08 yielded: macOS minimum system version, the Windows floor declaration, root manifest/lockfile registration of both platform crates.
-- Dual-stream resource measurement against Spec 05’s two-stream gates, and bounded teardown for both sources.
-- Rust and frontend behavior tests for isolation, ordering, identity, partial failure, and bounded behavior, plus real simultaneous speech-and-playback evidence on both operating systems.
+- Dual-stream resource and transcript-quality measurement against every unchanged Spec 05 two-stream/fidelity gate, recorded as `NON-RELEASE EVIDENCE`; these measurements do not gate `DEVELOPMENT COMPLETE` except where they expose an architectural defect.
+- Rust and frontend behavior tests for isolation, ordering, identity, partial failure, bounded behavior, non-release labeling, and real simultaneous speech/playback on both operating systems.
 
 ### Out of scope
 
 - Changing Spec 03’s command names, event names, payload shapes, error codes, or revision semantics. This spec fills the frozen contract; it does not widen it.
 - Changing Spec 02’s reducer, formatter, clipboard serializer, `Clear` confirmation, or ordering rule. Their behavior is consumed exactly as merged.
-- Re-benchmarking, changing the approved model, loading a second model, or running a second recognizer instance.
+- Re-benchmarking, changing or promoting the `DevelopmentOnly` adapter, claiming model approval, loading a second model, or running a second recognizer instance.
 - Changing either platform crate. Their code is consumed as merged; a required change is recorded and serialized by the integration owner.
 - Mixing, summing, ducking, echo cancellation, noise suppression, or any cross-source audio processing.
 - Speaker diarization, speaker naming, per-application audio selection, output-device selection, or microphone/system gain control.
@@ -449,7 +452,7 @@ Every error carries reviewed `recoverable` and, where applicable, the exact `sou
 
 ## 12. Numbered Measurable Acceptance Criteria
 
-1. **Predecessors and single writer — both hosts:** Spec 09 starts from one recorded SHA containing merged Specs 01–08 with their reviews closed, in its own worktree with exactly one writer; only declared paths change.
+1. **Development predecessors and single writer — both hosts:** Spec 09 starts from one recorded SHA containing merged Specs 01–08 with Spec 06 `DEVELOPMENT COMPLETE`, in its own worktree with exactly one writer, while Spec 05 remains blocked; only declared paths change.
 2. **Frozen contracts preserved — platform-neutral:** No command, event name, payload field, error code, revision rule, transcript type, reducer behavior, formatter, or serializer is altered; no duplicate registry, type, or state container exists. Spec 02’s tests pass unmodified.
 3. **Platform crates consumed unchanged — both hosts:** Both platform crates are registered as target-specific dependencies and their sources are byte-identical to the merged versions; their mapping tables are implemented in full with no kind collapsed into `internal`.
 4. **Yielded requirements implemented — both hosts:** macOS `minimumSystemVersion` is `13.0`; the Windows API and tested floors are declared in the designated document; both match Spec 07/08 exactly.
@@ -467,9 +470,9 @@ Every error carries reviewed `recoverable` and, where applicable, the exact `sou
 16. **Per-source status and activity — real macOS and Windows:** Each source reports its own status and `waiting`/`receiving`; an unrequested source stays `idle`; `captureStatus` is `listening` while any requested source captures and `error` only when all have failed; **Windows synthesized silence never produces `receiving`**.
 17. **Mid-session partial failure — real macOS and Windows:** Disconnecting the microphone, or switching/unplugging the Windows output endpoint or stopping the macOS stream, marks only that source as failed with its exact code, keeps the other source transcribing, releases only the failed source’s resources, and never alters finalized transcript content.
 18. **Both-source Copy All and Clear — real macOS and Windows:** `Copy All` writes finals from both sources in transcript order, separated by exactly `\n\n`, with `- ` only on system lines and no metadata; `Clear` removes all in-memory segments from both sources with the merged confirmation behavior.
-19. **No correction anywhere — review plus real run:** Deliberately incorrect English from both sources survives verbatim; inspection confirms no grammar, spelling, casing, punctuation, substitution, or LLM stage exists in either pipeline; the only text transformation remains whitespace trim/collapse.
-20. **Start → Stop → Start and shutdown — real macOS and Windows:** At least five dual-source cycles complete, teardown finishes within one second, both sources release every resource, indices reset to `0`, no text carries over, closing during dual capture releases both sources and the model, and relaunch starts idle with the toggle off.
-21. **Dual-stream performance — both reference hosts:** Measured two-stream RTF ≤ 0.9, peak RSS ≤ 1.4 GB, and per-source latency within Spec 05’s single-stream latency gates; deviations are fixed before merge, not explained away, and `decode_multiple_streams` remains unused unless a recorded decision changes it.
+19. **No application correction — review plus real run:** Deliberately incorrect English from both sources is compared with the raw recognizer result; emitted text matches recognizer output under the frozen whitespace rule. Any recognizer correction/misrecognition is retained as failed `NON-RELEASE EVIDENCE`; any application grammar, spelling, casing, punctuation, substitution, or LLM stage blocks development completion.
+20. **Start → Stop → Start, shutdown, and maturity label — real macOS and Windows:** At least five dual-source cycles complete, teardown finishes within one second, both sources release every resource, indices reset to `0`, no text carries over, active close releases both sources/model, relaunch starts idle with the toggle off, and `Development ASR • Not release approved` remains visible.
+21. **Unchanged dual-stream measurements — both reference hosts:** Measure two-stream RTF against ≤ 0.9, peak RSS against ≤ 1.4 GB, per-source latency against Spec 05’s single-stream gates, and relevant fidelity/hallucination values. Record every pass/failure as `NON-RELEASE EVIDENCE`; failures continue blocking production but do not block `DEVELOPMENT COMPLETE` unless caused by a Spec 09 architectural regression. `decode_multiple_streams` remains unused absent a recorded later decision.
 22. **Offline, privacy, and checks — both hosts:** The full dual-source flow runs with networking disabled; inspection finds zero network paths, zero audio/transcript writes, and zero logging of text, device ids, endpoint ids, or model paths; typecheck, lint, frontend tests and build, `cargo fmt --check`, `cargo check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test`, and real Tauri launches pass on both hosts.
 23. **High-capability review and frozen successor contract — integration:** Review covers source isolation, ordering, clock math, atomic start rollback, partial-failure teardown, lock discipline, FFI lifetimes across two streams, boundedness, privacy, accessibility, and platform-honest copy; every High/Medium finding is fixed and re-verified; the capture-status/error contract, ordering contract, and application composition boundary are recorded as frozen for Specs 10 and 11.
 
@@ -495,9 +498,9 @@ Every error carries reviewed `recoverable` and, where applicable, the exact `sou
 | 16 | Observe both sources across requested/unrequested and silent/active states on each OS | Status/activity transitions, synthesized-silence observation |
 | 17 | Physically disconnect the microphone and switch/unplug the Windows endpoint during dual capture | Failed-source code, survivor behavior, resource release, transcript integrity |
 | 18 | Use the real `Copy All` and `Clear` with both sources present; compare clipboard bytes | Clipboard text comparison, segment counts before/after |
-| 19 | Speak and play deliberately ungrammatical content; inspect both pipelines | Preserved wordings per source, review notes |
-| 20 | Five dual-source cycles, active-close, and relaunch on each OS | Cycle results, teardown durations, index reset, toggle state on relaunch |
-| 21 | Measure two-stream RTF, RSS, and latencies on both reference hosts | Measured values against each gate, per host |
+| 19 | Compare raw recognizer output with both emitted pipelines; inspect for application rewriting | Per-source passthrough comparison; recognizer errors labeled non-release |
+| 20 | Five dual-source cycles, active-close, relaunch, and maturity-label check on each OS | Cycle results, teardown durations, reset/relaunch state, persistent label |
+| 21 | Measure two-stream RTF, RSS, latencies, and relevant quality gates on both hosts | Values against unchanged gates, architectural-regression analysis, non-release labels |
 | 22 | Run all flows with networking disabled; inspect sockets, storage, logs; run the full check set | Disable method, zero-findings statement, exact commands and exits |
 | 23 | High-capability review of the finished diff plus the frozen-contract record | Findings, dispositions, frozen contract summary, final Git state |
 
@@ -505,8 +508,8 @@ Permanent tests protect source isolation, identity and indices, ordering, clock 
 
 ## 14. Ordered Implementation Plan
 
-1. After Specs 06, 07, and 08 merge with their reviews closed, create the Spec 09 worktree from the recorded Wave 5 base. Record root, branch, and base SHA, and confirm no other writer shares the checkout.
-2. Re-read the canonical context, Specs 02–12, both platform crates’ public APIs and mapping tables, Spec 05’s approval record, and the installed `sherpa-onnx` documentation for the pinned version. Run baseline checks on both hosts.
+1. After Specs 06–08 merge with reviews closed and Spec 06 labeled `DEVELOPMENT COMPLETE`, create the Spec 09 worktree from the recorded Wave 5 base. Confirm Spec 05 remains blocked; record root/branch/base and single-writer isolation.
+2. Re-read canonical context, Specs 02–12, both platform crates’ APIs/mapping tables, Spec 05’s blocked approval and unchanged gates, Spec 06’s exact development manifest, and installed `sherpa-onnx` documentation. Run baseline checks on both hosts.
 3. Implement the yielded shared-file requirements first — macOS minimum system version, Windows floor declaration, target-specific registration of both platform crates — and prove both hosts still build and launch before touching behavior.
 4. Implement `SystemAudioBackend`, the compile-time platform dispatch, and the honest unavailable backend for other targets.
 5. Implement the macOS and Windows mapping arms with exhaustive matches and tests, so no kind can be added upstream without a compile error here.
@@ -515,11 +518,11 @@ Permanent tests protect source isolation, identity and indices, ordering, clock 
 8. Implement the system pipeline end to end: sink bridge, pool, stage, second `OnlineStream` on the shared recognizer, and worker.
 9. Implement the runtime command/state changes: three source combinations, atomic start with full rollback, aggregate status derivation, per-source status and errors, and emission-after-unlock discipline.
 10. Implement the mid-session partial-failure path with per-source teardown and survivor continuity, including tests that assert the survivor’s stream is untouched.
-11. Implement the system-audio control, per-source status and error placement, platform-honest copy, and the focused `App`/workspace integration; keep Spec 02’s transcript surface untouched.
-12. Add Rust and frontend behavior tests mapped to the acceptance criteria. Do not add a production fake backend, a debug recording path, a text-logging path, or a test-only command.
-13. Verify on real macOS with networking disabled: all three combinations, simultaneous speech and playback with attribution scoring, overlap cases, permission-denied atomic failure, microphone disconnect during dual capture, ScreenCaptureKit stream stop, five cycles, active close, relaunch.
-14. Repeat step 13 on real Windows, adding the default-endpoint switch and endpoint unplug cases; record its own evidence. No host substitutes for the other.
-15. Measure dual-stream RTF, RSS, and per-source latencies on both reference hosts against Spec 05’s gates; fix real regressions rather than re-tuning a gate.
+11. Implement the system-audio control, per-source status/error placement, persistent development-ASR label, and focused `App`/workspace integration; keep Spec 02’s transcript surface untouched.
+12. Add Rust/frontend behavior tests mapped to the acceptance criteria. Do not add a production fake backend, debug recording path, text logging path, promotion switch, or test-only command.
+13. Verify on real macOS with networking disabled: all three combinations, simultaneous speech/playback with attribution scoring, overlap cases, permission-denied atomic failure, microphone disconnect, ScreenCaptureKit stop, five cycles, active close, relaunch, and persistent maturity label.
+14. Repeat step 13 on real Windows, adding default-endpoint switch/unplug; record its own evidence. No host substitutes for the other.
+15. Measure dual-stream RTF, RSS, per-source latency, and applicable transcript-quality gates against unchanged Spec 05 thresholds. Preserve every failure as `NON-RELEASE EVIDENCE`; fix only identified architectural regressions and never retune a gate.
 16. Review the whole diff for cross-source leakage, ordering, clock math, rollback completeness, lock discipline, FFI lifetimes across two streams, boundedness, privacy and logging, accessibility, and platform-honest copy. Fix every High/Medium finding and rerun affected proof.
 17. Remove temporary probes, instrumentation, fixtures, and scratch files; verify nothing private is staged.
 18. Record the frozen capture-status/error, ordering, and composition contracts for Specs 10 and 11; update only this spec’s evidence; create the focused local commit unless directed otherwise; report roots, branches, SHAs, hosts, devices, and measurements; do not push unless requested.
@@ -535,7 +538,7 @@ Permanent tests protect source isolation, identity and indices, ordering, clock 
 - **Shared recognizer misuse:** the crate documents `Send + Sync`, but a shared mutable stream would corrupt both sources. Each stream is owned exclusively by its worker; only the recognizer handle is shared; re-verify the documented traits for the pinned version before relying on them.
 - **Mid-stream rate change:** Spec 06 proved the runtime terminates the process on a stream rate change. Two sources at different rates make this easier to get wrong: fix each stream’s rate at creation and end that source’s session on any change.
 - **Head-of-line blocking:** decoding both sources on one thread would couple them. One worker per source, and batch decoding stays unused unless a recorded decision changes it.
-- **Dual-stream resource blowout:** two pipelines double audio memory and CPU. Fixed stages bound audio to 10 s, model memory is paid once, and Spec 05’s two-stream gates are measured rather than assumed.
+- **Dual-stream resource blowout:** two pipelines double audio memory and CPU. Fixed stages bound audio to 10 s, model memory is paid once, and unchanged Spec 05 two-stream gates are measured as non-release evidence rather than assumed or relaxed.
 - **Partial-failure leakage:** tearing down a failed source could take the survivor’s resources with it. Per-source ownership with tests asserting the survivor’s stream, stage, and pool are untouched.
 - **Rollback gaps in atomic start:** a failure after the first source starts could leave a stream running. Allocate in a fixed order, roll back in reverse, and test failure injection at every step.
 - **Lock contention or deadlock:** two sources plus emission increase the risk. No lock is held across capture, permission, stream, join, or emission work; state transitions clone a small snapshot and unlock before emitting.
@@ -561,7 +564,7 @@ Permanent tests protect source isolation, identity and indices, ordering, clock 
 
 - Preserve Spec 03’s command/event/error/revision surface exactly; this spec adds no contract, only implementations and mappings.
 - Preserve Spec 02’s reducer, first-seen ordering, final immutability, structural `- ` prefix, serializer, `Clear`, and `Copy All` semantics.
-- Preserve Spec 04’s microphone behavior and Spec 06’s recognizer configuration, endpoint rules, verbatim emission, throttling, and single-final guarantee, applied identically to both sources.
+- Preserve Spec 06’s `DevelopmentOnly` maturity, persistent non-release UI label, recognizer configuration, endpoint rules, output passthrough, throttling, and single-final guarantee, applied identically to both sources.
 - Preserve both platform crates as merged, including their permission honesty and their captured-versus-synthesized accounting.
 - Preserve microphone/system separation, local-only processing, no account, no backend, no database, no transcript or audio persistence, no upload, no cloud fallback, and no grammar correction.
 - Preserve least-privilege Tauri capabilities, the CSP, and clipboard-write-only behavior.
@@ -569,7 +572,18 @@ Permanent tests protect source isolation, identity and indices, ordering, clock 
 
 ## 16. Definition of Done and Evidence Record
 
-Spec 09 is done only when the real Mistaken application on a supported macOS machine and a supported Windows machine captures microphone and system audio simultaneously through two fully independent pipelines and one shared recognizer, renders unprefixed microphone lines and `- ` prefixed system lines with zero cross-attribution across scored utterances including deliberate overlaps, fails a start atomically when a requested source is unavailable, keeps the surviving source transcribing when one source dies without touching finalized content, bounds in-memory audio to 10 seconds across four fixed stages, meets Spec 05’s two-stream performance gates, copies and clears both sources through Spec 02’s unchanged domain, runs entirely offline with no persistence and no text logging, tears down both sources within one second and restarts cleanly, and records the frozen capture-status, ordering, and composition contracts for Specs 10 and 11.
+Spec 09 is `DEVELOPMENT COMPLETE` only when the real Mistaken application on a supported macOS machine and a
+supported Windows machine captures microphone and system audio simultaneously through two fully independent
+pipelines and one shared `DevelopmentOnly` recognizer, renders unprefixed microphone lines and `- ` prefixed
+system lines with zero cross-attribution across scored utterances including deliberate overlaps, fails a start
+atomically when a requested source is unavailable, keeps the surviving source transcribing when one source
+dies without touching finalized content, bounds in-memory audio to 10 seconds across four fixed stages, records
+every unchanged Spec 05 two-stream performance and quality result as `NON-RELEASE EVIDENCE`, copies and clears
+both sources through Spec 02’s unchanged domain, runs entirely offline with no persistence and no text logging,
+tears down both sources within one second and restarts cleanly, keeps
+`Development ASR • Not release approved` visible, and records the frozen capture-status, ordering, and
+composition contracts for Specs 10 and 11. This completion does not approve fidelity, satisfy Spec 12,
+authorize packaging, or make a release claim.
 
 ### Required implementation evidence
 
@@ -591,7 +605,7 @@ Fill during implementation; do not predeclare success:
 - **Atomic start failure observations per host:** Pending
 - **Mid-session partial failure observations per host:** Pending
 - **Per-source overflow/lagging counts under load:** Pending
-- **Two-stream RTF, RSS, and per-source latency versus Spec 05 gates:** Pending
+- **Two-stream RTF, RSS, per-source latency, and quality measurements versus unchanged Spec 05 gates, labeled `NON-RELEASE EVIDENCE`:** Pending
 - **Copy All clipboard comparison with both sources:** Pending
 - **Start → Stop → Start cycles, teardown durations, index resets, active-close and relaunch:** Pending
 - **Native payload inspection (no `- `, no PCM, no ids):** Pending

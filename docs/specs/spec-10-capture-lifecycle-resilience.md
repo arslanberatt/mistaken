@@ -2,14 +2,15 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Authorized for implementation in **DEVELOPMENT** mode after Spec 09 reaches `DEVELOPMENT COMPLETE`; not implemented.
 - **Implementation owner:** One Spec 10 branch/worktree with one writer, with access to real macOS and Windows hardware.
-- **Required base:** One clean integration SHA containing implemented, reviewed, and merged Specs 01–09, including Spec 09’s frozen capture-status/error contract, ordering contract, and application-composition boundary.
-- **Allowed implementation predecessors:** Spec 09. Everything else is inherited transitively.
+- **Required base:** One clean integration SHA containing merged Specs 01–09, including Spec 09’s development-only capture/error, ordering, and composition contracts.
+- **Allowed implementation predecessor:** Spec 09 `DEVELOPMENT COMPLETE`. Everything else is inherited transitively; Spec 05 remains blocked.
 - **Parallel-safe peer:** Spec 11, in its own worktree from the same base SHA. The split is exact: **Spec 10 owns native lifecycle plus `src/features/audio/**`; Spec 11 owns transcript/application presentation including `src/App.tsx` and `src/features/transcript/**`.** Neither may edit the other’s paths.
 - **Serialization rule:** if this spec needs a change to Spec 09’s frozen event union, `src/App.tsx`, or Spec 11’s presentation paths, it stops, records the requirement, and the integration owner serializes it after the first merge. Opportunistic edits to those paths are prohibited.
-- **Successor gate:** Spec 12 may start only after both Spec 10 and Spec 11 merge.
-- **Review level:** High. This spec owns recovery policy, shutdown determinism, panic and lock discipline, and the long-run behavior that decides whether a two-hour session stays trustworthy.
+- **Successor gate:** Spec 12 may begin only its reachable development/acceptance-harness work after Specs 10 and 11 merge as `DEVELOPMENT COMPLETE`; Spec 12 remains `BLOCKED` and cannot return `PASS` or freeze packaging inputs without a production-approved ASR model.
+- **ASR maturity gate:** Lifecycle success never promotes the `DevelopmentOnly` adapter. Recovery, soak, Start → Stop → Start, and shutdown evidence are architectural evidence; transcript-quality observations remain `NON-RELEASE EVIDENCE`.
+- **Review level:** High. This spec owns recovery policy, shutdown determinism, panic/lock discipline, and long-run behavior.
 
 ## 2. Goal and Measurable Result
 
@@ -480,7 +481,7 @@ Permanent tests protect classification exhaustiveness, budget and backoff arithm
 
 - Preserve Spec 03’s command/event/error/revision surface, Spec 09’s ordering, attribution, atomic-start, and survivor-continuity contracts, and Spec 02’s reducer, formatter, serializer, `Clear`, and `Copy All` semantics.
 - Preserve both platform crates and their captured-versus-synthesized accounting and permission honesty.
-- Preserve Spec 06’s recognizer configuration, endpoint rules, verbatim emission, throttling, and single-final guarantee; recovery changes lifecycle, never recognition behavior.
+- Preserve Spec 06’s `DevelopmentOnly` maturity, recognizer configuration, endpoint rules, output passthrough, throttling, non-release labeling, and single-final guarantee; recovery changes lifecycle, never recognition behavior or maturity.
 - Preserve all frozen bounds: 2 s capture pools, 3 s inference stages, ≤ 10 s in-memory audio, one-second teardown, 300 ms drain.
 - Preserve microphone/system separation, local-only processing, no account, no backend, no database, no persistence of any kind, no upload, no cloud fallback, and no grammar correction.
 - Preserve the user’s OS permission choices and audio configuration; verification never resets them.
@@ -488,7 +489,17 @@ Permanent tests protect classification exhaustiveness, budget and backoff arithm
 
 ## 16. Definition of Done and Evidence Record
 
-Spec 10 is done only when the real Mistaken application on both supported platforms recovers transient source-local failures within a frozen, visible three-attempt budget while the other source keeps transcribing, refuses to retry permission, platform, model, and internal failures, makes sustained lag visible without any automatic mitigation, contains worker panics and poisoned locks as source-terminal `internal` errors with full release, bounds every transition with a watchdog, runs one idempotent shutdown from window close, application exit, and termination signals, preserves finalized transcript content and per-source identity and timeline monotonicity across every recovery, holds flat resources through a 60-minute dual-source soak on each host, and satisfies every acceptance criterion with networking disabled — without adding a dependency, widening a frozen contract, persisting anything, or touching Spec 11’s paths.
+Spec 10 is `DEVELOPMENT COMPLETE` only when the real Mistaken application on both supported platforms recovers
+transient source-local failures within a frozen, visible three-attempt budget while the other source keeps
+transcribing, refuses to retry permission, platform, model, and internal failures, makes sustained lag visible
+without automatic mitigation, contains worker panics and poisoned locks as source-terminal `internal` errors
+with full release, bounds every transition with a watchdog, runs one idempotent shutdown from window close,
+application exit, and termination signals, preserves finalized transcript content and per-source identity and
+timeline monotonicity across every recovery, holds flat resources through a 60-minute dual-source soak on each
+host, retains the `DevelopmentOnly` adapter and non-release label, and satisfies every acceptance criterion
+with networking disabled — without adding a dependency, widening a frozen contract, persisting anything, or
+touching Spec 11’s paths. These results prove lifecycle architecture only; they cannot approve fidelity,
+satisfy Spec 12, authorize packaging, or support `RELEASE-READY`.
 
 ### Required implementation evidence
 
@@ -500,6 +511,7 @@ Fill during implementation; do not predeclare success:
 - **Changed paths and zero-forbidden-path confirmation:** Pending
 - **Manifest/lockfile zero-diff confirmation:** Pending
 - **Frozen policy document path and contents summary:** Pending
+- **ASR maturity/non-release label preserved; quality observations excluded from release evidence:** Pending
 - **macOS hardware/version, microphone and output identities:** Pending
 - **Windows hardware/edition/version/build, microphone and endpoint identities:** Pending
 - **Classification coverage: per-kind test results:** Pending

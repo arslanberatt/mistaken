@@ -37,22 +37,35 @@ benchmarks/
 
 ### 1. Read the protocol and record (or reuse) the corpus
 
-Follow `corpus/protocol.md`. **This implementation's committed `manifest.json`
-was produced from a documented, disclosed deviation from the protocol**:
-no human operator/speaker was available in this session, so the corpus
-audio was synthesized with macOS's built-in `say` text-to-speech (voices
-`Samantha` and `Daniel`) reading the exact prompt text instead of a real
-human recording. This is recorded honestly in
-`benchmarks/corpus/manifest.json`'s `speakerProfiles[].notes` and in
-`benchmarks/reports/approval.md` as a blocking limitation — it does not
-satisfy the protocol's human-informed-consent recording requirement, and no
-candidate can be approved from it (see "Known limitations" below). A real
-reproduction of this benchmark's *approval* evidence requires an operator
-who records real human speech per the protocol.
+**Remediation branch note (`spec/05-remediation`):** the corpus audio
+committed by the original Spec 05 implementation was synthesized with
+macOS `say` TTS, not recorded from a real human speaker, so it never
+satisfied `corpus/protocol.md`'s informed-consent recording requirement —
+see `benchmarks/reports/approval.md` for the full disclosed blocker. On
+this branch, `benchmarks/corpus/manifest.json`'s `speakerProfiles[].notes`
+have been reset to `PENDING real human recording`; the prior TTS
+`sha256`/`durationMs` values are still present per clip but are stale
+placeholders that `validate-corpus` will reject once you try to run
+against them — do not treat a currently-clean `validate-corpus` as
+possible without real audio. Follow `corpus/protocol.md` (summarized as an
+operator checklist in `corpus/RECORDING_CHECKLIST.md`) to record a real
+corpus, then run:
 
-Corpus totals (as committed): 122 primary clips across all 12 conditions,
-≥ 20 minutes total, plus an 8-clip 48 kHz duplicate subset of
-`mistake-tense-01`..`08` (130 manifest entries total). Validate with:
+```bash
+python3 benchmarks/corpus/scripts/register_clips.py
+```
+
+to recompute and write the real `sha256`/`durationMs` for every clip file
+found under `benchmarks/corpus/clips/` (Git-ignored, never committed), and
+manually update `reference`/`errorSpans` for any clip where what was
+actually said differs from the prompt, and `speakerProfiles[].consentGiven`
+once real informed consent has been given. See `corpus/RECORDING_CHECKLIST.md`
+step 1 for the consent rule.
+
+Corpus totals (target, unchanged from the original spec): 122 primary
+clips across all 12 conditions, ≥ 20 minutes total, plus an 8-clip 48 kHz
+duplicate subset of `mistake-tense-01`..`08` (130 manifest entries total).
+Validate with:
 
 ```bash
 cd benchmarks/harness && cargo build --release

@@ -42,6 +42,55 @@ pub struct DecodingDescriptor {
     pub provider: String,
     #[serde(rename = "enableEndpoint")]
     pub enable_endpoint: bool,
+    /// Milliseconds of synthetic zero-valued audio the adapter feeds the
+    /// recognizer before the clip's real samples, to let a streaming
+    /// model's internal state warm up past its cold-start transient
+    /// before the first real word arrives (spec-05-remediation
+    /// experiment; sherpa-onnx adapter only). Absent/`None`/`0` means the
+    /// original, unchanged behavior — every previously frozen candidate
+    /// descriptor omits this field and is unaffected.
+    #[serde(
+        rename = "warmupSilenceMs",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub warmup_silence_ms: Option<u32>,
+    /// whisper-cpp adapter only, ignored by sherpa-onnx. Overrides
+    /// `whisper_full_params.initial_prompt` (spec-05-remediation
+    /// candidate-expansion experiment): prepended decoder context aimed
+    /// at reducing Whisper's language-model-driven grammar
+    /// auto-correction of deliberately incorrect input. Absent for every
+    /// previously frozen candidate descriptor — unchanged behavior
+    /// (`nullptr`, whisper.cpp's own default) unless explicitly set.
+    #[serde(
+        rename = "initialPrompt",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub initial_prompt: Option<String>,
+    /// whisper-cpp adapter only, ignored by sherpa-onnx. Overrides
+    /// `whisper_full_params.no_speech_thold` (library default `0.6`).
+    /// Absent means the library default, unchanged for every previously
+    /// frozen candidate descriptor.
+    #[serde(
+        rename = "noSpeechThold",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub no_speech_thold: Option<f32>,
+    /// whisper-cpp adapter only, ignored by sherpa-onnx. Overrides
+    /// `whisper_full_params.suppress_nst` (non-speech-token suppression;
+    /// the whisper.cpp library default is `false` — the adapter never
+    /// previously set this field explicitly, so every previously frozen
+    /// candidate ran with non-speech-token suppression *off*). Absent
+    /// means the library default (`false`), unchanged for every
+    /// previously frozen candidate descriptor.
+    #[serde(
+        rename = "suppressNst",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub suppress_nst: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,6 +255,22 @@ mod tests {
     }
 
     #[test]
+    fn warmup_silence_ms_defaults_to_none_when_absent() {
+        // Every frozen candidate descriptor omits `warmupSilenceMs`; this
+        // spec-05-remediation field must not require updating them.
+        let json = r#"{"method": "greedy_search", "numThreads": 2, "provider": "cpu", "enableEndpoint": true}"#;
+        let decoding: DecodingDescriptor = serde_json::from_str(json).unwrap();
+        assert_eq!(decoding.warmup_silence_ms, None);
+    }
+
+    #[test]
+    fn warmup_silence_ms_is_read_when_present() {
+        let json = r#"{"method": "greedy_search", "numThreads": 2, "provider": "cpu", "enableEndpoint": true, "warmupSilenceMs": 300}"#;
+        let decoding: DecodingDescriptor = serde_json::from_str(json).unwrap();
+        assert_eq!(decoding.warmup_silence_ms, Some(300));
+    }
+
+    #[test]
     fn verify_model_files_passes_on_matching_size_and_checksum() {
         let dir = std::env::temp_dir().join(format!("mistaken-bench-test-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
@@ -236,6 +301,10 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: content.len() as u64,
         };
@@ -279,6 +348,10 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: original.len() as u64,
         };
@@ -328,6 +401,10 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: 123,
         };
@@ -373,6 +450,10 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: content.len() as u64,
         };

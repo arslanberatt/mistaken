@@ -145,6 +145,10 @@ mod tests {
             pace: Pace::Asap,
             chunk_ms: 100,
             window_ms: None,
+            warmup_silence_ms: None,
+            initial_prompt: None,
+            no_speech_thold: None,
+            suppress_nst: None,
         }
     }
 

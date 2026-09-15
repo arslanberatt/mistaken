@@ -192,6 +192,28 @@ int main() {
 
   const SherpaOnnxOnlineStream *stream = SherpaOnnxCreateOnlineStream(recognizer);
 
+  // Optional cold-start mitigation (spec-05-remediation experiment,
+  // benchmarks/reports/approval.md): feed `warmup_silence_ms` of
+  // synthetic zero-valued audio through the recognizer before the clip's
+  // real samples, so a streaming model's internal state has left context
+  // to draw on before the first real word arrives. Done before
+  // `EmitReady`/`t0` so it never appears in the protocol's measured
+  // `atMs` timeline (the same treatment as model loading, which also
+  // happens before `EmitReady`); it is not real audio and is never
+  // real-time paced.
+  const auto warmup_silence_ms =
+      json_lite::ExtractInt(job_line, "warmupSilenceMs").value_or(0);
+  if (warmup_silence_ms > 0) {
+    const int32_t warmup_samples =
+        static_cast<int32_t>(warmup_silence_ms) * sample_rate / 1000;
+    const std::vector<float> silence(static_cast<size_t>(warmup_samples), 0.0f);
+    SherpaOnnxOnlineStreamAcceptWaveform(stream, sample_rate, silence.data(),
+                                         warmup_samples);
+    while (SherpaOnnxIsOnlineStreamReady(recognizer, stream)) {
+      SherpaOnnxDecodeOnlineStream(recognizer, stream);
+    }
+  }
+
   EmitReady(0);
   const Clock::time_point t0 = Clock::now();
 

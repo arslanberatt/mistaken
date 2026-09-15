@@ -2,23 +2,25 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
-- **Implementation owner:** One Spec 12 branch/worktree with one high-capability writer. A mandatory independent high-capability review closes the spec.
-- **Required base:** One clean integration SHA containing implemented, reviewed, and merged Specs 01–11. Specs 10 and 11 must both have their real-host evidence and final commits recorded; code merely present in another worktree is not a satisfied dependency.
+- **Status:** Authorized only for reachable acceptance-harness and development-diagnostic work after Specs 10/11; **BLOCKED for `PASS` and packaging authorization** until Spec 05 approves a production model.
+- **Implementation owner:** One Spec 12 branch/worktree with one high-capability writer. A mandatory independent high-capability review closes reachable work.
+- **Required base:** One clean integration SHA containing Specs 01–11 merged and reviewed for their applicable development maturity, including Specs 10/11 `DEVELOPMENT COMPLETE` evidence.
 - **Allowed implementation predecessors:** Specs 10 and 11. Everything else is inherited transitively.
-- **Parallel safety:** No other writer may work from or write into the Spec 12 checkout. Acceptance can expose defects anywhere in the application, and this spec is the serialized owner for every source-level fix needed to satisfy its gates.
-- **Model gate:** Spec 05 must name exactly one approved candidate whose runtime, model files, decoding configuration, both-host measurements, license, provenance, and redistribution verdict are complete. A benchmark blocker is a Spec 12 blocker; this spec does not select a substitute or lower a gate.
-- **Host gate:** Both `mac-arm64` and `win-x64` reference hosts are mandatory. One host never stands in for the other.
-- **Successor gate:** Specs 13 and 14 may start only from the same reviewed post-Spec-12 SHA. This spec freezes application version, root/shared manifests, model resource layout, notices, and all committed lockfiles before those two packaging worktrees open.
-- **Review level:** High implementation and high review. A `PASS` claim affects offline trust, private user content, native resource safety, and the packaging inputs consumed by both operating-system releases.
+- **Parallel safety:** No other writer may use the Spec 12 checkout. Acceptance can expose defects anywhere, and this spec is serialized for source-level fixes tied to measured failures.
+- **Production model gate:** Spec 05 must name exactly one `ProductionApproved` candidate with complete runtime/model/configuration, both-host measurements, license, provenance, redistribution, and delivery records before Spec 12 may return `PASS`, freeze release inputs, or authorize Specs 13/14. The temporary `DevelopmentOnly` adapter may exercise reachable harness, privacy, lifecycle, source-separation, and resource scenarios, but every transcript-quality result is `NON-RELEASE EVIDENCE` and the cross-host verdict remains `BLOCKED`.
+- **Host gate:** Both `mac-arm64` and `win-x64` reference hosts are mandatory for eventual `PASS`. One host never stands in for the other.
+- **Successor gate:** Specs 13 and 14 cannot start until this spec has a production-approved model and returns reviewed cross-host `PASS` from one final SHA. No temporary-adapter run may produce a successor freeze manifest or packaging authorization.
+- **Review level:** High implementation and high review. A `PASS` claim affects offline trust, private user content, native resource safety, and release inputs.
 
 ## 2. Goal and User-Visible / Measurable Result
 
 Prove the complete Mistaken core flow as one coherent product rather than as a set of previously passing components.
 
+With the temporary adapter, the same scenarios may be run to validate architecture, but the application must retain `Development ASR • Not release approved`, reports must return `BLOCKED`, and no packaging freeze is produced.
+
 On each supported reference host, the user launches a release-profile native app with every non-loopback network interface disabled, selects a real microphone, optionally enables system audio, starts capture, receives live partials and stable finals from both isolated sources, scrolls and copies or clears the transcript, stops, starts again, closes the app, and relaunches into a clean idle state.
 
-The result is accepted only when all of the following are observed against the exact final SHA and approved artifacts:
+The result is accepted only when all of the following are observed against the exact final SHA and a `ProductionApproved` artifact:
 
 - The complete core flow works without an account, API key, backend, database, cloud session, runtime download, or required internet connection.
 - Microphone and system audio remain isolated; only formatted system lines receive `- ` and native text is never prefixed or rewritten.
@@ -37,9 +39,9 @@ Verified while authoring this spec:
 
 - `/Users/berat/mistaken` does not exist. `/Users/berat/mistaken-context` is a documentation-only staging bundle containing context, the delivery plan, and Specs 01–11. There is no application source, Git branch, build, runtime trace, model approval, or native acceptance result to inspect yet.
 - `architecture.md` requires local-only core transcription, two isolated sources, bounded transient PCM, in-memory transcript state, no database, no cloud storage, no correction layer, no cloud fallback, and local model redistribution only after explicit weight-license verification.
-- Spec 05 freezes the approval gates: MPR ≥ 0.90, false-correction rate ≤ 0.05, `mistake-tense` and `mistake-minimal-pair` MPR ≥ 0.85, full-corpus WER ≤ 0.25, fluent-control WER ≤ 0.12, zero non-empty final on physical silence, noise insertion ≤ 0.02 tokens/s, median first partial ≤ 900 ms, p95 final-after-endpoint ≤ 1500 ms, RTF ≤ 0.6 single and ≤ 0.9 dual, peak RSS ≤ 700 MB single and ≤ 1.4 GB dual, sustained CPU ≤ 60% of one core per active stream, 120-second RSS growth ≤ 5% after 30 seconds, and uncompressed model payload ≤ 120 MB.
-- Spec 06 freezes the approved runtime/model/config as data copied from Spec 05, verifies every model file by size and SHA-256 before first load, discovers only `MISTAKEN_MODEL_DIR` in development or `resources/models/<model_id>/`, loads once per process, and provides no download or alternate-model fallback.
-- Spec 09 freezes atomic requested-source start, one shared recognizer with two isolated streams/workers/pools/stages, emission-order aggregation, structural attribution, ≤ 10 seconds total queued audio, and `decode_multiple_streams` unused unless Spec 12 records and re-benchmarks a measured reason to change it.
+- Spec 05 keeps every quality/performance gate unchanged. Its payload policy now permits either an installer-bundled model under the recorded bundled ceiling or a separately provisioned checksum-pinned local resource; no replacement numeric ceiling exists until a concrete production-approved candidate justifies and records one.
+- Spec 06 freezes a `DevelopmentOnly` adapter/configuration copied from the exact temporary candidate descriptor, verifies every file by size/SHA-256, loads once, uses one replaceable recognizer boundary, provides no cloud/alternate fallback, and visibly labels the app non-release.
+- Spec 09 freezes atomic requested-source start, one shared recognizer with two isolated streams/workers/pools/stages, emission-order aggregation, structural attribution, ≤ 10 seconds total queued audio, and `decode_multiple_streams` unused absent a later measured/reviewed decision.
 - Spec 10 freezes bounded per-source recovery, visible degradation, shutdown, watchdogs, counters, and a 60-minute dual-source soak. Its gate requires RSS growth after minute 5 ≤ 5%, flat native thread and handle/descriptor counts, and no allocation ratchet after recovery.
 - Spec 11 freezes keyboard shortcuts, a 64 px near-bottom threshold, detached-scroll stability, reduced-motion behavior, one-time final announcements, bounded frontend resources, two minimum window sizes, 100%/150%/200% text scale, and single-row rerender isolation at roughly 1,000 finalized segments.
 - Tauri’s official security model says Rust core/plugin code has full access to available system resources while WebView access is constrained by the IPC/capability boundary. Therefore capability inspection alone cannot prove privacy; native source review and dynamic process-tree observation are also mandatory.
@@ -56,19 +58,19 @@ No staged implementation report is authoritative. During implementation, the mer
 - A deterministic, cross-platform acceptance protocol under `acceptance/**` with platform-native scripts, scenario manifests, report schemas, ignored raw-run locations, and redacted committed summaries.
 - Static privacy/security inspection of source, effective Tauri capabilities, CSP, dependency manifests/trees, update/telemetry/crash-report paths, file/storage APIs, browser-storage use, logs, IPC payloads, model discovery, and runtime downloads.
 - Dynamic process-tree inspection for network attempts, file writes, browser storage, application-owned storage, logs, clipboard behavior, and post-relaunch residue.
-- A real release-profile, no-bundle native application build on each host from locally available, checksum-verified dependencies/runtime/model files while network access is disabled.
-- Full microphone-only, system-only, and simultaneous dual-source user flows on real hardware with local scripted audio and real capture APIs.
-- Final-SHA reruns of the approved Spec 05 benchmark gates plus end-to-end visible app latency, source attribution, formatting, and mistake-preservation measurements.
+- A real development-profile or release-profile no-bundle native application build on each host from locally available, checksum-verified dependencies/runtime/model files with network access disabled; temporary-adapter builds remain visibly non-release and cannot become packaging inputs.
+- Full microphone-only, system-only, and simultaneous dual-source flows on real hardware with local scripted audio and real capture APIs.
+- Diagnostic reruns of unchanged Spec 05 gates against the temporary adapter as `NON-RELEASE EVIDENCE`; final-SHA acceptance reruns against a future `ProductionApproved` candidate are required for `PASS`.
 - One 60-minute active dual-source soak on each host, sampled once per second for CPU/RSS and at least every five minutes for the durable evidence table.
 - A normal-load zero-drop check and a separate externally induced overload check proving fixed queue capacities, drop-newest accounting, visible degradation, recovery, and continued Stop control.
 - Spec 10 recovery/shutdown and Spec 11 interaction/accessibility checks while the integrated app is carrying a real dual-source workload.
 - Root-cause fixes anywhere in the application needed to make acceptance pass, followed by all affected predecessor checks and a complete acceptance rerun on the final SHA.
-- Freezing version `0.1.0`, the approved bundled model layout, cross-platform attribution notice, Tauri resource mapping, and committed lockfiles for Specs 13 and 14.
+- Freezing version `0.1.0`, the production-approved model delivery/layout, attribution notice, Tauri resource mapping, and lockfiles for Specs 13/14 only after the production model gate passes.
 - A high-capability review of the entire final diff and evidence set.
 
 ### Out of scope
 
-- Selecting a model, relaxing a Spec 05 gate, changing the benchmark corpus after a failure, substituting published third-party numbers, or approving unclear model provenance.
+- Selecting a model, promoting the temporary adapter, relaxing a Spec 05 quality gate, changing the benchmark corpus after failure, substituting published third-party numbers, or approving unclear provenance.
 - macOS `.app`/DMG signing, notarization, entitlements for distribution, Windows installer generation/signing, upgrade behavior, and public artifact publication. Specs 13 and 14 own those.
 - Final release declaration, cross-installer parity, public release notes, and release rollback rehearsal. Spec 15 owns those.
 - A telemetry, analytics, crash-reporting, update-checking, account, backend, database, sync, transcript-history, audio-recording, export, or cloud-ASR feature.
@@ -228,24 +230,24 @@ The schema is closed: unknown top-level fields fail validation. Numeric fields i
 
 ### Version, resource, notice, and lock freeze produced
 
-Spec 12 makes these shared inputs final before packaging:
+Spec 12 makes these shared inputs final only after Spec 05 records a `ProductionApproved` candidate:
 
 1. Application version is exactly **`0.1.0`** in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`; a permanent check fails on mismatch.
-2. The approved model is **bundled in each installer**, not downloaded after install and not delivered as an optional second package. Spec 05’s ≤ 120 MB uncompressed gate is the reason this is safe for V1.
-3. The one runtime path is `$RESOURCE/resources/models/<model_id>/`, produced by a single `bundle.resources` entry rooted at `src-tauri/resources/models/<model_id>/` with relative structure preserved. No flattening, wildcard over unrelated resources, absolute developer path, or second resource mapping is allowed.
-4. The staged model file set, relative paths, byte sizes, SHA-256 values, model id, runtime tag, decoding method, thread count, and provider exactly match Spec 05’s approval and Spec 06’s compiled-in manifest.
-5. `src-tauri/resources/licenses/THIRD_PARTY_NOTICES.txt` contains the approved runtime, linked inference runtime, model-weight, upstream provenance, and training-data notices/attribution required by Spec 05. The same shared resource is consumed by both packaging specs.
-6. Model weights remain ignored and uncommitted. Acceptance verifies the staged local files; packaging later embeds them from the same path.
-7. Every committed npm/Cargo lockfile is clean and frozen at the final Spec 12 SHA. Specs 13 and 14 add no dependency and edit no lockfile.
-8. `decode_multiple_streams` remains unused when the unchanged dual workers pass all CPU/latency/isolation gates. It may be considered only after a recorded CPU failure whose profile identifies decode scheduling as the cause; adoption requires a source-isolation review and complete Spec 05 plus Spec 12 rerun. A gate is never weakened to avoid that work.
+2. The approved delivery mechanism is copied from the future Spec 05 decision: either installer-bundled under its recorded bundled-payload policy or a separately provisioned, checksum-pinned local resource installed before offline core use. Spec 12 invents no ceiling, download flow, optional cloud path, or fallback.
+3. The one runtime path and resource/install layout are frozen for both packaging specs. No wildcard over unrelated resources, absolute developer path, unverified location, or second active model mapping is allowed.
+4. Model file set, paths, byte sizes, SHA-256 values, model id, runtime tag, decoding method, thread count, provider, and `ProductionApproved` maturity exactly match Spec 05 approval and the reviewed replacement manifest.
+5. `src-tauri/resources/licenses/THIRD_PARTY_NOTICES.txt` contains every runtime, inference-runtime, model-weight, upstream-provenance, and training-data notice/attribution required by the approval.
+6. Model weights remain ignored and uncommitted. Acceptance verifies the exact locally staged production files.
+7. Every committed npm/Cargo lockfile is clean and frozen at the final Spec 12 SHA. Specs 13/14 add no dependency and edit no lockfile.
+8. `decode_multiple_streams` remains unused when independent workers pass all CPU/latency/isolation gates. Considering it requires a profiled CPU failure, source-isolation review, and complete Spec 05/12 rerun; no gate is weakened.
 
 ## 7. User Flow and Developer Verification Flow
 
 ### Operator preflight
 
-1. Start from the merged post-Spec-10/11 SHA in the sole Spec 12 worktree. Record canonical root, branch, base SHA, host profile, OS/build, CPU/core/RAM, power state, thermal/power mode, microphone, output endpoint, and permission state.
-2. Confirm Spec 05’s approval and license records name one candidate. Recompute the approval-record digest and every staged model file’s size/SHA-256. Confirm the locally staged sherpa archive/runtime tag matches Spec 06.
-3. Run baseline checks before edits. Inventory effective dependencies, generated Tauri permissions/capabilities, CSP, model resource mapping, app-owned data/cache/log/temp locations, process names/descendants, and existing network/file/storage APIs.
+1. Start from the merged post-Spec-10/11 SHA in the sole Spec 12 worktree. Record canonical root, branch, base SHA, host profile, OS/build, CPU/core/RAM, power state, thermal/power mode, microphone, output endpoint, permission state, and current ASR maturity.
+2. Read Spec 05 approval/license evidence. If it remains blocked, verify the exact temporary descriptor/license/checksums, keep the non-release label, and force the report evaluator to `BLOCKED`; if a later production approval exists, recompute its digest and every staged file identity.
+3. Run baseline checks. Inventory effective dependencies, Tauri permissions/capabilities, CSP, model resource mapping, app-owned data/cache/log/temp locations, process descendants, and network/file/storage APIs.
 4. Prime only documented local package/compiler caches before the measured offline window. Record what was primed; never fetch during a measured build or runtime.
 5. Prepare only consented scripted benchmark audio. No real conversation, name, address, credential, meeting, or third-party audio enters an acceptance fixture.
 
@@ -295,7 +297,7 @@ Spec 12 makes these shared inputs final before packaging:
 
 ### Final verification flow
 
-- Rerun the full approved Spec 05 harness against the exact final runtime/model/config on both hosts, three repetitions per pace, plus the two-stream run.
+- Run diagnostic Spec 05 harness measurements against the temporary adapter as `NON-RELEASE EVIDENCE`; for eventual `PASS`, rerun the full approved corpus/config against the exact `ProductionApproved` runtime/model on both hosts, three repetitions per pace plus two-stream.
 - Run all root, frontend, Rust workspace, standalone platform-crate, benchmark-harness, and Tauri release-build checks appropriate to each host.
 - Validate both host JSON reports against the closed schema and regenerate the summary/artifact digests.
 - Review every process-touched file and network event classification, every measured gate, final changed path, and every temporary tool/config change.
@@ -307,7 +309,7 @@ Spec 12 adds no user-facing application UI. Acceptance observes and protects the
 
 ### Required real-UI states
 
-- Idle, starting, listening, stopping, unavailable, recovering, degraded, terminal, model verifying/loading/ready/error, source `waiting`/`receiving`, Copy pending/success/failure, Clear confirmation, follow attached/detached, and `Jump to latest` are exercised where applicable.
+- Under `DevelopmentOnly`, the required visible states include the persistent `Development ASR • Not release approved` label; model/capture readiness must never use release-success language.
 - `Start Listening`, `Stop`, `Clear`, `Copy All`, microphone selection, system-audio opt-in, source/model status, elapsed time, and transcript remain usable at `1040 × 720` and `720 × 520`.
 - 100%, 150%, and 200% OS text scale keep every critical control reachable with no horizontal transcript scrolling.
 - VoiceOver on macOS and Narrator on Windows announce each final once, ignore interim churn, announce source/recovery/error/copy state without duplicate flooding, and preserve keyboard focus during live dual updates.
@@ -452,14 +454,14 @@ No acceptance fix may increase these dimensions, replace a fixed queue with a gr
 
 1. **Predecessors and base — integration:** Specs 10 and 11 are implemented, reviewed, merged, and evidenced; Spec 12 starts from their recorded clean integration SHA, and the report records canonical root, branch, base SHA, final SHA, and final clean Git state.
 2. **Single-writer ownership — integration:** Exactly one writer owns the Spec 12 checkout; no Spec 13/14 work starts before merge; every changed path is either `acceptance/**`, the shared freeze/evidence paths, or tied to a named failed criterion and root-cause fix.
-3. **Deterministic acceptance harness — both hosts:** The same committed scenario definitions and closed evidence schema run on macOS and Windows; malformed/missing metrics, insufficient samples, SHA/model mismatch, unknown fields, skipped applicable criteria, or cleanup failure cannot produce `PASS`; raw runs are ignored.
-4. **Approved artifact identity — both hosts:** Exactly one Spec 05-approved candidate exists; runtime tag, model id, every relative file/byte size/SHA-256, decoding method, provider, thread count, approval digest, license verdict, and attribution match Spec 06 and the staged resources before build and at first Start.
-5. **Version/resource/lock freeze — repository:** `package.json`, `src-tauri/Cargo.toml`, and `tauri.conf.json` all resolve to `0.1.0`; the approved model is mapped once to `$RESOURCE/resources/models/<model_id>/`; `THIRD_PARTY_NOTICES.txt` is included; no weight is committed; all committed lockfiles are clean and frozen for Specs 13/14.
+3. **Deterministic acceptance harness — both hosts:** The same committed scenarios and closed schema run on macOS/Windows; malformed/missing metrics, insufficient samples, SHA/model/maturity mismatch, unknown/skipped fields, cleanup failure, or `DevelopmentOnly` input cannot produce `PASS`; raw runs are ignored.
+4. **Production-approved artifact identity — both hosts:** `PASS` requires exactly one Spec 05-approved candidate whose runtime tag, model id, files/digests, decoding, provider, thread count, approval digest, license/redistribution verdict, delivery decision, and `ProductionApproved` maturity match staged resources. With the temporary adapter this criterion is `BLOCKED`, never failed away or waived.
+5. **Version/resource/lock freeze — repository:** Only after AC4 passes, version resolves to `0.1.0`, the approved model has one frozen delivery/runtime layout, notices are included, no weight is committed, and locks are clean/frozen for Specs 13/14. Under `DevelopmentOnly`, no successor freeze or packaging authorization is emitted.
 6. **Offline release-profile build — macOS and Windows:** With no non-loopback route and npm/Cargo offline mode active, the exact no-bundle release build succeeds from documented local caches and checksum-verified sherpa/model artifacts; no build step attempts network access; binary/resource SHA-256 values are recorded.
 7. **Complete native core flow — real macOS and Windows:** The recorded release executable completes idle → mic-only Start/Stop → system-only Start/Stop → dual Start → Copy/Clear/scroll/recovery → Stop → Start → active close → relaunch, using real devices and local ASR, with no account/key/backend/database/internet and no mock/browser-only substitute.
 8. **Source isolation, order, and formatting — both hosts:** At least 30 utterances per source including 10 overlap pairs produce zero cross-attribution, non-decreasing per-source timestamps, emission-order finals, no duplicate/reordered final, no native `- `, and exactly one formatter-added `- ` on each system final in the UI/Copy output and none on microphone finals.
-9. **Fidelity and accuracy remain approved — both hosts:** The full final runtime/model/config rerun passes Spec 05’s MPR, false-correction, per-condition MPR, full WER, and fluent-control WER gates in three repetitions; the integrated app’s scripted mistake subset contains at least 20 annotated error spans per source and also achieves MPR ≥ 0.90 and false-correction rate ≤ 0.05 without a correction/rewriter path.
-10. **Silence and hallucination — both hosts:** The final benchmark rerun produces zero non-empty finals on physical silence and noise insertion ≤ 0.02 tokens/s; real app microphone-only and system-only controlled-silence intervals of at least 120 s each produce zero final transcript segment and never fabricate `receiving` from Windows synthesized silence.
+9. **Fidelity and accuracy remain approved — both hosts:** Eventual `PASS` requires the full production runtime/model/config rerun to pass every unchanged Spec 05 MPR, false-correction, per-condition MPR, full-WER, and fluent-WER gate in three repetitions; the integrated mistake subsets also require MPR ≥ 0.90 and false-correction ≤ 0.05 without rewriting. Temporary-adapter values remain failed `NON-RELEASE EVIDENCE` and this criterion stays `BLOCKED`.
+10. **Silence and hallucination — both hosts:** Eventual `PASS` requires the production rerun to pass zero non-empty finals on physical silence and noise insertion ≤ 0.02 tokens/s, plus 120 s per-source controlled silence in app. Temporary results are recorded without changing thresholds and cannot satisfy this criterion.
 11. **Network physically unavailable — both hosts:** Before build, launch, every measured flow, soak, and relaunch, all non-loopback interfaces/links are disabled and the host has no non-loopback default route; exact disable/verification/restore methods and timestamps are recorded.
 12. **No network-capable product path — source/config/dependencies:** Review finds no HTTP/socket/DNS/WebSocket/update/telemetry/analytics/crash-upload/remote-log/API-key/account/backend dependency or code path; all frontend assets/fonts are bundled; model/runtime discovery has no download or remote fallback.
 13. **Zero runtime network attempt — both hosts:** Process-tree network traces across launch, first model load, every source combination, recovery, 60-minute soak, Stop/Start, close, and relaunch show zero permitted and zero blocked non-loopback attempt and zero unexpected loopback attempt; only the exact Tauri internal IPC path is classified allowed.
@@ -476,10 +478,10 @@ No acceptance fix may increase these dimensions, replace a fixed queue with a gr
 24. **Induced overflow behavior — both hosts:** External CPU saturation produces >20% inference drops in one 10-second window and non-zero attributed drop-newest counters without changing any capacity; degradation is visible, errors stay ≤1/s/source, the other source remains independent, Stop works, a clean window restores health, RSS returns to its envelope, and no model/thread/rate/source/network fallback changes.
 25. **Recovery and shutdown regression — both hosts:** At least one real source-local recovery during dual capture preserves the survivor and transcript invariants; five total Start/Stop cycles, window close, app quit, and platform termination signal release workers/devices within Spec 10 bounds, clear OS indicators, leave no process, and relaunch cleanly.
 26. **Integrated interaction and accessibility — both hosts:** During live dual workload, shortcuts, native selection/copy, Clear focus/Escape, 64 px follow detach/restore, reduced motion, elapsed time, Copy feedback, both window sizes, three text scales, VoiceOver/Narrator one-time finals, interim silence, visible focus, and approximately 1,000-segment single-row rerender isolation all satisfy Spec 11.
-27. **Bundled model and notices ready for packaging — both hosts/repository:** The approved ≤120 MB uncompressed model is staged under the one frozen layout and verified from the release executable without `MISTAKEN_MODEL_DIR`; the runtime/model require no post-install download; compressed payload is recorded; redistribution is permitted; the exact required notices are present and included in the shared resource manifest.
-28. **Complete checks — macOS and Windows:** Typecheck, ESLint, frontend tests, production frontend build, Rust format/check/clippy/tests, platform-supported standalone adapter checks, benchmark-harness checks, Tauri release no-bundle build, and real native launch all pass on their target hosts with exact commands/versions/exits recorded.
-29. **Evidence hygiene and high-capability review — integration:** Both host reports validate, contain no transcript/audio/private path, reference immutable raw-trace digests, and render every gate/value/threshold; independent review covers measurement math, trace completeness, native-core threat boundary, source isolation, bounds, FFI/lifecycle, UI/accessibility, resource/license freeze, and successor ownership; every High/Medium finding is fixed and all affected evidence is regenerated from the final binary/SHA.
-30. **Successor handoff — integration:** The reviewed Spec 12 commit and evidence identify one final SHA, version `0.1.0`, model/runtime manifest digest, model resource path, notice digest, binary build inputs, and lockfile digests; Specs 13 and 14 are authorized to branch only from that SHA and prohibited from editing those shared inputs.
+27. **Production model delivery and notices ready for packaging — both hosts/repository:** A `ProductionApproved` model uses the single Spec 05/12-frozen bundled or separately provisioned local-resource mechanism, resolves without a development override, passes exact checksum/license/notice checks, and supports offline core flow after installation/provisioning. A `DevelopmentOnly` adapter makes this criterion `BLOCKED`; it is never packaged or copied to release-candidate storage.
+28. **Complete checks — macOS and Windows:** Typecheck, lint, frontend tests/build, Rust format/check/clippy/tests, platform adapter checks, benchmark harness checks, Tauri native build, and real launch pass with exact commands/versions/exits recorded.
+29. **Evidence hygiene and high-capability review — integration:** Both host reports validate, contain no transcript/audio/private path, reference immutable raw digests, and render every gate/value/threshold/maturity; review covers measurement math, traces, privacy boundary, isolation, bounds, lifecycle, accessibility, model maturity, license/delivery, and successor ownership; every High/Medium finding is fixed.
+30. **Successor handoff — integration:** Only a reviewed Spec 12 `PASS` with `ProductionApproved` maturity may identify the final SHA/version/model/runtime/delivery/notice/lock digests and authorize Specs 13/14. A blocked development run emits an explicit no-authorization record instead.
 
 ## 13. Acceptance Criterion → Verification / Test Mapping
 
@@ -511,10 +513,10 @@ No acceptance fix may increase these dimensions, replace a fixed queue with a gr
 | 24 | External saturation scenario and clean-window recovery | Drop/window rates, error frequency, source continuity, Stop latency, RSS return, zero auto-change |
 | 25 | Real source recovery, five cycles, close/quit/signal, process/indicator/relaunch inspection | Attempt/outcome, survivor cadence, teardown/join timing, process exit, clean state |
 | 26 | Real keyboard/scroll/scale/screen-reader runs plus render-counter test under active events | Per-host interaction matrix, announcements, focus/layout observations, render counts |
-| 27 | Build/resource-tree inspection without development override; license/size check | Runtime path, verified files, uncompressed/compressed size, notice/resource digest |
+| 27 | Inspect production delivery/resource tree without development override; verify maturity/license/notices | `ProductionApproved` or explicit blocker, files/digests, delivery mode, notice digest |
 | 28 | Run exact root/frontend/Rust/platform/benchmark/Tauri commands on both hosts | Tool versions, commands, exit codes, target-specific exceptions with reason |
-| 29 | Schema validation, evidence-content scan, raw digest check, independent high review | Report validation, privacy scan, reviewer findings/dispositions, regenerated run ids |
-| 30 | Produce and compare successor freeze manifest against final repository | Final SHA/version/model/runtime/resource/notice/lock digests, Spec 13/14 base authorization |
+| 29 | Schema validation, evidence-content scan, raw digest check, independent high review | Report validation, maturity/privacy scan, findings/dispositions, regenerated run ids |
+| 30 | Produce successor freeze only for production `PASS`; otherwise produce no-authorization record | Final inputs and authorization, or exact production-ASR blocker |
 
 Permanent tests are required for report-schema/result semantics, version/resource consistency, measurement arithmetic/percentile/window evaluation, process-tree membership/PID-reuse handling, sentinel scanning/classification input, and frozen capability/resource contracts. They must assert observable rejection or computed outcomes, not source text or mock forwarding.
 
@@ -522,26 +524,26 @@ Real network, privacy, capture, latency, CPU, RSS, overflow, lifecycle, and acce
 
 ## 14. Ordered Implementation Plan
 
-1. Wait until Specs 10 and 11 are both reviewed and merged. Create one Spec 12 worktree from that exact integration SHA; record root, branch, base SHA, and confirm no concurrent writer or packaging worktree exists.
-2. Re-read canonical context, `spec-plan.md`, Specs 01–14, current source/tests/manifests/locks, Prisma absence, installed package versions, generated Tauri schemas, and `node_modules/@tauri-apps/cli`/installed Tauri documentation relevant to resources, capabilities, CSP, build, and process lifecycle. Run baseline checks on both hosts.
-3. Verify Spec 05 approval/license evidence, qualify both hosts, inventory staged runtime/model artifacts, and recompute every identity. Stop with an explicit blocker if no approved candidate or qualifying host exists; finish all source/harness work that does not depend on it.
-4. Add the acceptance directory, closed evidence schema, `PASS`/`FAIL`/`BLOCKED` evaluator, ignored raw-run structure, and deterministic scenario manifests. Add focused tests for malformed/incomplete evidence and measurement arithmetic.
+1. Wait until Specs 10/11 merge as `DEVELOPMENT COMPLETE`. Create one Spec 12 worktree from that integration SHA; record root/branch/base and confirm no concurrent writer or packaging worktree.
+2. Re-read canonical context, plan, Specs 01–14, current source/tests/manifests/locks, installed packages, generated Tauri schemas, and version-matched docs. Run baseline checks on both hosts.
+3. Inspect Spec 05 approval/license/maturity. If no production candidate exists, record the hard blocker and complete every reachable harness/static/privacy/lifecycle/source-separation diagnostic with the temporary adapter; force all quality output to `NON-RELEASE EVIDENCE` and never authorize packaging.
+4. Add the acceptance directory, closed evidence schema, maturity-aware `PASS`/`FAIL`/`BLOCKED` evaluator, ignored raw-run structure, deterministic scenarios, and focused result-semantics/measurement tests.
 5. Implement platform preflight/cleanup scripts that snapshot and restore interface/audit/clipboard/tool state, prove no non-loopback route, identify the launched process tree safely, and fail closed on partial tracing or cleanup errors.
 6. Implement one-second process sampling and common normalization for CPU, RSS, thread/handle counts, percentiles, five-minute samples, growth, and gate rendering. Validate with synthetic fixed metrics before trusting real runs.
 7. Implement privacy inspection: app-owned path inventory, process-touched file classification, browser-storage query procedure, sentinel digest/search, stdout/stderr/OS-log scanning, committed-artifact scan, and raw trace digesting. Store no transcript/audio in committed evidence.
 8. Perform the static reachability and least-privilege audit before changing production code. Remove any unneeded network/storage/update/telemetry path at its source; generate and validate the effective Tauri capability and CSP.
-9. Freeze version `0.1.0`, the one bundled model resource mapping, notice file, and lockfiles. Add a permanent consistency check. Verify resources resolve to Spec 06’s one runtime path without a development override.
-10. Disable networking and build the release no-bundle executable on macOS from local caches/artifacts. Record the exact binary/resource identity and start traces before launch.
+9. Freeze version/model delivery/notices/locks and add successor consistency checks only after production approval. Under `DevelopmentOnly`, validate the temporary runtime path for diagnostics but emit no freeze manifest.
+10. Disable networking and build the appropriate non-distributable diagnostic executable on macOS from local artifacts; only a future production-approved run may be called a release no-bundle executable.
 11. Run macOS microphone-only, system-only, dual/overlap, fidelity, silence, integrated user, privacy, overflow, lifecycle, screen-reader, responsive, and render-isolation scenarios against that executable. Fix measured defects at source and rebuild.
 12. Run the 60-minute macOS dual soak with one-second sampling and planned minute-15/30/45 actions. Any fix invalidates the prior soak; rerun from minute 0 against the new binary.
 13. Repeat steps 10–12 on the qualifying Windows host, using WFP event correlation, Process Monitor or WPR according to tested-OS support, `GetProcessTimes`/`GetProcessMemoryInfo`, UI Automation, Narrator, and Windows-specific device/service behavior.
-14. Rerun the full Spec 05 benchmark corpus/config on the exact final runtime/model artifacts on both hosts with three repetitions and the two-stream run. Keep raw hypotheses local/ignored and commit only aggregate gate values/digests.
-15. If CPU fails, profile first. Keep two independent workers by default. Evaluate `decode_multiple_streams` only under the section 6 decision rule; if changed, rerun source isolation, latency, fidelity, performance, overload, lifecycle, and the entire 60-minute soak on both hosts.
-16. Run all permanent/root/frontend/Rust/platform/benchmark/Tauri checks on both hosts and repeat the complete native smoke after the final build.
-17. Generate both closed-schema host reports, cross-host summary, raw artifact digests, and successor freeze manifest. Scan the evidence and Git contents for transcript/audio/private paths/model weights/scratch files.
-18. Conduct the mandatory independent high-capability review across the entire final diff and evidence. Fix every High/Medium finding; regenerate every affected artifact and measurement from the final SHA/binary.
-19. Remove temporary saturation tools, test audio links, fault probes, trace configuration, raw exports outside the ignored run directory, browser inspector state, and private scratch data. Restore host interfaces, audit policy, clipboard placeholder, and tool settings; verify cleanup.
-20. Fill this spec’s evidence fields with observed facts, create the focused local Spec 12 commit unless directed otherwise, and authorize Specs 13/14 only from its final reviewed SHA. Do not push unless requested.
+14. Run all unchanged Spec 05 metrics against the active adapter on both hosts; label temporary results `NON-RELEASE EVIDENCE`. A future production candidate requires the full three-repeat/two-stream acceptance rerun.
+15. If CPU fails, profile first. Keep independent workers by default. Any decode scheduling change requires source-isolation review and complete applicable reruns; no gate changes.
+16. Run all root/frontend/Rust/platform/benchmark/Tauri checks and repeat the complete native smoke after the final build.
+17. Generate closed-schema host reports and raw digests. Generate a successor freeze manifest only for production `PASS`; otherwise generate an explicit blocked/no-authorization summary.
+18. Conduct mandatory independent high-capability review. Fix every High/Medium finding and regenerate affected evidence from the final SHA/binary.
+19. Remove temporary tools/probes/traces/private scratch data and restore host settings; verify cleanup.
+20. Fill evidence and commit locally unless directed otherwise. Authorize Specs 13/14 only after production `PASS`; never from temporary-adapter evidence. Do not push unless requested.
 
 ## 15. Risks, Rollback, Cleanup, and Preservation Rules
 
@@ -559,8 +561,8 @@ Real network, privacy, capture, latency, CPU, RSS, overflow, lifecycle, and acce
 - **Gate gaming after failure:** deleting slow samples, changing corpus, raising thresholds, reducing sources, tuning runtime automatically, or reporting adapter-only numbers would invalidate acceptance. The closed scenario/evidence rules fail these cases.
 - **Acceptance hook shipping:** a hidden diagnostics command, logger, dumper, or mode can become a privacy backdoor. Observe externally and remove every temporary hook before the final build.
 - **Private evidence leakage:** raw hypotheses, paths, traces, clipboard data, and recordings can be committed accidentally. Ignore raw runs, commit aggregates/digests only, and scan the final Git object set.
-- **Model bundled under unclear terms:** technical success cannot override licensing. The Spec 05 redistribution verdict and required attribution are hard gates.
-- **Packaging drift:** two platform specs could silently package different versions/models. Freeze one version/resource/notice/lock manifest and require both successors to branch from the same SHA.
+- **Model maturity or license confusion:** technical success cannot override failed fidelity or licensing. `DevelopmentOnly` is fail-closed in the evaluator; Spec 05 `ProductionApproved`, redistribution verdict, and required attribution are hard release gates.
+- **Packaging drift:** two platform specs could package different inputs. Freeze one production version/model-delivery/notice/lock manifest only after `PASS` and require both successors to branch from that SHA.
 - **Long-run false pass:** a short smoke misses leaks and counter ratchets. One uninterrupted 60-minute run per host on the final binary is mandatory; a rebuild invalidates it.
 
 ### Rollback
@@ -582,21 +584,33 @@ Real network, privacy, capture, latency, CPU, RSS, overflow, lifecycle, and acce
 
 - Preserve every architecture invariant: local-only operation, separate sources, structural attribution, verbatim text, no grammar correction, no cloud fallback, bounded PCM, no transcript/audio persistence, no account/backend/database.
 - Preserve Spec 02’s immutable-final/order/formatter/Copy/Clear semantics and Spec 03’s exact commands/events/DTOs/revisions/capability boundary.
-- Preserve approved model/runtime/configuration/license identity. Any change requires reapproval, not a local patch.
+- Preserve active ASR maturity exactly. `DevelopmentOnly` cannot be promoted locally; any model/runtime/config change or production promotion requires Spec 05 reapproval and a reviewed replacement.
 - Preserve fixed queue dimensions, drop-newest behavior, one shared model, two isolated streams/workers, session clock, and no native prefix.
 - Preserve Spec 10’s recovery budgets/backoff/watchdogs/shutdown and Spec 11’s keyboard/scroll/focus/accessibility/performance contracts.
 - Preserve platform truth: macOS Screen Recording behavior is not copied to Windows; Windows loopback limits are not hidden; neither platform gains a virtual driver/elevation requirement.
-- Preserve the one shared post-Spec-12 packaging input. Specs 13/14 may only add platform packaging/signing configuration around it.
+- Preserve the one shared post-Spec-12 packaging input only after production `PASS`. A blocked development run produces no packaging input.
 
 ### Open product questions
 
-None. This spec resolves the remaining distribution input that affects its successors: the approved ≤120 MB model is bundled in both installers under the one shared resource layout. Exact approved model identity, actual host identities, and observed platform permission facts are implementation evidence produced by predecessor/real-host runs, not choices for this spec to guess.
+Production ASR identity and its concrete bundled-versus-separately-provisioned payload ceiling/layout remain unresolved by Spec 05. Spec 12 records that blocker and cannot guess the answer.
 
 ## 16. Definition of Done and Evidence Record
 
-Spec 12 is done only when the same reviewed final SHA produces a release-profile native Mistaken executable on both reference hosts that builds and runs with all non-loopback networking disabled; completes the real microphone-only, system-only, dual-source, Copy/Clear/scroll/recovery/Stop/Start/close/relaunch flow; shows zero process-tree external network attempt; writes no transcript or audio to application/browser/file/log storage; preserves exact structural source formatting and incorrect-English behavior; passes every approved Spec 05 quality/latency/RTF/CPU/RSS/size/license gate; meets the same visible latency gate end to end; keeps fixed buffers, zero normal drops, bounded visible overload, stable one-hour resources, deterministic shutdown, and complete Spec 11 accessibility; and freezes version/model/resources/notices/locks for Specs 13 and 14.
+Spec 12 reaches `PASS` only when the same reviewed final SHA produces a release-profile native Mistaken
+executable on both reference hosts that builds and runs with all non-loopback networking disabled; completes
+the real microphone-only, system-only, dual-source, Copy/Clear/scroll/recovery/Stop/Start/close/relaunch flow;
+shows zero process-tree external network attempt; writes no transcript or audio to
+application/browser/file/log storage; preserves exact structural source formatting and incorrect-English
+behavior; passes every unchanged Spec 05 quality/latency/RTF/CPU/RSS/license and approved-delivery gate with a
+`ProductionApproved` model; meets visible latency gates end to end; keeps fixed buffers, zero normal drops,
+bounded visible overload, stable one-hour resources, deterministic shutdown, and complete Spec 11
+accessibility; and freezes version/model delivery/resources/notices/locks for Specs 13/14.
 
-A blocker on either real host prevents `PASS`, but it does not excuse incomplete reachable harness, source audit, freeze, or other-host work. Mistaken is **not release-ready** at this point; packaging and final cross-platform release acceptance remain Specs 13–15.
+With the temporary adapter, Spec 12 may complete every reachable harness, source audit, privacy, lifecycle,
+source-separation, interaction, and resource check, but its cross-host result remains `BLOCKED`, all
+transcript-quality results remain `NON-RELEASE EVIDENCE`, and it emits no packaging authorization. A blocker
+does not excuse incomplete reachable or other-host work. Mistaken remains not release-ready; Specs 13–15 stay
+hard blocked until production `PASS`.
 
 ### Required implementation evidence
 
@@ -609,11 +623,11 @@ Fill during implementation; do not predeclare success:
 - **Spec 10 and Spec 11 merge/evidence SHAs:** Pending
 - **Final clean Git state and changed-path classification:** Pending
 - **Application version values and consistency-test result:** Pending
-- **Approved candidate id / approval digest / license verdict:** Pending Spec 05 implementation
+- **Active ASR maturity, Spec 05 approval digest/blocker, candidate id, and license verdict:** Pending
 - **Runtime repository/tag/archive digest:** Pending
 - **Model repository/revision/file-count/manifest digest:** Pending
-- **Model uncompressed/compressed payload and bundle decision proof:** Pending
-- **Shared model resource mapping and resolved runtime path per host:** Pending
+- **Model payload bytes and production delivery decision, or exact unresolved blocker:** Pending
+- **Shared production runtime/resource layout per host, or no-authorization result:** Pending
 - **`THIRD_PARTY_NOTICES.txt` digest and inclusion proof:** Pending
 - **Committed lockfile paths/digests:** Pending
 - **macOS hardware/OS/build/power/thermal state:** Pending
