@@ -47,9 +47,12 @@ Then:
 - [ ] Only after consent is actually given, edit
       `benchmarks/corpus/manifest.json` → `speakerProfiles[].consentGiven`
       to `true` for that profile id. A profile with `consentGiven: false`
-      must not be recorded (protocol.md §3) — this repository's manifest
-      currently has both profiles set to `false` with a `PENDING` note; do
-      not flip it until consent is real.
+      must not be recorded (protocol.md §3). Update: this repository's
+      manifest now has both `sp-01` and `sp-02` at `consentGiven: true`
+      with real-recording provenance notes — informed consent was
+      obtained before recording began and the corpus is complete; a new
+      recording session for a different profile still follows this
+      checklist from a `false` starting point.
 
 ### Second speaker (`sp-02`)
 

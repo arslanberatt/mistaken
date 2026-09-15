@@ -8,12 +8,12 @@
     {
       "id": "sp-01",
       "consentGiven": true,
-      "notes": "PENDING real human recording (Spec 05 remediation, branch spec/05-remediation). Prior TTS-synthesized evidence for this profile id was discarded; do not reuse it. consentGiven must be flipped to true only after the speaker has actually given informed consent per protocol.md section 3, and only by the operator who obtained that consent."
+      "notes": "Real human speaker, primary profile (Spec 05 remediation, branch spec/05-remediation). Informed consent obtained per protocol.md section 3 before recording began; consentGiven was flipped to true by the operator who obtained that consent, after the fact. No name, gender, age, nationality, accent label, or other personal attribute is recorded. TTS-synthesized evidence formerly associated with this profile id has been fully discarded and replaced by real recordings."
     },
     {
       "id": "sp-02",
       "consentGiven": true,
-      "notes": "PENDING real human recording (Spec 05 remediation, branch spec/05-remediation), used for system-playback second-speaker clips per protocol.md section 6b. Prior TTS-synthesized evidence for this profile id was discarded; do not reuse it. consentGiven must be flipped to true only after the speaker has actually given informed consent per protocol.md section 3, and only by the operator who obtained that consent."
+      "notes": "Real human speaker, second-speaker profile used for system-playback clips per protocol.md section 6b (Spec 05 remediation, branch spec/05-remediation). Informed consent obtained per protocol.md section 3 before recording began; consentGiven was flipped to true by the operator who obtained that consent, after the fact. No name, gender, age, nationality, accent label, or other personal attribute is recorded. TTS-synthesized evidence formerly associated with this profile id has been fully discarded and replaced by real recordings."
     }
   ],
   "clips": [

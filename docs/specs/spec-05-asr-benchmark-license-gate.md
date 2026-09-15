@@ -579,6 +579,95 @@ Fill during implementation; do not predeclare success:
 - **High-capability review findings and dispositions:** Self-reviewed during implementation, not a separate high-capability pass: (1) the report renderer originally copied the single-stream RTF/RSS numbers into the two-stream gate fields for every candidate instead of measuring them — found and fixed by making `rtf_two_stream`/`peak_rss_two_stream_bytes` `Option` fields wired from a real two-stream aggregate, `NOT MEASURED` when absent, with `ClipRunRecord`/`ClipScore` gaining `concurrency`/`chunk_index` fields (backward-compatible via `serde(default)`) to support it; (2) the original `verify_model_files` rejected any candidate declaring a non-SHA256-bearing file (e.g. `tokens.txt`) as a hard failure — found via the real AC7 corruption test and fixed to a documented `NoChecksumRecorded` (size-only) outcome, matching each candidate descriptor's own stated convention; (3) a background realtime-pace run silently died mid-run across a session boundary (interrupted at 116/130 clips) — detected via directory clip-count inspection, the partial directory was discarded, and the run was redone from scratch as a supervised, restartable process.
 - **Final Git status:** Recorded below after commit.
 
+### Remediation evidence (branch `spec/05-remediation`, 2026-09-15)
+
+The block above is the original Spec 05 implementation's evidence record
+and is preserved unedited as history. This addendum records the
+remediation run against a real human-recorded corpus, superseding only
+the corpus-authenticity blocker above; nothing below changes a threshold,
+scoring rule, candidate set, or license verdict.
+
+- **Corpus:** 122 real human-recorded primary clips (29.6 minutes) + the
+  8-clip 48 kHz duplicate subset = 130 manifest entries, replacing the
+  prior TTS audio. `speakerProfiles` now record `consentGiven: true` for
+  `sp-01`/`sp-02` with real-recording provenance notes (prior
+  `PENDING`/`false` placeholders removed). `long-turn` accepted duration
+  window widened 60,000–120,000 ms → 60,000–180,000 ms by an explicit
+  product-owner decision (`docs/context/progress-tracker.md`,
+  2026-09-15) to accommodate the real speaker's natural pace; no other
+  threshold changed.
+- **`validate-corpus`:** `PASS (122 primary clips, 29.6 minutes, 130 total
+  manifest entries)`.
+- **Staging performed fresh in the `mistaken-spec-05-remediation`
+  worktree:** sherpa-onnx vendored at resolved commit
+  `11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf` (tag `v1.13.8`), whisper.cpp
+  at resolved commit `927cfce34f31707e17f2bff35c349632fb9e2c3a` (tag
+  `v1.9.4`); both adapters built Release with CMake `4.4.3` / Apple clang
+  `17.0.0`; all 5 candidates' model files re-downloaded from the recorded
+  Hugging Face repo/revision/path triples and checksum-verified via
+  `mistaken-bench fetch --candidate <id>` (`VERIFIED` for every
+  SHA-256-bearing file).
+- **`mac-arm64` host:** Apple M4, 10 cores (4P+6E), 16 GB RAM, macOS
+  15.7.5, AC power — same approved reference-profile host as the original
+  evidence.
+- **`win-x64`:** still **BLOCKED — no host accessible this session**
+  (checked: no Windows machine, VM, or configured SSH host reachable from
+  this workstation). This is now the only structural blocker; the
+  corpus-authenticity blocker above is resolved.
+- **Real measured results, `asap` pace, 3 repetitions, 390/390
+  clip-repetitions contributed per candidate, zero timeouts:** full tables
+  in `reports/2026-09-15-mac-arm64.md`. MPR overall (gate ≥ 0.90): 20M
+  int8 0.3241, 2023-06-26 int8 0.5417, 2023-06-26 fp32 0.5231, whisper-base
+  0.5926, whisper-small 0.6667 (closest, still FAIL). Every candidate's
+  MPR fell relative to the prior TTS-corpus run (e.g. whisper-small
+  0.8611 → 0.6667), confirming real disfluent speech is harder to
+  preserve than clean TTS. Concrete false-correction examples inspected
+  from real whisper-small output: `"the dogs is barking..."` →
+  `"The dogs are barking..."`; `"we was rushing...i putted it"` → `"We
+  were rushing...I put it"`; `"she arrived to the airport..."` → `"She
+  arrived at the airport..."`; `"he drived off quick before i could
+  catched him"` → `"He drives off quick before I could catch him."` —
+  each scored `false_correction`, not `misrecognized`.
+- **`realtime` pace:** 1 repetition × 130 clips per candidate (same
+  disclosed wall-clock-time reduction as the original evidence; the
+  5-candidate batch took 3h28m wall time this run against the longer 29.6
+  minute corpus), 130/130 contributed per candidate, zero timeouts. Median
+  first-partial 1446–3091 ms (gate ≤ 900), p95 final-after-endpoint
+  9726–127235 ms (gate ≤ 1500) — every candidate fails both latency gates.
+- **Two-stream concurrency (`whisper-small-en-ggml`, leading candidate by
+  MPR):** `throughput.rtf_two_stream` 0.3133 (PASS, ≤ 0.9),
+  `resource.peak_rss_two_stream_mb` 1879.67 (FAIL, ≤ 1400).
+- **`resource.rss_growth_after_30s_fraction`:** still `NOT MEASURED` — a
+  pre-existing harness gap (hard-coded `None` in `main.rs`, not something
+  this remediation introduced or was asked to fix) that does not change
+  the outcome, since every candidate already fails the fidelity gate
+  independent of this metric.
+- **License record:** unchanged and not re-verified this session (the
+  corpus swap does not affect any candidate's license or provenance
+  facts); `mistaken-bench licenses --check` → `PASS (5 candidate(s)
+  complete)`.
+- **`cargo fmt --check` / `cargo test`:** clean / 70 passed, 0 failed, in
+  `benchmarks/harness`, run fresh in this worktree before and after the
+  manifest metadata fix below.
+- **Manifest metadata fix:** `speakerProfiles[].notes` for `sp-01`/`sp-02`
+  still read "PENDING real human recording... do not flip [consentGiven]
+  until consent is real" while `consentGiven` was already `true` — a
+  stale/self-contradictory leftover from the prior remediation commit that
+  registered the real corpus. Corrected to accurately describe the
+  completed, consented real recording; `benchmarks/corpus/RECORDING_CHECKLIST.md`
+  §1 updated to match. `validate-corpus` re-run clean after the fix.
+- **Approval decision:** **BLOCKED.** `reports/approval.md`. Every
+  candidate fails the fidelity gate (AC10) on real `mac-arm64` evidence
+  against a real human corpus; the `win-x64` structural blocker would
+  independently block approval even if a candidate had passed.
+- **Privacy/offline:** `git check-ignore` reconfirmed all local-only paths
+  ignored; `git status` shows only the manifest metadata fix and new
+  report/evidence files tracked, nothing under `corpus/clips`, `models`,
+  `.vendor`, `runs`, or `*/build`; zero network-code hits on fresh
+  inspection; zero `timeout`/`error` events across 1,950 `asap` +
+  650 `realtime` + 260 two-stream clip-repetitions.
+- **Final Git status / commit SHA:** recorded below after commit.
+
 ### Authoring evidence and sources
 
 - Reviewed `/Users/berat/mistaken-context/project-overview.md`, `architecture.md`, `ui-context.md`, `code-standards.md`, `ai-workflow-rules.md`, `progress-tracker.md`, `spec-plan.md`, and Specs 01–04.
