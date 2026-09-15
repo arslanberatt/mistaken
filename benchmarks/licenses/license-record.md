@@ -128,6 +128,30 @@ re-verified independently rather than cross-referenced, per AC16.
 - Required attribution text: "Whisper model by OpenAI (github.com/openai/whisper), ggml/whisper.cpp conversion by the ggml authors and contributors (github.com/ggml-org/whisper.cpp)."
 - Redistribution verdict: permitted
 
+## vosk-small-en-us
+
+Added 2026-09-15 during the `spec/05-remediation` candidate-set-expansion
+phase (product-owner decision, `docs/context/progress-tracker.md`),
+researched per `benchmarks/reports/2026-09-15-fundamentally-different-architecture-research.md`.
+A first-party, single-vendor artifact (Alpha Cephei is both the runtime
+maintainer and the model publisher) — no third-party upstream-provenance
+chain to independently verify, unlike every `csukuangfj`-converted
+research-checkpoint candidate in this record.
+
+- Runtime repository: alphacep/vosk-api
+- Runtime tag: v0.3.44 (macOS `libvosk.dyld`, extracted from the official PyPI wheel `vosk-0.3.44-py3-none-macosx_10_6_universal2.whl`; v0.3.45 exists as a git tag but has no published macOS wheel, only Linux/Windows, source: https://pypi.org/pypi/vosk/0.3.45/json, retrieved 2026-09-15) plus `vosk_api.h` from git tag v0.3.43 (closest prior tag; diffed against v0.3.45's header — only an added unrelated function and a doc-comment fix, no change to any function this adapter calls, retrieved 2026-09-15)
+- Runtime license: Apache License 2.0 (source: https://github.com/alphacep/vosk-api LICENSE via GitHub repository metadata, and the license header in `src/vosk_api.h` itself, retrieved 2026-09-15)
+- Linked inference runtime: none separate — `libvosk` statically bundles its own trimmed Kaldi/OpenFST decoder; Alpha Cephei publishes no separate runtime dependency to record
+- Model repository: alphacephei.com/vosk/models, `vosk-model-small-en-us-0.15.zip` (source: https://alphacephei.com/vosk/models, retrieved 2026-09-15)
+- Model revision: 0.15
+- Weight license (declared): Apache 2.0, per the Alpha Cephei models catalog table's "License" column for this exact model row (source: https://alphacephei.com/vosk/models, retrieved 2026-09-15)
+- Upstream provenance repository: none — Alpha Cephei trains and publishes this model directly; it is not a third-party research checkpoint converted by an unrelated party, so there is no separate upstream-provenance license gap to check (unlike every `csukuangfj`-converted sherpa-onnx/NeMo candidate considered during this session's research, several of which trace to upstream repositories that declare no license at all)
+- Upstream provenance license: not applicable (first-party artifact, no upstream conversion chain)
+- Training corpus: not published by Alpha Cephei in per-model detail beyond "lightweight wideband model for Android and RPi"; the models catalog reports LibriSpeech test-clean/TEDLIUM WER figures as evaluation benchmarks, not a declared training-set list
+- Training corpus terms: not independently redistributed by this candidate (the shipped artifact is the trained acoustic/graph model, not a training corpus); not applicable
+- Required attribution text: "Speech recognition by Vosk (github.com/alphacep/vosk-api), Alpha Cephei Inc., Apache License 2.0."
+- Redistribution verdict: permitted
+
 ## Verdict summary (not a candidate row)
 
 | Candidate | Verdict | Blocking reason |
@@ -138,9 +162,10 @@ re-verified independently rather than cross-referenced, per AC16.
 | whisper-base-en-ggml | permitted | MIT runtime and MIT ggml conversion; OpenAI's own code is MIT. |
 | whisper-small-en-ggml | permitted | Same as whisper-base-en-ggml. |
 | whisper-base-en-q8-ggml | permitted | Same MIT chain as whisper-base-en-ggml; Q8_0 is a published post-training quantization of the same weights, not a separate artifact. |
+| vosk-small-en-us | permitted | First-party Apache-2.0 runtime and model, no upstream provenance gap. |
 
 License-clean candidates (permitted / permitted-with-attribution): the 20M
-sherpa int8 model and all three whisper.cpp candidates. The two 2023-06-26
-zipformer candidates are license-blocked on upstream provenance regardless
-of any accuracy result, per Spec 05 section 10's explicit rule that an
-unclear verdict can never be approved.
+sherpa int8 model, all three whisper.cpp candidates, and vosk-small-en-us.
+The two 2023-06-26 zipformer candidates are license-blocked on upstream
+provenance regardless of any accuracy result, per Spec 05 section 10's
+explicit rule that an unclear verdict can never be approved.

@@ -313,6 +313,116 @@ cannot pass, and running the full corpus (~10 min `asap` + ~40 min
 every Mac-arm64 gate.** MAC QUALIFIED status has not been reached by any
 candidate.
 
+## Fundamentally different architecture search (2026-09-15, product-owner authorized, same session)
+
+Full detail: `benchmarks/reports/2026-09-15-fundamentally-different-architecture-research.md`.
+Per explicit product-owner direction not to spend further time tuning the
+already-exhausted Whisper/Sherpa-transducer configurations, researched
+architectures genuinely different from both families: streaming/offline
+CTC (icefall zipformer-CTC, NVIDIA NeMo Citrinet/Conformer-CTC) and
+Kaldi HMM-DNN + WFST decoding (Vosk). Paper-screened four concrete
+options before downloading anything:
+
+| Candidate | Payload | License result | Verdict |
+|---|---|---|---|
+| Streaming zipformer2-CTC (icefall) | 25 MiB–728 MiB | Apache-2.0 | **No English pretrained model exists** — only Chinese/Russian published; training one is out of scope |
+| Offline zipformer-CTC (`sherpa-onnx-zipformer-ctc-en-2023-10-02`) | 67.0 MiB, fits | **Unclear** — upstream `Zengwei/...zipformer-transducer-ctc-2023-06-13` declares no license, same gap as the already-excluded transducer candidates | Rejected before benchmarking |
+| Offline NeMo Citrinet-512-CTC (`sherpa-onnx-nemo-ctc-en-citrinet-512`) | 36.3 MiB, fits | **Unclear** — the converter's self-applied `apache-2.0` does not match the upstream NGC `stt_en_citrinet_512` model card's actual "NGC Terms of Use" | Rejected before benchmarking |
+| Vosk (`vosk-model-small-en-us-0.15`, new adapter, new runtime) | 67.6 MiB extracted, fits | **Permitted — first-party Apache-2.0**, no upstream provenance gap | **Accepted; benchmarked** |
+
+A brand-new adapter (`benchmarks/adapters/vosk/**`) was built and vendored
+(prebuilt `libvosk` from the official Alpha Cephei PyPI wheel — Vosk ships
+no source-buildable release, mirroring the existing precedent of the
+sherpa-onnx adapter's own prebuilt-ONNX-Runtime dependency) and a new
+candidate `vosk-small-en-us` was added, license-verified, and
+checksum-fetched (14 files, `mistaken-bench fetch` → `VERIFIED` for all).
+
+Focused-subset evaluation (90 of 130 real-corpus clips, `asap` pace, 1
+repetition):
+
+| Metric | `vosk-small-en-us` | Gate | Result |
+|---|---|---|---|
+| MPR (combined) | 0.5349 | ≥ 0.90 | **FAIL — not close** |
+| MPR (`mistake-tense`) | 0.4348 | ≥ 0.85 | **FAIL** |
+| MPR (`mistake-minimal-pair`) | 0.6250 | ≥ 0.85 | **FAIL** |
+| False-correction rate | **0.0349** | ≤ 0.05 | **PASS** |
+| WER (combined) | 0.2144 | ≤ 0.25 | **PASS** |
+| Silence hallucination | **0 tokens** (12/12 clips incl. 4 physical-silence) | = 0 | **PASS** |
+
+**This is the first candidate in the entire remediation series whose
+false-correction rate, WER, and silence hallucination all individually
+pass on a focused subset.** Concrete confirmation the architecture
+genuinely avoids grammar correction:
+`mistake-tense-02-48k`, reference `"she go to the store every day last
+week"` → hypothesis `"she go to the store every day last week"` — the
+deliberate agreement error survives verbatim. But the primary MPR gate is
+not close, driven by ordinary small-model misrecognition rather than
+correction (e.g. `mistake-tense-03`: `"we was gone..."` → `"he was
+gone..."`, an acoustic confusion of a short function word, not a
+grammatical repair). No larger Vosk model fits the payload gate
+(`vosk-model-en-us-0.22-lgraph` is 128 MiB, 8 MiB over the ceiling) to
+try for better raw accuracy.
+
+**Per the task's explicit instruction to reject early when focused MPR is
+nowhere near 0.90, no full 3-repetition Mac-arm64 benchmark was run.**
+STOP condition reached: three fundamentally different architecture
+families (attention-based streaming transducer, autoregressive
+encoder-decoder, and now Kaldi HMM-DNN+WFST) have each been evaluated with
+real measured evidence against the real human corpus, and none clears the
+fidelity gate within the 120 MiB payload ceiling.
+
+**No candidate — the original five, `whisper-base-en-q8-ggml`, or
+`vosk-small-en-us` — clears every Mac-arm64 gate. MAC QUALIFIED status has
+not been reached by any candidate.**
+
+## Product-constraint statement (for the product owner; not changed by this session)
+
+Real, measured evidence across three architecturally distinct local ASR
+families indicates that **the combination of (a) ≤ 120 MiB model payload,
+(b) MPR ≥ 0.90, (c) false-correction rate ≤ 0.05, and (d) the current
+latency/resource gates appears technically incompatible with currently
+available, license-clean, practical local English ASR models**, on real
+disfluent human speech containing deliberate grammatical errors:
+
+- Every model small enough to fit the payload ceiling (sherpa 20M
+  transducer, Vosk small) lacks the raw acoustic/language capacity to
+  recognize enough of each utterance correctly, regardless of decoding
+  configuration.
+- Every model with enough capacity to approach the fidelity bar (Whisper
+  base/small, in any tested quantization) is either far over the payload
+  ceiling or exhibits trained-in grammar auto-correction that no prompting
+  or decoding-parameter change removes.
+- No English streaming CTC model — the architecture class most likely to
+  combine native low latency with literal, LM-light decoding — is
+  currently published for evaluation.
+
+This is not a request or a recommendation to relax a gate; no threshold
+was changed. The decision this finding requires from the product owner is
+one of the following, made explicitly rather than worked around:
+
+1. **Accept a larger payload ceiling** (e.g. raise the 120 MiB gate for a
+   model bundled as a separate downloadable resource rather than embedded
+   in the base installer — Spec 05 section 15 already anticipated this
+   question for Specs 13–14), which would let a higher-capacity model
+   (e.g. `whisper-small-en-ggml`, MPR 0.6667, still short of 0.90 but the
+   closest measured so far) be reconsidered on capacity grounds instead of
+   being blocked on size alone.
+2. **Commission or fund a purpose-trained model or fine-tune** explicitly
+   optimized to preserve grammatical errors rather than correct them —
+   out of this remediation's scope (Spec 05 section 4 excludes training)
+   but the only path that directly targets the false-correction failure
+   mode at Whisper-class accuracy.
+3. **Revisit the MPR/false-correction thresholds themselves** as a
+   deliberate, recorded product decision (not a quiet erosion) if the
+   product can tolerate a lower fidelity bar than originally specified.
+4. **Continue blocked** and treat "no local model currently satisfies
+   Mistaken's fidelity promise at a shippable size" as the honest, current
+   answer, revisiting as the local-ASR model landscape (new open English
+   streaming-CTC releases, smaller high-fidelity checkpoints) evolves.
+
+None of these four options was selected by this session; they are
+presented for an explicit product-owner decision.
+
 ## Recommended next action
 
 1. **Obtain a `win-x64` host** meeting the minimum profile (≥ 8 cores, ≥ 16
@@ -339,15 +449,18 @@ candidate.
    early-utterance token loss is a property of its specific
    streaming-transducer export, and Whisper's grammar auto-correction is
    trained-in behavior of the model family, not an adapter default.
-4. **The next legitimate model-selection direction is a different model,
-   not further configuration**: a genuinely different, non-Whisper,
-   non-2023-06-26-zipformer architecture (e.g. a different training
-   recipe or a from-scratch anti-correction fine-tune), added through the
-   normal Spec 05 candidate process with full license/provenance
-   verification — or accepting that no local model under 120 MB
-   currently preserves deliberate grammatical mistakes at the required
-   0.90 MPR bar, which is itself a valid, reportable outcome of this
-   remediation effort.
+4. **The fundamentally-different-architecture search is complete for this
+   session** (see the section above and
+   `reports/2026-09-15-fundamentally-different-architecture-research.md`):
+   Vosk (Kaldi HMM-DNN+WFST) was evaluated and is the best-behaved
+   candidate found on every gate except the primary one (MPR), but still
+   falls well short. Two CTC candidates (icefall zipformer-CTC, NVIDIA
+   NeMo Citrinet-512) were paper-screened and rejected on the same
+   upstream-provenance-license pattern already seen three times in this
+   series, without spending compute measuring their accuracy. The next
+   step is not further model search inside the currently available
+   landscape — it is the product-owner decision named in the
+   "Product-constraint statement" section above.
 5. **The two `2023-06-26` zipformer candidates should not be re-benchmarked**
    until their upstream provenance license question is resolved (either a
    license appears on
