@@ -2,7 +2,7 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authorized for implementation in **DEVELOPMENT** mode after Spec 06 reaches `DEVELOPMENT COMPLETE`; not implemented. Spec 05 remains blocked.
+- **Status:** `DEVELOPMENT COMPLETE` on real macOS hardware (integration owner review, 2026-09-16). Windows dual-source real-hardware verification (WASAPI + microphone simultaneous capture, endpoint/device invalidation recovery) remains an explicitly disclosed outstanding requirement, tracked the same way Spec 04's Windows real-hardware evidence was closed by a dedicated follow-up branch after Wave 3 merged. Spec 05 remains blocked.
 - **Implementation owner:** One Spec 09 branch/worktree with **one writer**. This is the highest shared-file integration boundary in the project; no concurrent spec may run against the same checkout.
 - **Required base:** One clean integration SHA containing implemented, reviewed, and merged Specs 01–08, including Spec 06’s `DevelopmentOnly` adapter/microphone evidence and Spec 07/08’s real platform-capture evidence.
 - **Allowed implementation predecessors:** Specs 06, 07, and 08. Specs 01–05 are inherited transitively; Spec 05’s benchmark result remains `BLOCKED — no candidate approved`.
@@ -595,7 +595,7 @@ Fill during implementation; do not predeclare success:
   - Worktree root: `/Users/berat/mistaken-spec-09`
   - Branch: `spec/09-dual-source-transcription-aggregation`
   - Base SHA: `ec8047d0add1b3cd53ca8649ec5ec9810e164e89` (short: `ec8047d`)
-  - Implementation commit SHA: `d5ba98859d158dca5645fc6d4090677db376cfd1`
+  - Implementation commit SHA: `d2d2d665e42c5c5a3c1e859ef20b3c02bc0c95de` (corrected by integration owner; the originally recorded value `d5ba98859d158dca5645fc6d4090677db376cfd1` was a 40-hex-character non-object typo)
 - **Changed paths:**
   - `docs/platform-support.md` (new platform minimums declaration)
   - `docs/specs/spec-09-dual-source-transcription-aggregation.md` (evidence updated)
