@@ -1,8 +1,9 @@
 /**
  * Feature-local React microphone controller: device list/selection state
- * and the Test microphone / Stop test command lifecycle. Owns no native
- * resource, PCM data, or continuous level — it only calls the typed runtime
- * client and tracks small presentation state.
+ * only. Owns no native resource, PCM data, continuous level, or capture
+ * command — the single production `Start Listening` / `Stop` action lives
+ * in the transcript workspace footer and calls the typed runtime client
+ * directly with this hook's `selectedDeviceId`.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
@@ -16,15 +17,12 @@ export interface MicrophoneControllerState {
   readonly devices: readonly MicrophoneDevice[];
   readonly selectedDeviceId: string | null;
   readonly listState: "loading" | "ready" | "error";
-  readonly commandPending: "start" | "stop" | null;
   readonly error: RuntimeError | RuntimeBridgeError | null;
 }
 
 export interface UseMicrophoneControllerResult extends MicrophoneControllerState {
   readonly refresh: () => void;
   readonly selectDevice: (id: string) => void;
-  readonly startTest: () => void;
-  readonly stopTest: () => void;
 }
 
 function isRuntimeOrBridgeError(value: unknown): value is RuntimeError | RuntimeBridgeError {
@@ -54,7 +52,6 @@ export function useMicrophoneController(
   const [devices, setDevices] = useState<readonly MicrophoneDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
-  const [commandPending, setCommandPending] = useState<"start" | "stop" | null>(null);
   const [error, setError] = useState<RuntimeError | RuntimeBridgeError | null>(null);
 
   const hasLoadedOnceRef = useRef(false);
@@ -92,57 +89,19 @@ export function useMicrophoneController(
   }, [bridgeReady, loadDevices]);
 
   const refresh = useCallback(() => {
-    if (commandPending) return;
     void loadDevices(true);
-  }, [commandPending, loadDevices]);
+  }, [loadDevices]);
 
-  const selectDevice = useCallback(
-    (id: string) => {
-      if (commandPending) return;
-      setSelectedDeviceId(id);
-    },
-    [commandPending],
-  );
-
-  const startTest = useCallback(() => {
-    if (commandPending || !selectedDeviceId) return;
-    setCommandPending("start");
-    setError(null);
-    client
-      .startCapture({ microphoneDeviceId: selectedDeviceId, systemAudioEnabled: false })
-      .catch((caught: unknown) => {
-        if (!isMountedRef.current) return;
-        setError(isRuntimeOrBridgeError(caught) ? caught : null);
-      })
-      .finally(() => {
-        if (isMountedRef.current) setCommandPending(null);
-      });
-  }, [client, commandPending, selectedDeviceId]);
-
-  const stopTest = useCallback(() => {
-    if (commandPending) return;
-    setCommandPending("stop");
-    setError(null);
-    client
-      .stopCapture()
-      .catch((caught: unknown) => {
-        if (!isMountedRef.current) return;
-        setError(isRuntimeOrBridgeError(caught) ? caught : null);
-      })
-      .finally(() => {
-        if (isMountedRef.current) setCommandPending(null);
-      });
-  }, [client, commandPending]);
+  const selectDevice = useCallback((id: string) => {
+    setSelectedDeviceId(id);
+  }, []);
 
   return {
     devices,
     selectedDeviceId,
     listState,
-    commandPending,
     error,
     refresh,
     selectDevice,
-    startTest,
-    stopTest,
   };
 }

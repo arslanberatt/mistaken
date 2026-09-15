@@ -204,6 +204,23 @@ pub struct MicrophoneDevice {
     pub is_default: bool,
 }
 
+/// One partial or finalized recognized-speech segment. Mirrors
+/// `src/types/transcript.ts`'s `TranscriptSegment` field-for-field. Only
+/// ever built from a [`crate::asr::RecognizedSegment`] plus structural
+/// identity/timing; never carries confidence, tokens, a model id, or a
+/// device id.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptSegment {
+    pub id: String,
+    pub source: TranscriptSource,
+    pub text: String,
+    pub started_at_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ended_at_ms: Option<u64>,
+    pub is_final: bool,
+}
+
 /// Request payload for `start_capture`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -1,15 +1,16 @@
 /**
  * Root composition: the transcript workspace wired to the real typed
- * runtime bridge and a real microphone controller.
+ * runtime bridge, the real microphone source bar, and — as of Spec 06 —
+ * real local development-adapter transcription.
  *
- * Native ASR is not integrated yet, so the committed app still supplies
- * empty transcript state, `captureStatus="idle"`, `canStart=false`, and no
- * start/stop callback for the production transcription action — that stays
- * honestly disabled. The microphone source bar, however, is now real:
- * device enumeration, selection, and a Test microphone / Stop test action
- * drive actual local PCM capture through `startCapture`/`stopCapture`. No
- * PCM, sample, or continuous level ever crosses into this component or the
- * transcript state below it.
+ * `Start Listening` / `Stop` now call the production `startCapture` /
+ * `stopCapture` commands directly with the selected microphone device;
+ * native transcript events flow straight into the Spec 02 reducer. The
+ * top bar always carries the `Development ASR • Not release approved`
+ * label: the pinned temporary adapter has not passed Spec 05's production
+ * gates, so every transcript-quality result it produces is architecture
+ * evidence only. No PCM, sample, or continuous level ever crosses into
+ * this component or the transcript state below it.
  */
 import { useState } from "react";
 import { MicrophoneControl } from "./features/audio/MicrophoneControl";
@@ -17,20 +18,44 @@ import { useMicrophoneController } from "./features/audio/microphone-controller"
 import { TranscriptWorkspace } from "./features/transcript/TranscriptWorkspace";
 import { useTranscriptSession } from "./features/transcript/use-transcript-session";
 import { writeTranscriptToClipboard } from "./features/transcript/transcript-clipboard";
-import { useRuntimeBridge } from "./lib/tauri";
+import { useRuntimeBridge, type ModelStatus } from "./lib/tauri";
+
+const NON_RELEASE_LABEL = "Development ASR • Not release approved";
+
+function modelStatusLabel(modelStatus: ModelStatus | undefined, isListening: boolean): string {
+  if (!modelStatus) return `${NON_RELEASE_LABEL} — Connecting…`;
+  if (isListening) return `${NON_RELEASE_LABEL} — Listening`;
+  switch (modelStatus.status) {
+    case "missing":
+      return `${NON_RELEASE_LABEL} — Model missing`;
+    case "loading":
+      return `${NON_RELEASE_LABEL} — Loading model…`;
+    case "ready":
+      return NON_RELEASE_LABEL;
+    case "failed":
+      return `${NON_RELEASE_LABEL} — Model failed to load`;
+    case "unsupported":
+      return `${NON_RELEASE_LABEL} — Model not supported`;
+  }
+}
 
 function App() {
-  const { state, clear } = useTranscriptSession();
+  const { state, receiveSegment, clear } = useTranscriptSession();
   const [overflowWarning, setOverflowWarning] = useState(false);
 
   const bridge = useRuntimeBridge({
     onCaptureError: (error) => {
-      if (error.source === "microphone" && error.code === "audio_queue_overflow") {
+      if (
+        error.source === "microphone" &&
+        (error.code === "audio_queue_overflow" || error.code === "inference_lagging")
+      ) {
         setOverflowWarning(true);
       }
     },
+    onTranscriptSegment: receiveSegment,
   });
-  const microphoneStatus = bridge.snapshot?.microphone;
+  const snapshot = bridge.snapshot;
+  const microphoneStatus = snapshot?.microphone;
   const microphoneController = useMicrophoneController(bridge.client, bridge.bridgeReady);
 
   // Reset the transient overflow banner whenever the microphone leaves
@@ -46,12 +71,31 @@ function App() {
     }
   }
 
+  const captureStatus = snapshot?.captureStatus ?? "idle";
+  const canStart =
+    bridge.bridgeReady &&
+    snapshot?.modelStatus.status === "ready" &&
+    microphoneController.selectedDeviceId !== null;
+
+  function handleStart(): void {
+    const deviceId = microphoneController.selectedDeviceId;
+    if (!deviceId) return;
+    void bridge.client.startCapture({
+      microphoneDeviceId: deviceId,
+      systemAudioEnabled: false,
+    });
+  }
+
+  function handleStop(): void {
+    void bridge.client.stopCapture();
+  }
+
   return (
     <TranscriptWorkspace
       segments={state.segments}
       sessionError={state.lastError}
-      captureStatus="idle"
-      modelStatusLabel="Local • Runtime unavailable"
+      captureStatus={captureStatus}
+      modelStatusLabel={modelStatusLabel(snapshot?.modelStatus, captureStatus === "listening")}
       microphoneControl={
         <MicrophoneControl
           bridgeReady={bridge.bridgeReady}
@@ -62,9 +106,9 @@ function App() {
       }
       systemAudioLabel="Not connected"
       elapsedMs={0}
-      canStart={false}
-      onStartRequested={null}
-      onStopRequested={null}
+      canStart={canStart}
+      onStartRequested={handleStart}
+      onStopRequested={handleStop}
       onClearRequested={clear}
       writeClipboard={writeTranscriptToClipboard}
     />
