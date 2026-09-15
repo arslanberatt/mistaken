@@ -699,6 +699,68 @@ export) plus Whisper-specific `initial_prompt`/`no_speech_thold` tuning
 against it, not further configuration of the current frozen set.
 - **Final Git status / commit SHA:** recorded below after commit.
 
+### Remediation — payload-policy decision and candidate-set research (branch `spec/05-remediation`, 2026-09-15, later same day)
+
+Full detail: `benchmarks/reports/2026-09-15-candidate-expansion-research.md`,
+`benchmarks/reports/2026-09-15-fundamentally-different-architecture-research.md`,
+`benchmarks/reports/2026-09-15-larger-model-payload-policy-research.md`, and
+`benchmarks/reports/approval.md`. This addendum records two further
+product-owner decisions and their resulting evidence, none of which
+lowers MPR, false-correction, WER, silence, latency, or resource gates.
+
+**Decision 1 (candidate-set expansion, no gate relaxed):** after the
+remediation experiments above proved the original five candidates
+exhausted, the product owner authorized adding new candidates through the
+normal Spec 05 process. `whisper-base-en-q8-ggml` (Q8_0 quantization of
+the already-verified `whisper-base-en-ggml`, 81.78 MB) and
+`vosk-small-en-us` (a brand-new adapter/runtime, Kaldi HMM-DNN+WFST,
+first-party Apache-2.0, 70.9 MB) were added, license-verified, and
+focus-tested. Neither approached the MPR gate (`whisper-base-en-q8-ggml`
+MPR 0.5323; `vosk-small-en-us` MPR 0.5349, though `vosk-small-en-us` was
+the first candidate in the series to pass false-correction, WER, and
+silence individually). Two CTC candidates (icefall zipformer-CTC, NVIDIA
+NeMo Citrinet-512) were paper-screened and rejected before benchmarking
+on the same upstream-provenance-license gap already documented for the
+`2023-06-26` zipformer candidates.
+
+**Decision 2 (payload-gate policy revision, AC15 reinterpreted, no
+numeric gate relaxed for the frozen set):** since every architecture
+family evaluated so far was blocked at least in part by the ≤ 120 MB
+bundled-payload ceiling, the product owner recorded that a local ASR
+model resource may now be delivered as a separately downloaded,
+checksum-pinned local resource rather than bundled inside the initial
+installer, decoupling AC15's payload ceiling from the installer-size
+question Specs 13–14 own. This is a packaging-delivery-mechanism change,
+not a relaxation of MPR/false-correction/WER/silence/latency/resource
+gates, and no specific new numeric ceiling is adopted here — one is
+deferred until a concrete approved candidate's real payload justifies it,
+per the product owner's explicit instruction not to silently remove the
+constraint. Under this policy, `vosk-en-us-0.22-lgraph` (204 MB
+extracted, the same Kaldi/WFST architecture as `vosk-small-en-us` at
+~3× the acoustic-model and decoding-graph capacity) was fetched,
+license-verified (same first-party Apache-2.0 chain), and focus-tested.
+Result: MPR 0.5532 combined — the `mistake-tense` per-condition sub-gate
+measured **exactly** 0.4348, identical to the small model, and
+`mistake-minimal-pair` measured *worse* (0.5625 vs. 0.6250); a new
+silence-hallucination regression appeared (6 tokens across the 4
+physical-silence clips, vs. 0 for the small model). WER and
+false-correction improved, but the primary fidelity gate did not move on
+its most informative sub-condition despite a materially larger model.
+**Conclusion: model size is not the limiting factor for this
+architecture family** — a further, much larger Vosk model was not
+benchmarked (deliberate scope decision, not an oversight: the identical
+`mistake-tense` result across a 3× capacity jump gives no evidence basis
+to expect a qualitatively different outcome from a further jump).
+
+**No candidate — six evaluated across three architecturally distinct
+families — clears the fidelity gate.** `reports/approval.md` records an
+explicit product-constraint statement for the product owner naming the
+remaining legitimate choices (commission/train a purpose-built
+anti-normalization model, revise the MPR/false-correction thresholds as
+a recorded decision, or keep Spec 05 blocked); none is selected by this
+session. Decision unchanged: **BLOCKED**.
+- **Final Git status / commit SHA:** recorded below after commit.
+
 ### Authoring evidence and sources
 
 - Reviewed `/Users/berat/mistaken-context/project-overview.md`, `architecture.md`, `ui-context.md`, `code-standards.md`, `ai-workflow-rules.md`, `progress-tracker.md`, `spec-plan.md`, and Specs 01–04.

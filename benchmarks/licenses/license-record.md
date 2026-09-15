@@ -152,6 +152,31 @@ research-checkpoint candidate in this record.
 - Required attribution text: "Speech recognition by Vosk (github.com/alphacep/vosk-api), Alpha Cephei Inc., Apache License 2.0."
 - Redistribution verdict: permitted
 
+## vosk-en-us-0.22-lgraph
+
+Added 2026-09-15 during the `spec/05-remediation` payload-policy-revision
+phase (product-owner decision, `docs/context/progress-tracker.md`,
+"local ASR model resources may exceed 120 MiB when delivered as a
+separately downloadable, checksum-pinned local resource"), researched
+per `benchmarks/reports/2026-09-15-larger-model-payload-policy-research.md`.
+Same runtime, publisher, and license chain as `vosk-small-en-us` above,
+re-verified independently rather than cross-referenced, per AC16 — a
+larger acoustic model + decoding graph from the same first-party vendor.
+
+- Runtime repository: alphacep/vosk-api
+- Runtime tag: v0.3.44 (macOS `libvosk.dyld`, same vendored copy as `vosk-small-en-us` — this candidate reuses the existing `vosk` adapter and runtime unmodified, only the model files differ) plus `vosk_api.h` from git tag v0.3.43
+- Runtime license: Apache License 2.0 (source: https://github.com/alphacep/vosk-api LICENSE via GitHub repository metadata, and the license header in `src/vosk_api.h` itself, retrieved 2026-09-15)
+- Linked inference runtime: none separate — same statically-bundled Kaldi/OpenFST decoder as `vosk-small-en-us`
+- Model repository: alphacephei.com/vosk/models, `vosk-model-en-us-0.22-lgraph.zip` (source: https://alphacephei.com/vosk/models, retrieved 2026-09-15)
+- Model revision: 0.22-lgraph
+- Weight license (declared): Apache 2.0, per the Alpha Cephei models catalog table's "License" column for this exact model row (source: https://alphacephei.com/vosk/models, retrieved 2026-09-15)
+- Upstream provenance repository: none — same first-party Alpha Cephei publication as `vosk-small-en-us`, no third-party conversion chain
+- Upstream provenance license: not applicable (first-party artifact, no upstream conversion chain)
+- Training corpus: not published by Alpha Cephei in per-model detail beyond "accurate generic US English model with dynamic graph" in the models catalog; WER figures (7.82 librispeech, 8.20 tedlium) are reported as evaluation benchmarks, not a declared training-set list
+- Training corpus terms: not independently redistributed by this candidate; not applicable
+- Required attribution text: "Speech recognition by Vosk (github.com/alphacep/vosk-api), Alpha Cephei Inc., Apache License 2.0."
+- Redistribution verdict: permitted
+
 ## Verdict summary (not a candidate row)
 
 | Candidate | Verdict | Blocking reason |
@@ -163,9 +188,10 @@ research-checkpoint candidate in this record.
 | whisper-small-en-ggml | permitted | Same as whisper-base-en-ggml. |
 | whisper-base-en-q8-ggml | permitted | Same MIT chain as whisper-base-en-ggml; Q8_0 is a published post-training quantization of the same weights, not a separate artifact. |
 | vosk-small-en-us | permitted | First-party Apache-2.0 runtime and model, no upstream provenance gap. |
+| vosk-en-us-0.22-lgraph | permitted | Same first-party Apache-2.0 chain as vosk-small-en-us; a larger model from the same publisher, not a separate artifact's rights question. |
 
 License-clean candidates (permitted / permitted-with-attribution): the 20M
-sherpa int8 model, all three whisper.cpp candidates, and vosk-small-en-us.
-The two 2023-06-26 zipformer candidates are license-blocked on upstream
-provenance regardless of any accuracy result, per Spec 05 section 10's
-explicit rule that an unclear verdict can never be approved.
+sherpa int8 model, all three whisper.cpp candidates, and both Vosk
+candidates. The two 2023-06-26 zipformer candidates are license-blocked on
+upstream provenance regardless of any accuracy result, per Spec 05
+section 10's explicit rule that an unclear verdict can never be approved.

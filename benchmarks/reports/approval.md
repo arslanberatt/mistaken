@@ -375,52 +375,128 @@ fidelity gate within the 120 MiB payload ceiling.
 `vosk-small-en-us` — clears every Mac-arm64 gate. MAC QUALIFIED status has
 not been reached by any candidate.**
 
-## Product-constraint statement (for the product owner; not changed by this session)
+## Payload-policy revision and larger-model test (2026-09-15, product-owner decision, this session)
+
+Full detail: `benchmarks/reports/2026-09-15-larger-model-payload-policy-research.md`.
+**Product-owner decision, recorded verbatim:** preserving deliberate
+grammatical mistakes remains a hard requirement — MPR ≥ 0.90,
+false-correction ≤ 0.05, WER thresholds, the silence requirement, and
+every latency/resource gate are **unchanged**. The ≤ 120 MiB *bundled
+installer* payload ceiling is replaced with a two-part packaging rule:
+(1) initial application/package size remains separately controlled
+(Specs 13–14's concern), and (2) local ASR model resources may exceed
+120 MiB when delivered as a separately downloadable, checksum-pinned
+local resource, subject to remaining fully local/offline, no paid
+fallback, clear license/provenance, checksum/version pinning, integrity
+verification, a truthful download lifecycle, and separately documented
+installer/model sizes. **No specific new numeric ceiling is adopted** —
+one is deferred until a concrete candidate is approved and its real
+payload justifies it; `benchmarks/harness/src/scoring/gates.rs`'s
+`MAX_MODEL_PAYLOAD_BYTES` constant is deliberately left unchanged in code
+this session (not silently removed), and every candidate below was
+evaluated on its real payload number rather than auto-rejected at 120 MiB.
+
+Under this policy, `vosk-en-us-0.22-lgraph` (204.0 MB extracted, 130.6 MB
+compressed — the same Kaldi HMM-DNN+WFST architecture as `vosk-small-en-us`
+at roughly 3× the acoustic-model and decoding-graph capacity, same
+first-party Apache-2.0 license) was added, license-verified, and
+checksum-fetched (17 files, `mistaken-bench fetch` → `VERIFIED` for all).
+
+Focused-subset evaluation (64 of 130 real-corpus clips, `asap` pace, 1
+repetition):
+
+| Metric | `vosk-small-en-us` (68 MiB) | `vosk-en-us-0.22-lgraph` (204 MiB) | Gate | Result |
+|---|---|---|---|---|
+| MPR (`mistake-tense`) | 0.4348 | **0.4348 — identical** | ≥ 0.85 | **FAIL, unmoved** |
+| MPR (`mistake-minimal-pair`) | 0.6250 | 0.5625 — worse | ≥ 0.85 | **FAIL** |
+| MPR (combined, comparable conditions) | 0.5349 | 0.5532 | ≥ 0.90 | **FAIL — not close** |
+| False-correction rate | 0.0349 | **0.0000** | ≤ 0.05 | PASS (both) |
+| WER (combined, comparable conditions) | ~0.21 | 0.1922 | ≤ 0.25 | PASS (both) |
+| Silence hallucination | 0 tokens | **6 tokens** (all 4 physical-silence clips) | = 0 | PASS → **new FAIL** |
+
+**The `mistake-tense` sub-gate — the single most informative measurement
+for this corpus — is bit-identical between a 68 MiB and a 204 MiB model
+of the same architecture.** `mistake-minimal-pair` measured worse at the
+larger size, and the larger acoustic model introduced a new
+silence-hallucination regression (a more sensitive model picks up
+room-noise-floor signal the smaller model correctly recognized as
+non-speech). WER and false-correction both improved, but neither reaches
+the fidelity bar, and the unmoved `mistake-tense` result gives no
+evidence basis to expect a further size increase would change this
+qualitatively. **Per the task's stop-condition instruction, a much larger
+Vosk model (the ~1.8 GB non-`lgraph` release) was deliberately not
+tested** — the identical result across an already-3× jump does not
+justify the cost of a further ~9× jump — and **no full 3-repetition
+Mac-arm64 benchmark was run** for `vosk-en-us-0.22-lgraph` (focused
+result already conclusive).
+
+**Conclusion: model size is not the actual limiting factor.** Real
+evidence at two sizes within the best-behaved architecture family found
+in this remediation effort, combined with the earlier findings that
+Whisper's grammar correction is trained-in (not fixed by quantization or
+prompting) and the sherpa-onnx transducer's context loss is
+export-specific (not fixed by beam search or warm-up), means **six
+candidates across three architecturally distinct families have now been
+evaluated with real measured evidence, and none clears the fidelity gate
+— independent of payload, which this session explicitly relaxed and
+still could not use to produce a passing result.**
+
+**No candidate becomes MAC QUALIFIED.**
+
+## Product-constraint statement (for the product owner; option 1 below has now been exercised and closed out)
 
 Real, measured evidence across three architecturally distinct local ASR
-families indicates that **the combination of (a) ≤ 120 MiB model payload,
-(b) MPR ≥ 0.90, (c) false-correction rate ≤ 0.05, and (d) the current
-latency/resource gates appears technically incompatible with currently
-available, license-clean, practical local English ASR models**, on real
-disfluent human speech containing deliberate grammatical errors:
+families — including a deliberate test of a 3× larger model within the
+best-behaved family after the payload ceiling was explicitly relaxed —
+indicates that **the combination of (a) MPR ≥ 0.90, (b) false-correction
+rate ≤ 0.05, and (c) the current latency/resource gates appears
+technically incompatible with currently available, license-clean,
+practical local English ASR models, at any of the payload sizes tested**,
+on real disfluent human speech containing deliberate grammatical errors:
 
-- Every model small enough to fit the payload ceiling (sherpa 20M
-  transducer, Vosk small) lacks the raw acoustic/language capacity to
-  recognize enough of each utterance correctly, regardless of decoding
-  configuration.
+- Every model small enough to have been considered "size-blocked" under
+  the old ≤ 120 MiB rule (sherpa 20M transducer, Vosk small) lacks the
+  raw acoustic/language capacity to recognize enough of each utterance
+  correctly, regardless of decoding configuration.
+- **Relaxing the payload ceiling and testing a materially larger model
+  in the best-behaved family (Vosk, 68 MiB → 204 MiB) did not move the
+  primary fidelity sub-gate at all** (`mistake-tense` MPR identical at
+  0.4348) and made one other sub-gate and the silence gate worse —
+  direct evidence that size was not the limiting factor for this family.
 - Every model with enough capacity to approach the fidelity bar (Whisper
-  base/small, in any tested quantization) is either far over the payload
-  ceiling or exhibits trained-in grammar auto-correction that no prompting
-  or decoding-parameter change removes.
+  base/small, in any tested quantization) exhibits trained-in grammar
+  auto-correction that no prompting, decoding-parameter change, or
+  payload relaxation removes.
 - No English streaming CTC model — the architecture class most likely to
   combine native low latency with literal, LM-light decoding — is
   currently published for evaluation.
 
-This is not a request or a recommendation to relax a gate; no threshold
-was changed. The decision this finding requires from the product owner is
-one of the following, made explicitly rather than worked around:
+This is not a request or a recommendation to relax a gate; no
+fidelity/latency/resource threshold was changed, and the one constraint
+that *was* revised (the bundled-payload ceiling) has now been tested and
+shown insufficient on its own. The decision this finding requires from
+the product owner is one of the following, made explicitly rather than
+worked around:
 
-1. **Accept a larger payload ceiling** (e.g. raise the 120 MiB gate for a
-   model bundled as a separate downloadable resource rather than embedded
-   in the base installer — Spec 05 section 15 already anticipated this
-   question for Specs 13–14), which would let a higher-capacity model
-   (e.g. `whisper-small-en-ggml`, MPR 0.6667, still short of 0.90 but the
-   closest measured so far) be reconsidered on capacity grounds instead of
-   being blocked on size alone.
-2. **Commission or fund a purpose-trained model or fine-tune** explicitly
-   optimized to preserve grammatical errors rather than correct them —
-   out of this remediation's scope (Spec 05 section 4 excludes training)
-   but the only path that directly targets the false-correction failure
-   mode at Whisper-class accuracy.
-3. **Revisit the MPR/false-correction thresholds themselves** as a
+1. **Commission or fund a purpose-built anti-normalization ASR model** —
+   explicitly trained or fine-tuned to preserve grammatical errors rather
+   than correct them. This remains the only path identified in this
+   entire remediation effort that directly targets the false-correction
+   failure mode without also inheriting either Whisper's language-model
+   bias or a small-model's raw accuracy ceiling. Out of Spec 05's scope
+   (section 4 excludes training/fine-tuning); would require a new spec
+   or an explicit scope exception.
+2. **Revisit the MPR/false-correction thresholds themselves** as a
    deliberate, recorded product decision (not a quiet erosion) if the
    product can tolerate a lower fidelity bar than originally specified.
-4. **Continue blocked** and treat "no local model currently satisfies
-   Mistaken's fidelity promise at a shippable size" as the honest, current
+3. **Continue blocked** and treat "no currently available local ASR
+   model satisfies Mistaken's fidelity promise, at any size, on any of
+   the architectures evaluated" as the honest, evidence-backed current
    answer, revisiting as the local-ASR model landscape (new open English
-   streaming-CTC releases, smaller high-fidelity checkpoints) evolves.
+   streaming-CTC releases, purpose-built anti-correction checkpoints)
+   evolves.
 
-None of these four options was selected by this session; they are
+None of these three options was selected by this session; they are
 presented for an explicit product-owner decision.
 
 ## Recommended next action
@@ -437,30 +513,28 @@ presented for an explicit product-owner decision.
    architecture; Spec 05 does not claim OS-level behavioral differences).
 3. **Legitimate engineering changes already benchmarked this session**:
    on `sherpa-zipformer-en-20M-2023-02-17-int8`, `modified_beam_search`
-   decoding (real WER improvement, zero MPR improvement, plus a new
-   silence-hallucination regression — not adopted) and a synthetic
-   silence cold-start warm-up (no measurable improvement — not adopted);
-   on the newly added `whisper-base-en-q8-ggml`, `suppressNst`/
-   `noSpeechThold` tuning (fixed the silence-hallucination gate, adopted)
-   and `initialPrompt` anti-correction prompting (made every metric
-   worse, not adopted). None closes the fidelity gap. **Conclusion: the
-   MPR/false-correction shortfall is not fixable by decoder/runtime
-   configuration in either model family evaluated so far** — sherpa's
-   early-utterance token loss is a property of its specific
-   streaming-transducer export, and Whisper's grammar auto-correction is
-   trained-in behavior of the model family, not an adapter default.
-4. **The fundamentally-different-architecture search is complete for this
-   session** (see the section above and
-   `reports/2026-09-15-fundamentally-different-architecture-research.md`):
-   Vosk (Kaldi HMM-DNN+WFST) was evaluated and is the best-behaved
-   candidate found on every gate except the primary one (MPR), but still
-   falls well short. Two CTC candidates (icefall zipformer-CTC, NVIDIA
-   NeMo Citrinet-512) were paper-screened and rejected on the same
-   upstream-provenance-license pattern already seen three times in this
-   series, without spending compute measuring their accuracy. The next
-   step is not further model search inside the currently available
-   landscape — it is the product-owner decision named in the
-   "Product-constraint statement" section above.
+   decoding and a synthetic silence cold-start warm-up (neither adopted,
+   neither closed the fidelity gap); on `whisper-base-en-q8-ggml`,
+   `suppressNst`/`noSpeechThold` tuning (adopted, fixed silence only) and
+   `initialPrompt` anti-correction prompting (made every metric worse,
+   not adopted); on the Vosk family, scaling the model 3× larger (real
+   WER/false-correction improvement, the primary `mistake-tense` sub-gate
+   completely unmoved, a new silence regression). **Conclusion: neither
+   decoder/runtime configuration nor model-size scaling closes the
+   fidelity gap in any family evaluated** — sherpa's early-utterance
+   token loss is export-specific, Whisper's grammar auto-correction is
+   trained-in, and Vosk's small-model misrecognition is not resolved by a
+   3× capacity increase.
+4. **The architecture and payload-policy search is complete for this
+   session** (see the sections above and the three dated research
+   reports referenced throughout this document). Two CTC candidates were
+   paper-screened and rejected on the same upstream-provenance-license
+   pattern already seen three times in this series, without spending
+   compute measuring their accuracy. The next step is not further model
+   search inside the currently available landscape or further payload
+   relaxation — it is the product-owner decision named in the
+   "Product-constraint statement" section above (commission a
+   purpose-built model, revise the fidelity thresholds, or stay blocked).
 5. **The two `2023-06-26` zipformer candidates should not be re-benchmarked**
    until their upstream provenance license question is resolved (either a
    license appears on
