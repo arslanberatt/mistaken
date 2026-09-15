@@ -5,22 +5,24 @@
  */
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { MonitorSpeaker } from "lucide-react";
+import { ArrowDown, MonitorSpeaker } from "lucide-react";
 import type { CaptureStatus } from "../../types/runtime";
 import type { TranscriptSegment } from "../../types/transcript";
 import {
-  formatTranscriptSegment,
   serializeFinalTranscript,
   type TranscriptSessionError,
 } from "./transcript-domain";
 import type { ClipboardWriter } from "./transcript-clipboard";
+import { TranscriptRow } from "./TranscriptRow";
+import { useAutoFollow } from "./use-auto-follow";
+import { useWorkspaceShortcuts } from "./use-workspace-shortcuts";
 
 export interface TranscriptWorkspaceProps {
   readonly segments: readonly TranscriptSegment[];
@@ -40,6 +42,8 @@ export interface TranscriptWorkspaceProps {
 
 type CopyFeedbackState = "idle" | "pending" | "success" | "failure";
 type FocusTarget = "clearButton" | "confirmButton" | "workspace";
+
+const COPY_FEEDBACK_DURATION_MS = 2000;
 
 interface CaptureActionPresentation {
   readonly label: string;
@@ -110,10 +114,12 @@ export function TranscriptWorkspace({
   const isMountedRef = useRef(true);
   const requestIdRef = useRef(0);
   const currentFinalizedTextRef = useRef("");
-  const previousFinalizedTextRef = useRef("");
+  const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [clearConfirming, setClearConfirming] = useState(false);
   const [copyState, setCopyState] = useState<CopyFeedbackState>("idle");
+
+  const { isFollowing, jumpToLatest } = useAutoFollow(transcriptRegionRef, segments);
 
   const finalizedText = useMemo(
     () => serializeFinalTranscript(segments),
@@ -126,17 +132,17 @@ export function TranscriptWorkspace({
   const hasAnySegments = segments.length > 0;
   const hasFinalContent = finalizedText.length > 0;
 
-  // Feedback resets whenever finalized content changes; a write already in
-  // flight keeps its own pending state until it settles.
-  useLayoutEffect(() => {
-    if (previousFinalizedTextRef.current !== finalizedText) {
-      previousFinalizedTextRef.current = finalizedText;
-      setCopyState((prev) => (prev === "pending" ? prev : "idle"));
+  const clearCopyFeedbackTimeout = useCallback(() => {
+    if (copyFeedbackTimeoutRef.current !== null) {
+      clearTimeout(copyFeedbackTimeoutRef.current);
+      copyFeedbackTimeoutRef.current = null;
     }
-  }, [finalizedText]);
+  }, []);
+
+  useEffect(() => clearCopyFeedbackTimeout, [clearCopyFeedbackTimeout]);
 
   // Runs after every commit; only acts when a focus move was requested by
-  // the event handler that triggered the render (Cancel/Confirm/open).
+  // the event handler that triggered the render (Cancel/Confirm/open/jump).
   useLayoutEffect(() => {
     if (focusTargetRef.current === "clearButton") {
       clearButtonRef.current?.focus();
@@ -175,23 +181,16 @@ export function TranscriptWorkspace({
   const handleClearConfirm = useCallback(() => {
     focusTargetRef.current = "workspace";
     setClearConfirming(false);
+    clearCopyFeedbackTimeout();
+    setCopyState("idle");
     onClearRequested();
-  }, [onClearRequested]);
-
-  const handleConfirmationKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        handleClearCancel();
-      }
-    },
-    [handleClearCancel],
-  );
+  }, [clearCopyFeedbackTimeout, onClearRequested]);
 
   const handleCopy = useCallback(() => {
     if (copyState === "pending" || !hasFinalContent) {
       return;
     }
+    clearCopyFeedbackTimeout();
     const snapshot = finalizedText;
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
@@ -204,9 +203,15 @@ export function TranscriptWorkspace({
         }
         // Only claim success for the exact snapshot written; a content
         // change while the write was pending must not be reported as copied.
-        setCopyState(
-          currentFinalizedTextRef.current === snapshot ? "success" : "idle",
-        );
+        if (currentFinalizedTextRef.current !== snapshot) {
+          setCopyState("idle");
+          return;
+        }
+        setCopyState("success");
+        copyFeedbackTimeoutRef.current = setTimeout(() => {
+          copyFeedbackTimeoutRef.current = null;
+          setCopyState((prev) => (prev === "success" ? "idle" : prev));
+        }, COPY_FEEDBACK_DURATION_MS);
       })
       .catch(() => {
         if (!isMountedRef.current || requestIdRef.current !== requestId) {
@@ -216,7 +221,12 @@ export function TranscriptWorkspace({
           currentFinalizedTextRef.current === snapshot ? "failure" : "idle",
         );
       });
-  }, [copyState, hasFinalContent, finalizedText, writeClipboard]);
+  }, [copyState, hasFinalContent, finalizedText, writeClipboard, clearCopyFeedbackTimeout]);
+
+  const handleJumpToLatest = useCallback(() => {
+    jumpToLatest();
+    focusTargetRef.current = "workspace";
+  }, [jumpToLatest]);
 
   const captureAction = getCaptureActionPresentation(
     captureStatus,
@@ -226,6 +236,12 @@ export function TranscriptWorkspace({
   );
   const startDisabledForIdle =
     captureStatus === "idle" && captureAction.disabled;
+
+  useWorkspaceShortcuts({
+    onToggleCapture: captureAction.onClick,
+    onCopyAll: handleCopy,
+    onCancelClearConfirmation: clearConfirming ? handleClearCancel : undefined,
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
@@ -263,8 +279,8 @@ export function TranscriptWorkspace({
         ref={transcriptRegionRef}
         role="log"
         aria-label="Transcript"
-        tabIndex={-1}
-        className="flex-1 overflow-y-auto px-6 py-6 focus:outline-none"
+        tabIndex={0}
+        className="flex-1 overflow-y-auto px-6 py-6 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
       >
         {sessionError && (
           <p
@@ -290,38 +306,36 @@ export function TranscriptWorkspace({
         ) : (
           <ul className="flex flex-col gap-6">
             {segments.map((segment) => (
-              <li key={segment.id} className="flex flex-col gap-1">
-                {!segment.isFinal && (
-                  <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-interim)]">
-                    Interim
-                  </span>
-                )}
-                <p
-                  className={`max-w-[75ch] whitespace-pre-wrap font-[var(--font-transcript)] text-base leading-[1.65] ${
-                    segment.isFinal
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-interim)]"
-                  }`}
-                >
-                  {formatTranscriptSegment(segment)}
-                </p>
-              </li>
+              <TranscriptRow key={segment.id} segment={segment} />
             ))}
           </ul>
         )}
       </section>
 
+      {!isFollowing && (
+        <div className="flex justify-center border-t border-[var(--border-default)] bg-[var(--bg-elevated)] px-6 py-2">
+          <button
+            type="button"
+            onClick={handleJumpToLatest}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-strong)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
+          >
+            <ArrowDown aria-hidden="true" className="h-4 w-4" />
+            Jump to latest
+          </button>
+        </div>
+      )}
+
       <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-default)] px-6 py-4">
-        <span className="font-[var(--font-mono)] text-sm text-[var(--text-muted)]">
+        <span
+          className="font-[var(--font-mono)] text-sm text-[var(--text-secondary)]"
+          aria-label={`Elapsed time ${formatElapsedTime(elapsedMs)}`}
+        >
           {formatElapsedTime(elapsedMs)}
         </span>
 
         <div className="flex flex-wrap items-center gap-3">
           {clearConfirming ? (
-            <div
-              className="flex items-center gap-2"
-              onKeyDown={handleConfirmationKeyDown}
-            >
+            <div className="flex items-center gap-2">
               <span className="text-sm text-[var(--text-secondary)]">
                 Clear all transcript content?
               </span>

@@ -17,6 +17,7 @@ import { MicrophoneControl } from "./features/audio/MicrophoneControl";
 import { SystemAudioControl } from "./features/audio/SystemAudioControl";
 import { useMicrophoneController } from "./features/audio/microphone-controller";
 import { TranscriptWorkspace } from "./features/transcript/TranscriptWorkspace";
+import { useElapsedTime } from "./features/transcript/use-elapsed-time";
 import { useTranscriptSession } from "./features/transcript/use-transcript-session";
 import { writeTranscriptToClipboard } from "./features/transcript/transcript-clipboard";
 import { useRuntimeBridge, type ModelStatus } from "./lib/tauri";
@@ -81,6 +82,7 @@ function App() {
     snapshot?.modelStatus.status === "ready" &&
     hasSelectedSource &&
     captureStatus === "idle";
+  const elapsedMs = useElapsedTime(captureStatus);
 
   function handleStart(): void {
     const deviceId = microphoneController.selectedDeviceId;
@@ -117,7 +119,7 @@ function App() {
           systemAudioStatus={snapshot?.systemAudio}
         />
       }
-      elapsedMs={0}
+      elapsedMs={elapsedMs}
       canStart={canStart}
       onStartRequested={handleStart}
       onStopRequested={handleStop}
