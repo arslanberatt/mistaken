@@ -2,15 +2,16 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Authorized for implementation in **DEVELOPMENT** mode after Spec 09 reaches `DEVELOPMENT COMPLETE`; not implemented.
 - **Implementation owner:** One Spec 11 branch/worktree with one writer. Medium implementation is acceptable; high-capability review before merge is mandatory.
-- **Required base:** One clean integration SHA containing implemented, reviewed, and merged Specs 01–09, including Spec 09’s frozen capture-status/error contract, ordering contract, and application-composition boundary.
-- **Allowed implementation predecessors:** Spec 09. Everything else is inherited transitively.
+- **Required base:** One clean integration SHA containing merged Specs 01–09, including Spec 09’s development-only capture/error, ordering, and composition contracts.
+- **Allowed implementation predecessor:** Spec 09 `DEVELOPMENT COMPLETE`. Everything else is inherited transitively; Spec 05 remains blocked.
 - **Parallel-safe peer:** Spec 10, in its own worktree from the same base SHA. The split is exact: **Spec 11 owns `src/App.tsx` and `src/features/transcript/**`; Spec 10 owns native lifecycle and `src/features/audio/**`.** Neither may edit the other’s paths.
 - **Serialization rule:** if this spec needs a change inside `src/features/audio/**`, `src-tauri/**`, or Spec 09’s frozen event union, it stops, records the requirement, and the integration owner serializes it after the first merge.
-- **Consumed yielded requirements:** Spec 10 yields to this spec any `App.tsx` prop, slot, or layout change needed to render its recovering/degraded/terminal source states, plus the decision about whether a source outage is annotated in the transcript. **This spec decides that it is not.**
-- **Successor gate:** Spec 12 may start only after both Spec 10 and Spec 11 merge.
-- **Review level:** Medium implementation, high review. The spec touches no native code but owns every remaining promise in `ui-context.md`, and a wrong live-region or focus decision makes the product unusable for keyboard and screen-reader users.
+- **Consumed yielded requirements:** Spec 10 yields any `App.tsx` prop/slot/layout change needed to render recovering/degraded/terminal states and the transcript-annotation decision; this spec does not annotate outages in transcript content.
+- **Successor gate:** Spec 12 may begin only reachable development/acceptance-harness work after Specs 10 and 11 merge as `DEVELOPMENT COMPLETE`; it cannot return `PASS` or freeze packaging inputs without a production-approved ASR model.
+- **ASR maturity gate:** The active adapter remains `DevelopmentOnly`; `Development ASR • Not release approved` is a required accessible state, announced without flooding and never hidden by responsive layouts. Interaction/accessibility success cannot promote it; transcript-quality observations remain `NON-RELEASE EVIDENCE`.
+- **Review level:** Medium implementation, high review. The spec touches no native code but owns every remaining `ui-context.md` promise and the non-release maturity presentation.
 
 ## 2. Goal and User-Visible Result
 
@@ -432,13 +433,26 @@ Permanent tests protect shortcut handling and pass-through, follow-state transit
 - Preserve Spec 02’s reducer, first-seen ordering, interim replacement, final immutability, `segment_identity_conflict` behavior, formatter, serializer, structural `- ` prefix, and clipboard transport exactly.
 - Preserve Spec 03’s command/event/error/revision surface and Spec 09’s ordering, attribution, and composition contracts.
 - Preserve Spec 10’s ownership of `src/features/audio/**` and native lifecycle, and its recovering/degraded/terminal presentation semantics.
+- Preserve `Development ASR • Not release approved` as persistent visible and accessible text; no control state, screen size, or success color may obscure or contradict it.
 - Preserve the `ui-context.md` visual language: no chat bubbles, avatars, gradients, per-source colors, new tokens, or decorative animation; the transcript stays dominant.
 - Preserve local-only, volatile behavior: no persistence of scroll, follow state, elapsed time, or preferences, and no logging of transcript text.
 - Preserve the zero-dependency constraint; a genuine need becomes a recorded requirement for the integration owner.
 
 ## 16. Definition of Done and Evidence Record
 
-Spec 11 is done only when the real Mistaken application on macOS and Windows toggles capture with the platform-correct `Cmd/Ctrl + Enter`, copies with `Cmd/Ctrl + Shift + C`, never hijacks native selection or copy, never toggles on `Space`, follows new transcript lines only when the user is near the bottom, holds its scroll position perfectly while detached including across interim growth, restores following by scroll or a keyboard-reachable `Jump to latest`, shows a real elapsed timer that advances through recovery and resets per session, announces each finalized line exactly once through a named `role="log"` region while announcing no interim revision — verified with VoiceOver and Narrator — keeps focus visible and stable through live updates, exposes every disabled reason as text, remains fully usable at both window sizes across three text scales with computed AA contrast, rerenders only one row per interim update with a thousand finalized segments, adds no dependency, timer leak, listener leak, persistence, or annotation to the transcript, and satisfies every acceptance criterion with networking disabled — without touching Spec 02’s frozen domain, Spec 10’s paths, or any native code.
+Spec 11 is `DEVELOPMENT COMPLETE` only when the real Mistaken application on macOS and Windows toggles capture
+with platform-correct `Cmd/Ctrl + Enter`, copies with `Cmd/Ctrl + Shift + C`, never hijacks native selection or
+copy, never toggles on `Space`, follows new transcript lines only near the bottom, holds its scroll position
+while detached including across interim growth, restores following by scroll or a keyboard-reachable
+`Jump to latest`, shows an elapsed timer that advances through recovery and resets per session, announces each
+final exactly once through a named `role="log"` while announcing no interim revision — verified with VoiceOver
+and Narrator — keeps focus visible and stable, exposes disabled reasons as text, remains usable at both window
+sizes across three text scales with computed AA contrast, rerenders only one row per interim update with a
+thousand finals, keeps `Development ASR • Not release approved` visible and accessible, adds no dependency,
+timer/listener leak, persistence, or transcript annotation, and satisfies every acceptance criterion with
+networking disabled — without touching Spec 02’s domain, Spec 10’s paths, or native code. These results prove
+interaction architecture only; they cannot approve fidelity, satisfy Spec 12, authorize packaging, or support
+`RELEASE-READY`.
 
 ### Required implementation evidence
 
@@ -450,6 +464,7 @@ Fill during implementation; do not predeclare success:
 - **Changed paths and zero-forbidden-path confirmation:** Pending
 - **Manifest/lockfile zero-diff confirmation:** Pending
 - **Yielded requirements recorded for Spec 10 / integration owner:** Pending
+- **Development-ASR label visibility/announcement across states, sizes, and text scales:** Pending
 - **macOS hardware/version; Windows hardware/edition/version/build:** Pending
 - **Shortcut behavior per host, development launch versus release-profile launch:** Pending
 - **Unhandled-key pass-through matrix result:** Pending

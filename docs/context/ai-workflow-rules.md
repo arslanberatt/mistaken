@@ -54,7 +54,7 @@ Parallel implementation follows `spec-plan.md`.
 
 - Parallel writers are allowed only after Spec 01 creates the dedicated Mistaken Git repository and commits a shared baseline.
 - Every concurrent spec uses its own Git branch and worktree. Two writing terminals must never share one physical checkout.
-- A spec starts only after all of its declared predecessors have passed their acceptance checks, been reviewed, and been merged into the integration branch.
+- A spec starts only after all declared predecessors for its current maturity have passed their applicable checks, been reviewed, and been merged into the integration branch. The sole current exception is the documented ASR maturity contract: Specs 06 and 09–11 may proceed in `DEVELOPMENT` mode after the Spec 05 benchmark evidence and product-owner exception merge, while Spec 05 remains `BLOCKED — no candidate approved`.
 - Specs may run concurrently only when their exact owned paths are disjoint. Intent or feature names do not override real file-path overlap.
 - Each wave starts from one recorded base SHA. A later wave starts from the integration SHA produced after the preceding merges.
 - Root manifests and lockfiles, shared Tauri entry points, common IPC/event contracts, common audio/ASR traits, application composition, global tokens, bundled-resource manifests, and context/tracker documents are single-writer files.
@@ -62,6 +62,8 @@ Parallel implementation follows `spec-plan.md`.
 - One integration owner reviews and merges branches in dependency order, runs combined checks after each merge, and is the only writer to shared context/tracker files during a wave.
 - Spec authors may work in parallel because each owns one spec file, but one high-reasoning integration owner must reconcile dependencies, contracts, terminology, and file ownership before implementation begins.
 - Each terminal reports its spec ID, absolute worktree, branch, base SHA, final commit SHA, changed paths, exact verification evidence, hardware, OS, and any external blocker.
+
+The exception never propagates release approval. Temporary-adapter transcript-quality results are `NON-RELEASE EVIDENCE`; Spec 12 cannot return `PASS` or authorize packaging, Specs 13–14 cannot produce distributable `PASS` artifacts, and Spec 15 cannot return `RELEASE-READY` until Spec 05 names exactly one production-approved candidate that passes every unchanged gate.
 
 ## Recommended Implementation Units
 
@@ -120,6 +122,8 @@ If a change cannot be verified end to end quickly, the scope is too broad. Split
 - Benchmark candidate models using intentionally incorrect English; normal benchmark speech alone is insufficient for this product.
 - Track model/runtime identity during development benchmarks so comparisons are reproducible.
 - Keep ASR provider/runtime-specific code behind an adapter.
+- Treat `DEVELOPMENT ASR ADAPTER` and `PRODUCTION APPROVED ASR MODEL` as disjoint maturity states. Never infer the latter from working IPC, real microphone output, source separation, lifecycle checks, a signed build, or downstream integration success.
+- A temporary development adapter must be fully local, real, checksum/version pinned, license-recorded, visibly labeled `Development ASR • Not release approved`, and replaceable through the existing recognizer abstraction.
 
 ## Audio-Specific Rules
 

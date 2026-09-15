@@ -2,13 +2,13 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Implemented benchmark/remediation evidence; **BLOCKED — no production candidate approved**.
 - **Implementation owner:** One Spec 05 branch/worktree with one writer.
 - **Required base:** One clean SHA containing implemented, reviewed, and merged Spec 01.
 - **Allowed implementation predecessors:** Spec 01 only.
 - **Parallel-safe peers:** Specs 02 and 03 in Wave 2, and Specs 04, 07, 08 if benchmarking is still running in Wave 3. Spec 05 touches no application, runtime, UI, native audio, root manifest, lockfile, capability, or context file, so it stays disjoint from every other wave.
 - **Shared dependency gate:** Spec 05 must not add, remove, or version-change any dependency in `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, or `src-tauri/Cargo.lock`. All benchmark dependencies live in the benchmark subtree with their own manifests and lockfiles.
-- **Successor gate:** Spec 06 may start only after this spec merges with either (a) one approved default model configuration plus a complete license record, or (b) an explicitly recorded blocker naming the failed gate. Specs 13 and 14 consume the recorded payload size and redistribution terms.
+- **Successor gate:** Spec 06 may start in **DEVELOPMENT** mode only under the explicit product-owner exception recorded in this spec and `docs/context/spec-plan.md`, using the named temporary local adapter. Spec 05 remains unsatisfied for production: Spec 12 cannot return `PASS`, Specs 13–14 cannot produce distributable `PASS` artifacts, and Spec 15 cannot return `RELEASE-READY` until this spec later records exactly one production-approved candidate that passes every unchanged gate on every required host. Specs 13 and 14 consume payload size and redistribution terms only from that future production approval.
 - **Review level:** High. This spec decides the shipped recognizer, the redistribution rights of the shipped weights, and the accuracy definition of the product’s core promise: recognized speech must not be silently corrected.
 
 ## 2. Goal and Measurable Result
@@ -360,7 +360,7 @@ Data-flow rules:
 - Audio flows file → adapter only. No PCM enters the harness’s report artifacts.
 - Recognizer text flows adapter → harness verbatim; normalization occurs once in the scorer and is applied symmetrically to references.
 - No stage may consult a grammar checker, spell checker, language-model rewriter, or LLM. The scorer’s only text transformation is the four-step normalizer in section 6.
-- Spec 06 consumes the approved candidate descriptor and license row as data; it does not import harness code into the application.
+- Spec 06 normally consumes a production-approved candidate descriptor and license row as data. Under the explicit development exception, it instead consumes the exact descriptor and complete license row for `sherpa-zipformer-en-20M-2023-02-17-int8` solely as a **DEVELOPMENT ASR ADAPTER**; this does not alter `reports/approval.md` or imply approval.
 
 ## 10. Platform, Permissions, Offline, Privacy, and Fallback
 
@@ -760,6 +760,19 @@ anti-normalization model, revise the MPR/false-correction thresholds as
 a recorded decision, or keep Spec 05 blocked); none is selected by this
 session. Decision unchanged: **BLOCKED**.
 - **Final Git status / commit SHA:** recorded below after commit.
+
+### Product-owner dependency-contract decision (2026-09-15)
+
+The benchmark result remains **BLOCKED — no candidate approved**. All prior reports, measured failures, corpus evidence, thresholds, and license/provenance findings remain authoritative and are preserved without reinterpretation.
+
+Two ASR maturity states are now normative:
+
+- **DEVELOPMENT ASR ADAPTER:** a real, fully local, replaceable recognizer used to implement capture, IPC, lifecycle, buffering, transcript, and source-separation architecture. The temporary adapter authorized for Spec 06 is `sherpa-zipformer-en-20M-2023-02-17-int8` with `sherpa-onnx` `v1.13.8`, exact candidate descriptor/checksums, greedy-search configuration, and the recorded `permitted-with-attribution` license verdict. Selection rationale is architectural fit only: native streaming, existing abstraction compatibility, recorded provenance, and small local payload. Its measured real-human-corpus MPR is 0.3241 against the unchanged ≥ 0.90 gate; it is not a default, recommendation, fallback, production candidate, or release input.
+- **PRODUCTION APPROVED ASR MODEL:** exactly one future candidate explicitly approved by this spec after passing every unchanged fidelity, false-correction, WER, hallucination, latency, throughput, CPU, RSS, stability, license, provenance, redistribution, and required-platform gate.
+
+This decision changes dependency timing, not benchmark truth. Spec 06 and downstream Specs 09–11 may proceed in `DEVELOPMENT` mode and may merge as `DEVELOPMENT COMPLETE` after their architecture criteria pass. Every transcript-quality measurement produced with the temporary adapter is labeled `NON-RELEASE EVIDENCE` and cannot satisfy any Spec 05 gate. Spec 12 remains unable to return `PASS` or authorize packaging; Specs 13–14 cannot produce distributable `PASS` artifacts; Spec 15 must reject `RELEASE-READY` while this approval record remains blocked.
+
+The temporary adapter must remain fully local, use no cloud or paid fallback, transcribe the real microphone path, preserve the frozen IPC/lifecycle/buffering contracts, support Start → Stop → Start and clean shutdown, display `Development ASR • Not release approved`, and remain replaceable through the existing recognizer abstraction. Failure of any of those requirements blocks development completion; success satisfies architecture only.
 
 ### Authoring evidence and sources
 

@@ -38,17 +38,17 @@ Combining these units would make failures harder to localize and would reduce pa
 | 02 | `spec-02-transcript-domain-workspace.md` | The single-window transcript workspace renders deterministic microphone/system partial and final segments; Clear and Copy All work against in-memory state. | `src/features/transcript/**`, visual tokens, transcript UI tests | 01 | Medium |
 | 03 | `spec-03-typed-ipc-runtime-spine.md` | React reads native model/capture status through typed commands and receives typed native events; subscriptions clean up. | `src/lib/tauri/**`, command/event types, Rust command/state spine | 01 | High |
 | 04 | `spec-04-microphone-device-pcm-capture.md` | The user selects a microphone, starts/stops capture, and sees valid local PCM activity without ASR; Start → Stop → Start releases resources. | Common microphone adapter, `src/features/audio/**`, microphone permissions | 02, 03 | High |
-| 05 | `spec-05-asr-benchmark-license-gate.md` | A reproducible incorrect-English benchmark corpus and harness compare local candidates; runtime/model licenses and redistribution status are recorded; one model is approved or explicitly left blocked. | `benchmarks/**`, local fixtures, benchmark tooling and evidence | 01 | High |
-| 06 | `spec-06-local-asr-microphone-transcription.md` | Approved local ASR produces microphone partial/final segments in the app without correction, network, or unbounded buffering. | `src-tauri/src/asr/**`, model lifecycle, mic recognizer bridge | 04, 05 | High |
+| 05 | `spec-05-asr-benchmark-license-gate.md` | A reproducible incorrect-English benchmark corpus and harness compare local candidates; runtime/model licenses and redistribution status are recorded; production approval remains explicitly blocked until one candidate passes every gate. | `benchmarks/**`, local fixtures, benchmark tooling and evidence | 01 | High |
+| 06 | `spec-06-local-asr-microphone-transcription.md` | A clearly labeled temporary local development adapter produces real microphone partial/final segments without correction, network, or unbounded buffering; it is replaceable and confers no production approval. | `src-tauri/src/asr/**`, model lifecycle, mic recognizer bridge | 04, 05 development decision | High |
 | 07 | `spec-07-macos-system-audio-adapter.md` | On the approved macOS minimum version, ScreenCaptureKit yields bounded system-audio PCM with actionable permission/error states. | `src-tauri/src/audio/macos/**`, macOS entitlements/capabilities, macOS adapter checks | 03 | High |
 | 08 | `spec-08-windows-system-audio-adapter.md` | On the approved Windows minimum version, WASAPI loopback yields bounded system-audio PCM without a virtual cable. | `src-tauri/src/audio/windows/**`, Windows capabilities/config, Windows adapter checks | 03 | High |
-| 09 | `spec-09-dual-source-transcription-aggregation.md` | Microphone and system audio run through independent recognizers simultaneously; final transcript order is stable and only system lines receive `- `. | Shared audio/ASR orchestration, transcript aggregator, event integration | 06, 07, 08 | High |
-| 10 | `spec-10-capture-lifecycle-resilience.md` | Permission denial, disconnect, missing model, slow inference, queue overflow, stop, restart, and shutdown produce bounded, recoverable behavior without leaks or cloud fallback. | Native lifecycle/error paths, bounded queues, audio status adapter | 09 | High |
-| 11 | `spec-11-desktop-interaction-accessibility.md` | Keyboard shortcuts, near-bottom auto-follow, Jump to latest, Clear confirmation, Copy feedback, focus states, resize behavior, and reduced motion satisfy the UI contract. | Transcript/application UI and accessibility tests; no native audio implementation | 09 | Medium, high review |
-| 12 | `spec-12-offline-privacy-performance-acceptance.md` | The complete core flow works with network disabled; no transcript/audio persistence or upload occurs; latency, CPU, memory, and overflow evidence meet approved gates. | Acceptance harness, privacy inspection, performance evidence, cross-cutting fixes | 10, 11 | High |
-| 13 | `spec-13-macos-packaging-distribution.md` | A reproducible macOS application bundle/install artifact contains the approved local runtime/model and declares only required permissions; signing/notarization is completed when credentials exist or precisely blocked. | macOS bundle/resource/update configuration and packaging checks | 12 | Medium, high review |
-| 14 | `spec-14-windows-packaging-distribution.md` | A reproducible Windows installer contains the approved local runtime/model, launches offline, and requests no unrelated capability; signing is completed when credentials exist or precisely blocked. | Windows bundle/resource/installer configuration and packaging checks | 12 | Medium, high review |
-| 15 | `spec-15-cross-platform-release-acceptance.md` | The same release candidate passes the full macOS and Windows user flow, source-separation corpus, offline/privacy checks, artifact manifest, and rollback checklist. | Release evidence, final cross-platform integration fixes, context/tracker reconciliation | 13, 14 | High |
+| 09 | `spec-09-dual-source-transcription-aggregation.md` | Microphone and system audio run through independent recognizers simultaneously; final transcript order is stable and only system lines receive `- `. Temporary-adapter transcript quality is development evidence only. | Shared audio/ASR orchestration, transcript aggregator, event integration | 06 development completion, 07, 08 | High |
+| 10 | `spec-10-capture-lifecycle-resilience.md` | Permission denial, disconnect, missing model, slow inference, queue overflow, stop, restart, and shutdown produce bounded, recoverable behavior without leaks or cloud fallback. | Native lifecycle/error paths, bounded queues, audio status adapter | 09 development completion | High |
+| 11 | `spec-11-desktop-interaction-accessibility.md` | Keyboard shortcuts, near-bottom auto-follow, Jump to latest, Clear confirmation, Copy feedback, focus states, resize behavior, and reduced motion satisfy the UI contract. | Transcript/application UI and accessibility tests; no native audio implementation | 09 development completion | Medium, high review |
+| 12 | `spec-12-offline-privacy-performance-acceptance.md` | The complete core flow works with network disabled; no transcript/audio persistence or upload occurs; release acceptance and successor authorization require a production-approved Spec 05 candidate. | Acceptance harness, privacy inspection, performance evidence, cross-cutting fixes | 10, 11, and production-approved 05 for `PASS` | High |
+| 13 | `spec-13-macos-packaging-distribution.md` | A reproducible macOS application bundle/install artifact contains the production-approved local runtime/model and declares only required permissions; no distributable `PASS` artifact may use the development adapter. | macOS bundle/resource/update configuration and packaging checks | Spec 12 `PASS` | Medium, high review |
+| 14 | `spec-14-windows-packaging-distribution.md` | A reproducible Windows installer contains the production-approved local runtime/model, launches offline, and requests no unrelated capability; no distributable `PASS` artifact may use the development adapter. | Windows bundle/resource/installer configuration and packaging checks | Spec 12 `PASS` | Medium, high review |
+| 15 | `spec-15-cross-platform-release-acceptance.md` | The same release candidate passes the full macOS and Windows user flow, source-separation corpus, unchanged Spec 05 production gates, offline/privacy checks, artifact manifest, and rollback checklist. | Release evidence, final cross-platform integration fixes, context/tracker reconciliation | 13, 14, and production-approved 05 | High |
 
 ## Dependency Graph
 
@@ -60,7 +60,7 @@ flowchart LR
   S02 --> S04[Spec 04]
   S03 --> S04
   S04 --> S06[Spec 06]
-  S05 --> S06
+  S05 -->|benchmark evidence + development exception| S06
   S03 --> S07[Spec 07]
   S03 --> S08[Spec 08]
   S06 --> S09[Spec 09]
@@ -74,21 +74,31 @@ flowchart LR
   S12 --> S14[Spec 14]
   S13 --> S15[Spec 15]
   S14 --> S15
+  S05 -.->|production approval required| S12
 ```
 
 Normative dependency list:
 
 - `01 → {02, 03, 05}`
 - `{02, 03} → 04`
-- `{04, 05} → 06`
+- `{04, 05 development decision} → 06`
 - `03 → {07, 08}`
-- `{06, 07, 08} → 09`
-- `09 → {10, 11}`
-- `{10, 11} → 12`
-- `12 → {13, 14}`
-- `{13, 14} → 15`
+- `{06 development completion, 07, 08} → 09`
+- `09 development completion → {10, 11}`
+- `{10, 11, 05 production approval} → 12 PASS`
+- `12 PASS → {13, 14}`
+- `{13, 14, 05 production approval} → 15`
 
 A dependency is satisfied only after the upstream branch has passed its spec checks, been reviewed, and been merged into the integration branch. “The code exists in another worktree” is not a satisfied dependency.
+
+### ASR maturity and dependency semantics
+
+The Spec 05 dependency has two distinct meanings:
+
+1. **Development dependency satisfied:** Spec 05's current benchmark corpus, candidate identities, license/provenance records, measured failures, and explicit `BLOCKED — no candidate approved` verdict are merged, and the product owner has authorized one named **DEVELOPMENT ASR ADAPTER**. This allows Spec 06 and, after its development acceptance, Specs 09–11 to implement and verify architecture. The temporary adapter is `sherpa-zipformer-en-20M-2023-02-17-int8` with `sherpa-onnx` `v1.13.8`; it is local, native-streaming, license-recorded as `permitted-with-attribution`, and replaceable behind the existing recognizer abstraction. Its measured MPR 0.3241 fails the unchanged ≥ 0.90 gate. It is not a default, recommendation, production candidate, or release input.
+2. **Production dependency unsatisfied:** Spec 05 has not named a production-approved ASR candidate. Spec 12 cannot return `PASS` or authorize Specs 13–14, packaging specs cannot produce distributable `PASS` artifacts, and Spec 15 cannot return `RELEASE-READY`. Only a later Spec 05 approval that passes every unchanged fidelity, accuracy, hallucination, latency, throughput, resource, license, provenance, redistribution, and required-platform gate satisfies this dependency.
+
+Any downstream run using the development adapter must label the adapter maturity and all transcript-quality measurements `NON-RELEASE EVIDENCE`. Architecture checks may validate real capture, IPC, lifecycle, buffering, source separation, ordering, privacy, and replaceability; they may not be cited as ASR fidelity approval.
 
 ## Fastest Safe Implementation Schedule
 
@@ -135,19 +145,19 @@ Spec 05 may remain active in a fourth terminal if benchmarking is still running.
 
 ### Wave 4 — ASR
 
-After Specs 04 and 05 merge:
+After Spec 04 and the merged Spec 05 development-exception decision:
 
-- Terminal 1: Spec 06 — local ASR microphone transcription
+- Terminal 1: Spec 06 — local ASR microphone transcription in **DEVELOPMENT** mode with the named temporary local adapter
 
-Spec 06 may run while Spec 07 or 08 is still being validated because it does not consume either system-audio adapter.
+Spec 06 remains prohibited from describing the adapter/model as production-approved. It may run while Spec 07 or 08 is still being validated because it does not consume either system-audio adapter.
 
 ### Wave 5 — Core integration
 
-After Specs 06, 07, and 08 merge:
+After Spec 06 reaches **DEVELOPMENT COMPLETE** and Specs 07 and 08 merge:
 
-- Terminal 1: Spec 09 — dual-source transcription and aggregation
+- Terminal 1: Spec 09 — dual-source transcription and aggregation in **DEVELOPMENT** mode
 
-One writer only. This is the highest shared-file integration boundary.
+One writer only. This is the highest shared-file integration boundary. Specs 09–11 may verify architecture with the temporary adapter, but their transcript-quality measurements remain non-release evidence and do not satisfy Spec 05.
 
 ### Wave 6 — Two terminals
 
@@ -162,26 +172,26 @@ This parallel pair is allowed only if Spec 09 freezes the complete capture-statu
 
 After Specs 10 and 11 merge:
 
-- Terminal 1: Spec 12 — offline/privacy/performance acceptance
+- Terminal 1: Spec 12 — offline/privacy/performance acceptance harness and final product acceptance
 
-One writer only because acceptance may require fixes across the whole application.
+One writer only because acceptance may require fixes across the whole application. Reachable harness and architecture/privacy work may be performed with the temporary adapter only under an overall `BLOCKED` development record. Spec 12 cannot return `PASS`, freeze release model inputs, or authorize Specs 13/14 until Spec 05 names a production-approved candidate and the complete Spec 12 run is repeated with it.
 
 ### Wave 8 — Two operating-system terminals
 
-After Spec 12 merges:
+After Spec 12 returns `PASS` with a production-approved ASR model:
 
 - Terminal 1 on macOS: Spec 13
 - Terminal 2 on Windows: Spec 14
 
-Both start from the same post-Spec-12 SHA. Each owns only its platform packaging paths. Root version, shared resource manifest, common model bundle layout, and lockfiles are frozen by Spec 12; any necessary shared change is queued for the integration owner rather than edited concurrently.
+Both start from the same production-approved post-Spec-12 SHA. Neither may package the temporary adapter. Each owns only platform packaging paths. Version, shared model-delivery manifest/layout, notices, and lockfiles are frozen by Spec 12; shared changes are queued for the integration owner.
 
 ### Wave 9 — Release gate
 
-After Specs 13 and 14 merge:
+After Specs 13 and 14 merge from the same production-approved Spec 12 base:
 
 - Terminal 1: Spec 15
 
-Spec 15 is the only final release/integration owner. It does not accept platform-specific success claims without the recorded commands, artifact checksums, hardware/OS identity, and exercised user flow.
+Spec 15 is the only final release/integration owner. It must fail closed on ASR maturity/approval mismatch and does not accept platform-specific success without commands, checksums, hardware/OS identity, and exercised user flow.
 
 ## Example Parallel Terminal Sets
 
@@ -302,6 +312,7 @@ A high-model review is mandatory at these points even when implementation uses h
 - After spec authoring: cross-spec contracts and file ownership.
 - After Spec 03: IPC/event/common native contracts are frozen.
 - After Spec 05: model/runtime license and benchmark recommendation.
+- After Spec 05 development exception: temporary-adapter identity, explicit non-production labeling, replaceability, and unchanged release gates.
 - After Spec 09: source isolation, ordering, backpressure, final-segment immutability, and shutdown.
 - After Spec 12: offline/privacy/performance evidence.
 - After Specs 13 and 14: bundle contents, capabilities, signing blockers, and offline launch.
@@ -361,8 +372,8 @@ These choices materially affect platform support, model approval, and distributi
 | Minimum Windows version/edition | Before Spec 08 implementation | Specs 01–07 |
 | Benchmark hardware profiles | Before Spec 05 acceptance | Specs 01–04 |
 | Accuracy, incorrect-English preservation, and latency thresholds | During Spec 05, before model approval | Harness/corpus construction |
-| Maximum bundled model and installer size | During Spec 05, before Specs 06/13/14 | Runtime adapter and benchmark harness |
-| Bundle model vs separately packaged local resource | Before Spec 06 completion | Candidate benchmarking |
+| Maximum bundled model and installer size | During production Spec 05 approval, before Spec 12 `PASS`/Specs 13–14 | Development adapter integration and architecture checks |
+| Bundle model vs separately packaged local resource | Before Spec 12 production freeze | Development adapter integration; no release packaging |
 | Distribution/signing identities | Before signed completion of Specs 13/14 | All core implementation and unsigned packaging |
 
 If a decision is still absent at its latest resolution point, the owning spec records a real external/product blocker. It must not silently choose a paid/cloud fallback or claim completion.
@@ -370,8 +381,9 @@ If a decision is still absent at its latest resolution point, the owning spec re
 ## Merge and Completion Rules
 
 - Only the integration owner updates shared context and tracker files during parallel waves.
-- A spec is mergeable only when every acceptance criterion has evidence, relevant checks pass, temporary fixtures are removed or intentionally retained as benchmark assets, and no unrelated path changed.
+- A spec is mergeable only when every acceptance criterion applicable to its declared maturity has evidence, relevant checks pass, temporary fixtures are removed or intentionally retained as benchmark assets, and no unrelated path changed.
+- Specs 06 and 09–11 may merge as `DEVELOPMENT COMPLETE` under the ASR maturity contract when every architecture criterion passes and every failed production ASR metric is preserved as `NON-RELEASE EVIDENCE`. This does not satisfy Spec 05, authorize Spec 12 `PASS`, or make any artifact releasable.
 - Cross-platform claims require evidence from the named platform; macOS success cannot stand in for Windows success or vice versa.
 - No spec may be marked complete based only on compilation, unit tests, mocks, or source inspection when the real audio/UI surface can be exercised.
 - After each merge, the integration owner checks that later specs’ contracts and ownership remain valid. If not, update the affected specs before starting their worktrees.
-- Spec 15 is the only point at which Mistaken can be called release-ready.
+- Spec 15 is the only point at which Mistaken can be called release-ready, and it must reject `RELEASE-READY` unless Spec 05 records exactly one production-approved candidate and all unchanged production gates pass on the final artifacts.

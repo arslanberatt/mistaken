@@ -2,17 +2,18 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Authored; **HARD BLOCKED** until Spec 12 returns production `PASS`. Not implemented.
 - **Implementation owner:** One Spec 13 branch/worktree with one writer. A mandatory independent high-capability review closes the spec.
-- **Required base:** The exact clean, reviewed post-Spec-12 SHA named in Spec 12’s successor freeze manifest. Spec 12 must be implemented with cross-host result `PASS`—which includes macOS `PASS`; a pre-Spec-12 branch, copied artifact, or locally rebuilt substitute is not an acceptable base.
-- **Allowed predecessor:** Spec 12 only. Specs 01–11 are inherited transitively and are not reopened here.
+- **Required base:** The exact clean, reviewed post-Spec-12 SHA named in Spec 12’s production successor freeze manifest. Spec 12 must have cross-host `PASS`, including macOS, with `ProductionApproved` ASR maturity; a development run, no-authorization record, pre-Spec-12 branch, copied artifact, or local substitute is invalid.
+- **Allowed predecessor:** Spec 12 production `PASS` only. Specs 01–11 are inherited transitively and are not reopened here.
 - **Parallel-safe peer:** Spec 14 may run in a separate Windows worktree from the same post-Spec-12 SHA. Spec 13 owns only the macOS paths in section 5; Spec 14 owns only Windows packaging paths. Neither branch may edit frozen shared manifests, lockfiles, resources, notices, application source, or the other platform’s packaging subtree.
-- **Shared-input gate:** Application version `0.1.0`, product name `Mistaken`, bundle identifier `com.mistaken.desktop`, the approved runtime/model/configuration, `$RESOURCE/resources/models/<model_id>/` layout, `THIRD_PARTY_NOTICES.txt`, root Tauri resource mapping, root manifests, and every committed lockfile are consumed byte-for-byte from Spec 12.
+- **Shared-input gate:** Application version `0.1.0`, product name `Mistaken`, bundle identifier `com.mistaken.desktop`, the `ProductionApproved` runtime/model/configuration and Spec 05 approval digest, Spec 12-frozen delivery/layout, `THIRD_PARTY_NOTICES.txt`, root resource mapping/manifests, and every lockfile are consumed byte-for-byte. The temporary adapter is prohibited from the `.app`, DMG, staging manifest, and release-candidate path.
+- **Payload-contract gate:** Existing embedded-model steps apply only if Spec 12 freezes bundled delivery. If it freezes a separately provisioned checksum-pinned local resource, the integration owner must reconcile this spec before its worktree opens; the implementer may not improvise a downloader, package split, or ceiling.
 - **Target gate:** V1 macOS distribution is **Apple Silicon only**, target triple `aarch64-apple-darwin`, with macOS `13.0` as the supported and declared minimum. Intel and universal binaries require separate benchmark, runtime-archive, size, and real-host evidence and are out of scope.
 - **Distribution gate:** V1 is a direct-download Developer ID distribution outside the Mac App Store. The deliverables are `Mistaken.app` and a drag-to-Applications `Mistaken_0.1.0_aarch64.dmg`; `.pkg`, Mac App Store, Homebrew, Sparkle, Tauri Updater, differential update artifacts, and public upload are excluded.
-- **Credential gate:** A valid `Developer ID Application` identity and Apple notarization credentials are external prerequisites. If present, signing, secure timestamping, notarization, stapling, Gatekeeper assessment, and offline installed launch are mandatory. If absent, all reachable ad-hoc/local packaging and verification work must finish and only the credential-dependent criteria may be `BLOCKED`; missing credentials never excuse a source, bundle, permission, payload, lifecycle, or evidence failure.
-- **Successor gate:** Spec 15 may start only after Specs 13 and 14 are reviewed and merged. Spec 13 produces the immutable macOS artifact manifest and either a signed/notarized `PASS` artifact or an exact credential blocker; it does not declare Mistaken release-ready.
-- **Review level:** Medium implementation is acceptable; high-capability review is mandatory because the deliverable carries native permissions, a bundled third-party model/runtime, Developer ID trust, hardened runtime, and an offline privacy claim.
+- **Credential gate:** A valid `Developer ID Application` identity and Apple notarization credentials are external prerequisites. If present, signing, secure timestamping, notarization, stapling, Gatekeeper assessment, and offline installed launch are mandatory. If absent, all reachable ad-hoc/local packaging and verification work must finish and only credential-dependent criteria may be `BLOCKED`; missing credentials never override the production-ASR gate or excuse a source, bundle, permission, payload, lifecycle, or evidence failure.
+- **Successor gate:** Spec 15 may start only after Specs 13 and 14 are reviewed and merged from the same production-approved Spec 12 base. Spec 13 produces an immutable macOS manifest and either signed/notarized `PASS` or an exact credential blocker; it never hands off a temporary-adapter artifact or declares release readiness.
+- **Review level:** Medium implementation is acceptable; high-capability review is mandatory because the deliverable carries native permissions, a production-approved third-party model/runtime, Developer ID trust, hardened runtime, and an offline privacy claim.
 
 ## 2. Goal and User-Visible / Measurable Result
 
@@ -23,7 +24,7 @@ The visible result on supported Apple Silicon hardware is:
 1. The user opens a standard DMG containing `Mistaken.app` and an Applications-folder target, drags the app to `/Applications`, and launches it through Finder without bypassing Gatekeeper.
 2. The installed app presents the same accepted single-window Mistaken UI and requests no permission at launch.
 3. The first explicit microphone Start uses one truthful microphone purpose string. Screen Recording is requested only when the user explicitly enables system audio and starts capture; no undocumented screen-capture purpose key or broad entitlement is invented.
-4. Microphone-only, system-only, and dual-source capture work from the installed bundle with networking disconnected, using the one embedded approved model/runtime and preserving all Spec 12 transcript, source-isolation, privacy, performance, and lifecycle behavior.
+4. Microphone-only, system-only, and dual-source capture work offline from the installed product using the one `ProductionApproved` model/runtime through the delivery mechanism frozen by Spec 12; no temporary adapter or development override is present.
 5. Stop → Start, active close, Finder relaunch, and removal of the app release native resources predictably and leave no Mistaken-owned transcript/audio data.
 6. With release credentials, the app and DMG are Developer ID signed with hardened runtime and a secure timestamp, accepted by Apple’s notary service, stapled, assessed by Gatekeeper, and proven to launch offline from a quarantined install.
 7. Without release credentials, an explicitly ad-hoc-signed `.app` and local DMG pass every non-credential check, while the report is `BLOCKED` only for Developer ID signing/notarization/stapling/Gatekeeper distribution trust.
@@ -266,8 +267,8 @@ Spec 15 receives:
 
 - final Spec 13 commit SHA and exact Spec 12 base SHA;
 - final `.app` and DMG name, byte size, SHA-256/normalized digest, and local immutable location;
-- complete mounted bundle manifest and approved-model verification result;
-- target, minimum OS, effective Info.plist keys, embedded entitlements, linked dependencies, architecture, and icon result;
+- complete mounted bundle manifest and `ProductionApproved` model/maturity/Spec 05 approval verification;
+- target, minimum OS, effective Info.plist keys, embedded entitlements, linked dependencies, architecture, icon, and frozen model-delivery result;
 - Developer ID certificate class/Team ID, secure timestamp, notary submission id/status/log digest, stapler result, and Gatekeeper result, or the exact external blocker;
 - real-host install/runtime/permission/lifecycle/offline results;
 - complete toolchain and build command/environment record without credentials;
@@ -279,10 +280,10 @@ Spec 15 receives:
 
 1. Create the Spec 13 worktree from the exact reviewed post-Spec-12 SHA and record canonical root, worktree root, branch, base SHA, clean state, and concurrent Spec 14 worktree. Confirm the two writers have disjoint paths.
 2. Re-read canonical context, `spec-plan.md`, Specs 01–15, current source/tests, Prisma absence, manifests/locks, Spec 12 freeze/evidence, and installed Tauri 2 documentation under `node_modules`. Installed version-matched documentation overrides general examples.
-3. Verify Spec 12’s cross-host report is `PASS`, including its macOS host result, recompute the successor freeze manifest, and compare all root/shared files and lockfile digests. Refuse packaging on mismatch.
-4. Record Xcode/Command Line Tools, Tauri CLI, Node/npm, Rust/Cargo, target triple, host chip/core/RAM, macOS version/build, power state, microphone, output source, and current TCC permission states.
-5. Verify the local approved model/runtime artifacts by exact file count/path/size/SHA-256 and notice digest. Confirm no network download or development-only `MISTAKEN_MODEL_DIR` is needed by the packaged app.
-6. Check the keychain for a valid non-expired `Developer ID Application` identity without printing private key material. Check only presence of one supported notary authentication route. Do not prompt for or record secrets in logs.
+3. Verify Spec 12 cross-host `PASS`, `ProductionApproved` maturity, Spec 05 approval digest, and macOS host result; recompute the successor freeze manifest and refuse packaging on mismatch or development maturity.
+4. Record toolchain, target/host hardware, macOS version/build, power, microphone/output, and TCC states.
+5. Verify the exact production model/runtime/delivery artifacts, files/digests, and notice digest. Confirm no temporary adapter or `MISTAKEN_MODEL_DIR` enters the packaged product.
+6. Check release credentials without printing secrets.
 
 ### Deterministic local package flow
 

@@ -200,6 +200,17 @@ Evaluate at least:
 - Model-weight license
 - Redistribution rights
 
+### ASR Maturity Contract
+
+The replaceable ASR boundary separates application-architecture progress from release approval:
+
+- **DEVELOPMENT ASR ADAPTER**: a fully local recognizer implementation used only to build and verify capture, IPC, lifecycle, buffering, transcript, and source-separation contracts. It must have a recorded runtime/model identity and a redistribution-compatible license for development use, but it may have failed Spec 05 quality, latency, resource, or platform gates. Its UI and evidence must say `Development ASR • Not release approved`. Output from it is non-release evidence and cannot satisfy a production ASR gate.
+- **PRODUCTION APPROVED ASR MODEL**: exactly one runtime/model/configuration that Spec 05 explicitly marks approved after passing every unchanged fidelity, accuracy, hallucination, latency, throughput, resource, license, provenance, redistribution, and required-platform gate. Only this maturity may be frozen by Spec 12, packaged by Specs 13–14, or accepted as release-ready by Spec 15.
+
+The same `SpeechRecognizer`/`RecognizerFactory` boundary serves both maturities. A development adapter must not leak model-specific assumptions into capture, IPC, transcript aggregation, or UI domain contracts. Replacing it with a production-approved model is an adapter/manifest substitution followed by all affected verification, not a rewrite of those layers.
+
+Current decision: Spec 05 is `BLOCKED — no candidate approved`. The temporary development adapter authorized for Spec 06 is `sherpa-zipformer-en-20M-2023-02-17-int8` on `sherpa-onnx` `v1.13.8`, selected because its license/provenance is recorded as `permitted-with-attribution`, it is a real native-streaming local adapter, and it matches the existing ASR abstraction. This is not a quality recommendation: its recorded real-human-corpus MPR is 0.3241 against the unchanged ≥ 0.90 gate.
+
 ### License Rule
 
 The runtime license and model-weight license are separate checks.
@@ -308,3 +319,6 @@ Errors must be surfaced to the UI with an actionable local message. Do not fall 
 12. A model may be bundled only after its model-weight license and redistribution terms are explicitly verified.
 13. Final transcript formatting must preserve source identity: microphone = normal text, system = `- ` prefix.
 14. Closing/clearing a session must not depend on deleting database records because no transcript database exists.
+15. Development use of an ASR adapter never implies production model approval; maturity must be explicit in runtime metadata, UI copy, evidence, and release manifests.
+16. Spec 05 approval is a hard release prerequisite. No temporary adapter, integration result, package, signature, or downstream test may substitute for it.
+17. Spec 12 cannot authorize packaging, Specs 13–14 cannot produce distributable `PASS` artifacts, and Spec 15 cannot emit `RELEASE-READY` unless exactly one production ASR candidate has passed every unchanged Spec 05 gate on every required platform.

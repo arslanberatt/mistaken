@@ -2,19 +2,20 @@
 
 ## 1. Status, Ownership, Base, and Gates
 
-- **Status:** Authored; ready for cross-spec integration review. Not implemented.
+- **Status:** Authored; **HARD BLOCKED** until Spec 12 returns production `PASS`. Not implemented.
 - **Implementation owner:** One Spec 14 branch/worktree with one writer, on real Windows hardware. A mandatory independent high-capability review closes the spec.
-- **Required base:** The exact clean, reviewed post-Spec-12 SHA named in Spec 12’s successor freeze manifest. Spec 12 must be implemented with cross-host result `PASS`—which includes the `win-x64` host—and a pre-Spec-12 branch, a copied artifact, or a locally rebuilt substitute is not an acceptable base.
-- **Allowed predecessor:** Spec 12 only. Specs 01–11 are inherited transitively and are not reopened here.
+- **Required base:** The exact clean, reviewed post-Spec-12 SHA named in Spec 12’s production successor freeze manifest. Spec 12 must have cross-host `PASS`, including `win-x64`, with `ProductionApproved` ASR maturity; a development run, no-authorization record, pre-Spec-12 branch, copied artifact, or local substitute is invalid.
+- **Allowed predecessor:** Spec 12 production `PASS` only. Specs 01–11 are inherited transitively and are not reopened here.
 - **Parallel-safe peer:** Spec 13 may run in a separate macOS worktree from the same post-Spec-12 SHA. Spec 14 owns only the Windows paths in section 5; Spec 13 owns only macOS packaging paths. Neither branch may edit frozen shared manifests, lockfiles, resources, notices, application source, or the other platform’s packaging subtree.
-- **Shared-input gate:** Application version `0.1.0`, product name `Mistaken`, bundle identifier `com.mistaken.desktop`, the approved runtime/model/configuration, the `$RESOURCE/resources/models/<model_id>/` layout, `THIRD_PARTY_NOTICES.txt`, the root Tauri resource mapping, root manifests, and every committed lockfile are consumed byte-for-byte from Spec 12.
-- **Target gate:** V1 Windows distribution is **x64 only**, target triple `x86_64-pc-windows-msvc`. ARM64 and 32-bit builds are out of scope because Spec 05 approved neither their benchmark evidence nor a matching sherpa runtime archive.
-- **Platform floor gate:** The supported and tested floor is **Windows 10 22H2 (build 19045) x64 and Windows 11**, exactly as Spec 08 recorded and Spec 09 declared in the designated platform-support document. The Windows 10 1703 (build 15063) API floor remains recorded and explicitly untested; the installer must not claim support it did not measure.
-- **Distribution gate:** V1 is a direct-download, per-user **NSIS setup executable** (`Mistaken_0.1.0_x64-setup.exe`). MSI/WiX, MSIX, Microsoft Store, winget manifests, Chocolatey, portable-ZIP distribution, Tauri Updater, differential update artifacts, and public upload are excluded.
-- **WebView2 gate:** The installer embeds the Microsoft Evergreen WebView2 **offline installer** so installation never requires an internet connection. `downloadBootstrapper`, `embedBootstrapper`, `fixedVersion`, and `skip` are rejected for the reasons recorded in section 3.
-- **Credential gate:** An Authenticode code-signing identity and a reachable RFC 3161 timestamp service are external prerequisites. If present, signing the application executable and the setup executable, timestamping, signature verification, and a real signed-download install are mandatory. If absent, all reachable unsigned/local packaging and verification work must finish and only the signature-dependent criteria may be `BLOCKED`; missing credentials never excuse a source, installer, payload, permission, lifecycle, or evidence failure.
-- **Successor gate:** Spec 15 may start only after Specs 13 and 14 are reviewed and merged. Spec 14 produces the immutable Windows artifact manifest and either a signed `PASS` artifact or an exact credential blocker; it does not declare Mistaken release-ready.
-- **Review level:** Medium implementation is acceptable; high-capability review is mandatory because the deliverable carries a bundled third-party model/runtime, an embedded Microsoft runtime installer, Authenticode trust, per-user install/uninstall state, and an offline privacy claim.
+- **Shared-input gate:** Application version `0.1.0`, product name `Mistaken`, bundle identifier `com.mistaken.desktop`, the `ProductionApproved` runtime/model/configuration and Spec 05 approval digest, Spec 12-frozen delivery/layout, `THIRD_PARTY_NOTICES.txt`, root resource mapping/manifests, and every lockfile are consumed byte-for-byte. The temporary adapter is prohibited from executables, setup artifacts, staging manifests, and release-candidate paths.
+- **Payload-contract gate:** Existing embedded-model steps apply only if Spec 12 freezes bundled delivery. If it freezes a separately provisioned checksum-pinned local resource, the integration owner must reconcile this spec before its worktree opens; the implementer may not improvise a downloader, package split, or ceiling.
+- **Target gate:** V1 Windows distribution is **x64 only**, target triple `x86_64-pc-windows-msvc`. ARM64 and 32-bit builds are out of scope because Spec 05 approved neither their benchmark evidence nor a matching runtime archive.
+- **Platform floor gate:** The supported and tested floor is **Windows 10 22H2 (build 19045) x64 and Windows 11**, exactly as Spec 08 recorded and Spec 09 declared. The Windows 10 1703 API floor remains recorded and explicitly untested; the installer must not claim unmeasured support.
+- **Distribution gate:** V1 is a direct-download, per-user **NSIS setup executable** (`Mistaken_0.1.0_x64-setup.exe`). MSI/WiX, MSIX, Microsoft Store, winget, Chocolatey, portable ZIP, Tauri Updater, differential artifacts, and public upload are excluded.
+- **WebView2 gate:** The installer embeds the Microsoft Evergreen WebView2 **offline installer** so installation needs no internet. `downloadBootstrapper`, `embedBootstrapper`, `fixedVersion`, and `skip` remain rejected.
+- **Credential gate:** An Authenticode identity and reachable RFC 3161 timestamp service are external prerequisites. If present, signing/timestamping/verifying both executables and a real signed-download install are mandatory. If absent, all reachable unsigned/local packaging and verification must finish and only signature-dependent criteria may be `BLOCKED`; missing credentials never override the production-ASR gate or excuse a source, installer, payload, permission, lifecycle, or evidence failure.
+- **Successor gate:** Spec 15 may start only after Specs 13 and 14 are reviewed and merged from the same production-approved Spec 12 base. Spec 14 produces an immutable Windows manifest and either signed `PASS` or an exact credential blocker; it never hands off a temporary-adapter artifact or declares release readiness.
+- **Review level:** Medium implementation is acceptable; high-capability review is mandatory because the deliverable carries a production-approved third-party model/runtime, embedded Microsoft runtime installer, Authenticode trust, per-user install/uninstall state, and offline privacy claim.
 
 ## 2. Goal and User-Visible / Measurable Result
 
@@ -25,7 +26,7 @@ The visible result on supported Windows x64 hardware is:
 1. The user runs `Mistaken_0.1.0_x64-setup.exe`, completes an English installer with no administrator prompt, and gets a Start Menu entry for `Mistaken`.
 2. Installation succeeds with networking disconnected, including on a host where the WebView2 runtime is absent, because the runtime installer is embedded.
 3. The installed app presents the same accepted single-window Mistaken UI and requests no permission at launch. No Windows prompt exists for render-endpoint loopback, exactly as Spec 08 proved.
-4. Microphone-only, system-only, and dual-source capture work from the installed app with networking disconnected, using the one embedded approved model/runtime and preserving all Spec 12 transcript, source-isolation, privacy, performance, and lifecycle behavior.
+4. Microphone-only, system-only, and dual-source capture work offline from the installed product using the one `ProductionApproved` model/runtime through the delivery mechanism frozen by Spec 12; no temporary adapter or development override is present.
 5. Stop → Start, window close, application exit, relaunch, and uninstall release native resources predictably and leave no Mistaken-owned transcript or audio data.
 6. With a code-signing identity, the application executable and the setup executable carry a valid SHA-256 Authenticode signature with an RFC 3161 timestamp that `signtool verify /pa /all` accepts, and the real downloaded-installer experience is recorded honestly, including any SmartScreen reputation prompt.
 7. Without a code-signing identity, an explicitly marked unsigned setup executable passes every non-signature check while the report is `BLOCKED` only for signing, timestamping, and signed-download trust.
@@ -283,8 +284,8 @@ Spec 15 receives:
 
 - final Spec 14 commit SHA and the exact Spec 12 base SHA;
 - setup executable name, byte size, SHA-256, and local immutable location;
-- installed payload manifest, approved-model verification result, and measured model/WebView2/total byte shares;
-- target, supported floors, version resource metadata, linked dependencies, install mode, install path, registry/shortcut inventory, and icon result;
+- installed payload manifest, `ProductionApproved` model/maturity/Spec 05 approval verification, and measured model/WebView2/total byte shares;
+- target, floors, version metadata, linked dependencies, install mode/path, registry/shortcut inventory, icon, and frozen model-delivery result;
 - Authenticode certificate subject/thumbprint/expiry, digest and timestamp facts, `signtool verify` result, observed SmartScreen/Defender behavior, or the exact external blocker;
 - real-host install/launch/offline-flow/permission/lifecycle/uninstall results for Windows 11 and, when available, Windows 10 22H2;
 - complete toolchain, staging-digest, and build command/environment record without credentials;
@@ -296,10 +297,10 @@ Spec 15 receives:
 
 1. Create the Spec 14 worktree from the exact reviewed post-Spec-12 SHA on the real Windows build host and record canonical root, worktree root, branch, base SHA, clean state, and the concurrent Spec 13 worktree. Confirm the two writers have disjoint paths.
 2. Re-read canonical context, `spec-plan.md`, Specs 01–15, current source/tests, Prisma absence, manifests/locks, Spec 12 freeze/evidence, the platform-support document, and the installed Tauri 2 documentation under `node_modules`. Installed version-matched documentation overrides general examples.
-3. Verify Spec 12’s cross-host report is `PASS`, including its `win-x64` host result, recompute the successor freeze manifest, and compare all root/shared files and lockfile digests. Refuse packaging on mismatch.
-4. Record Windows edition/version/build, CPU/cores/RAM, power plan, MSVC build tools and Windows SDK versions, `signtool` path/version, Tauri CLI, Node/npm, Rust/Cargo, target triple, microphone, default render endpoint, microphone privacy setting, and the pre-existing WebView2 `pv` registry state for both `HKLM` and `HKCU`.
-5. Verify the local approved model/runtime artifacts by exact file count/path/size/SHA-256 and the notice digest. Confirm the packaged app needs no network download and no development-only `MISTAKEN_MODEL_DIR`.
-6. Check the certificate store for a valid non-expired code-signing certificate, or confirm a configured `signCommand` provider, without printing private key material, secrets, or credential-bearing command lines. Check only reachability of one RFC 3161 timestamp service.
+3. Verify Spec 12 cross-host `PASS`, `ProductionApproved` maturity, Spec 05 approval digest, and `win-x64` result; recompute the successor freeze manifest and refuse packaging on mismatch or development maturity.
+4. Record Windows host/toolchain/power/device/privacy/WebView2 state.
+5. Verify exact production model/runtime/delivery artifacts, files/digests, and notice digest. Confirm no temporary adapter or `MISTAKEN_MODEL_DIR` enters the packaged product.
+6. Check signing/timestamp prerequisites without printing secrets.
 
 ### Pinned staging flow (the one allowed online phase)
 
