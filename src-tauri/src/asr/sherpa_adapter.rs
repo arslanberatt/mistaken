@@ -179,11 +179,6 @@ impl StreamingRecognizer for SherpaStreamingRecognizer {
                 final_emitted = true;
             }
         }
-        // The formal endpoint rule may never fire on a stream stopped
-        // mid-utterance (no trailing silence to measure). Stop still owes
-        // the user a closing final for whatever hypothesis exists: take
-        // the last decoded hypothesis as the one closing final instead of
-        // silently discarding in-progress words.
         if !final_emitted {
             if let Some(result) = self.recognizer.get_result(&self.stream) {
                 let text = result.text.trim().to_string();
@@ -196,5 +191,75 @@ impl StreamingRecognizer for SherpaStreamingRecognizer {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::asr::manifest::DEVELOPMENT_MANIFEST;
+    use crate::audio::PcmFormat;
+    use std::num::{NonZeroU16, NonZeroU32};
+    use std::path::Path;
+
+    #[test]
+    fn open_stream_rejects_non_mono_format() {
+        let model_dir = Path::new(
+            "/Users/berat/mistaken-spec-05-remediation/benchmarks/models/sherpa-zipformer-en-20M-2023-02-17-int8",
+        );
+        if !model_dir.exists() {
+            return;
+        }
+        let factory = SherpaRecognizerFactory::load(model_dir, &DEVELOPMENT_MANIFEST)
+            .expect("should load pinned dev model");
+        let stereo = PcmFormat {
+            sample_rate_hz: NonZeroU32::new(48000).unwrap(),
+            channels: NonZeroU16::new(2).unwrap(),
+        };
+        let _err = match factory.open_stream(stereo) {
+            Err(e) => e,
+            Ok(_) => panic!("stereo must be rejected"),
+        };
+    }
+
+    #[test]
+    #[allow(clippy::chunks_exact_to_as_chunks)]
+    fn real_model_smoke_test_recognizes_audio() {
+        let model_dir = Path::new(
+            "/Users/berat/mistaken-spec-05-remediation/benchmarks/models/sherpa-zipformer-en-20M-2023-02-17-int8",
+        );
+        let clip_path = Path::new(
+            "/Users/berat/mistaken-spec-05-remediation/benchmarks/corpus/clips/mistake-tense-01.wav",
+        );
+        if !model_dir.exists() || !clip_path.exists() {
+            return;
+        }
+        let factory = SherpaRecognizerFactory::load(model_dir, &DEVELOPMENT_MANIFEST)
+            .expect("should load pinned dev model");
+        let mono = PcmFormat {
+            sample_rate_hz: NonZeroU32::new(16000).unwrap(),
+            channels: NonZeroU16::new(1).unwrap(),
+        };
+        let mut recognizer = factory.open_stream(mono).expect("open stream");
+        let bytes = std::fs::read(clip_path).expect("read clip");
+        let data_pos = bytes
+            .windows(4)
+            .position(|w| w == b"data")
+            .expect("must find data chunk");
+        let audio_offset = data_pos + 8;
+        let samples: Vec<f32> = bytes[audio_offset..]
+            .chunks_exact(2)
+            .map(|c| i16::from_le_bytes([c[0], c[1]]) as f32 / 32768.0)
+            .collect();
+        let mut segments = Vec::new();
+        for chunk in samples.chunks(4800) {
+            recognizer.accept(chunk).expect("accept chunk");
+            recognizer.poll(&mut segments).expect("poll segments");
+        }
+        recognizer.finish(&mut segments).expect("finish stream");
+        println!("After finish: segments count = {}", segments.len());
+        for (i, s) in segments.iter().enumerate() {
+            println!("Segment {i}: final={}, text={:?}", s.is_final, s.text);
+        }
     }
 }

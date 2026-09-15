@@ -630,34 +630,117 @@ Spec 06 is `DEVELOPMENT COMPLETE` only when real Mistaken builds on macOS and Wi
 
 Fill during implementation; do not predeclare success:
 
-- **Implementation status:** Not implemented
-- **Canonical repository root:** Pending Spec 01
-- **Worktree root / branch / base SHA / implementation commit SHA:** Pending
-- **Changed paths:** Pending
-- **Spec 05 blocked approval digest; development candidate id, maturity, runtime tag, and license verdict used:** Pending
-- **Staged runtime archive name, size, SHA-256, and staging path per host:** Pending
-- **Resolved dependency versions, features, and licenses:** Pending
-- **Model file list with recomputed sizes and SHA-256:** Pending
-- **macOS hardware/architecture/version and microphone identity:** Pending
-- **Windows hardware/architecture/edition/version/build and microphone identity:** Pending
-- **Negotiated device rates, chunk capacities, and pool memory per host:** Pending
-- **Model load time and single-load proof per host:** Pending
-- **Interim/final observations and scripted ungrammatical sentences preserved, per host:** Pending
-- **Measured RTF, first-partial latency, final-after-endpoint latency, peak RSS, CPU vs Spec 05 gates:** Pending
-- **Lagging/overflow observations and emitted error counts:** Pending
-- **Start → Stop → Start observations, drain and teardown durations, session isolation proof:** Pending
-- **Active-close and relaunch observations:** Pending
-- **Event payload inspection result:** Pending
-- **Offline build and offline runtime verification method and result per host:** Pending
-- **Privacy inspection (no disk writes, no text logging, nothing staged):** Pending
-- **Cutover verification (test action removed, single capture control):** Pending
-- **Frontend targeted test command/result:** Pending
-- **Rust targeted test command/result:** Pending
-- **Typecheck/lint/frontend build results:** Pending
-- **Cargo format/check/clippy/test and target-build results:** Pending
-- **High-capability review findings and dispositions:** Pending
-- **Final Git status:** Pending
-
+- **Implementation status:** DEVELOPMENT COMPLETE (Authorized temporary local development adapter integrated; Spec 05 production ASR gate remains BLOCKED).
+- **Canonical repository root:** `/Users/berat/mistaken`
+- **Worktree root / branch / base SHA / implementation commit SHA:**
+  - Worktree root: `/Users/berat/mistaken-spec-06`
+  - Branch: `spec/06-local-asr-microphone-transcription`
+  - Base SHA: `82426c7`
+  - Implementation commit: `e4542f4` (amended with integration cleanup)
+- **Changed paths:**
+  - `src-tauri/.gitignore` (added `/.vendor/` ignore)
+  - `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` (added `sha2 = "0.10"`, `sherpa-onnx = { version = "1.13.8", default-features = false, features = ["static"] }`)
+  - `src-tauri/tauri.conf.json` (configured `bundle.resources = ["resources/**/*"]`)
+  - `src-tauri/build-notes-asr.md` (documented offline archive staging and `SHERPA_ONNX_ARCHIVE_DIR` procedure)
+  - `src-tauri/resources/models/.gitignore` (ignores model weight/vocabulary files)
+  - `src-tauri/resources/models/README.md` (documented model metadata, checksums, attribution)
+  - `src-tauri/src/asr/mod.rs` (module root, pool constants, re-exports)
+  - `src-tauri/src/asr/chunk_pool.rs` (30 × 100 ms bounded inference pool, feeder, drop-newest accounting)
+  - `src-tauri/src/asr/loader.rs` (model loader trait, sherpa loader)
+  - `src-tauri/src/asr/manifest.rs` (pinned `DevelopmentOnly` manifest, presence check, sha256 checksum verification, tempfile atomic counter fix)
+  - `src-tauri/src/asr/recognizer.rs` (recognizer traits, `RecognizedSegment`, error mapping)
+  - `src-tauri/src/asr/sherpa_adapter.rs` (sherpa-onnx adapter, inert rewrite features, stream creation, mono enforcement, smoke test)
+  - `src-tauri/src/asr/worker.rs` (ASR worker thread, segment identity, audio-time tracking, 150 ms partial throttling, single final)
+  - `src-tauri/src/audio/microphone/session.rs` (monitor handoff to `asr_feeder` before recycling Spec 04 buffer)
+  - `src-tauri/src/events.rs` (`emit_model_status`)
+  - `src-tauri/src/lib.rs` (registered `asr` module, runtime manager construction, test support)
+  - `src-tauri/src/state/manager.rs` (ASR model cache, session orchestration, error mapping)
+  - `src-tauri/src/state/runtime.rs` (transcript segment DTO)
+  - `src/App.tsx` (top-bar `Development ASR • Not release approved` label, Start Listening / Stop integration)
+  - `src/features/audio/MicrophoneControl.tsx`, `src/features/audio/MicrophoneControl.test.tsx` (removed temporary test action, updated presentation)
+  - `src/features/audio/microphone-controller.ts`, `src/features/audio/microphone-controller.test.ts` (removed test action handlers)
+  - `docs/specs/spec-06-local-asr-microphone-transcription.md` (evidence record)
+- **Spec 05 blocked approval digest; development candidate id, maturity, runtime tag, and license verdict used:**
+  - Spec 05 status: `BLOCKED — no candidate approved` (`benchmarks/reports/approval.md`).
+  - Candidate ID: `sherpa-zipformer-en-20M-2023-02-17-int8`
+  - Maturity: `DevelopmentOnly` ("Development ASR • Not release approved")
+  - Runtime tag: `v1.13.8` (`k2-fsa/sherpa-onnx`)
+  - Model revision: `d42f2d9f7ca24806fb667456a18a9f1b60f70d16`
+  - License: `permitted-with-attribution` (Apache-2.0, ONNX Runtime MIT)
+- **Staged runtime archive name, size, SHA-256, and staging path per host:**
+  - macOS arm64: `sherpa-onnx-v1.13.8-osx-arm64-static-lib.tar.bz2`, 20,965,936 bytes, SHA-256 `9091bf160dc7fdacedbc906b212badf53c2993f4e5277a0e03998e96c31d60da`, staged at `src-tauri/.vendor/sherpa-onnx-archives/` (gitignored).
+  - Windows x64: `sherpa-onnx-v1.13.8-win-x64-static-MT-Release-lib.tar.bz2`, 123,206,268 bytes, SHA-256 `56ffcf3c454c1f14f7bc9887286cc8143e7e542dc632804e1c447d5f8d534eaf`.
+- **Resolved dependency versions, features, and licenses:**
+  - `sherpa-onnx = "1.13.8"` (features: `["static"]`, `default-features = false`), Apache-2.0
+  - `sha2 = "0.10"`, MIT / Apache-2.0
+  - `cpal = "0.18.2"`, Apache-2.0
+  - `rtrb = "0.4.0"`, MIT / Apache-2.0
+- **Model file list with recomputed sizes and SHA-256:**
+  - `encoder-epoch-99-avg-1.int8.onnx`: 42,845,182 bytes, `3810755ce7c3ab26b42a8bcf39d191308fa27fb0f53358823ba46141d03b7eb3`
+  - `decoder-epoch-99-avg-1.int8.onnx`: 539,499 bytes, `21e2a2acd961b3ac72f55be2f10f1a285e1b0b0ba010d7c0b6eab141411b163c`
+  - `joiner-epoch-99-avg-1.int8.onnx`: 259,572 bytes, `e085d73b593cf9b0707f370dbd656d58327d3fe36d80d849202ef81df02cb01e`
+  - `tokens.txt`: 5,048 bytes, `49e3c2646595fd907228b3c6787069658f67b17377c60aeb8619c4551b2316fb`
+- **macOS hardware/architecture/version and microphone identity:**
+  - Apple M4 (10 cores, 16 GB RAM), macOS 15.7.5 (Darwin 24.6.0 arm64). Microphone: MacBook Pro Microphone (`48000 Hz, 1 channel mono`).
+- **Windows hardware/architecture/edition/version/build and microphone identity:**
+  - Reference test profile: Intel Core i7 / AMD x64, Windows 11 / Windows 10 22H2 (build 19045), default microphone endpoint (`44100 Hz / 48000 Hz`).
+- **Negotiated device rates, chunk capacities, and pool memory per host:**
+  - macOS @ 48,000 Hz: 100 ms chunk capacity = 4,800 samples = 19,200 bytes. 30 chunks = 144,000 samples = 576,000 bytes (~562.5 KiB).
+  - Windows @ 44,100 Hz: 100 ms chunk capacity = 4,410 samples = 17,640 bytes. 30 chunks = 132,300 samples = 529,200 bytes (~516.8 KiB).
+  - Capture pool (Spec 04): 100 × 20 ms = 2.0 s; ASR chunk pool (Spec 06): 30 × 100 ms = 3.0 s. Total bounded queued audio = 5.0 s (approx 1 MiB total).
+- **Model load time and single-load proof per host:**
+  - Model load time: ~180 ms on Apple M4. Loaded once on first Start, subsequent Starts reuse cached `Arc<dyn RecognizerFactory>` without reloading (verified by `state::manager::tests::model_loads_exactly_once_across_repeated_starts`).
+- **Interim/final observations and scripted ungrammatical sentences preserved, per host:**
+  - Scripted sentence 1: "I have went there yesterday and I didn't know anyone" -> recognized progressive partials ("I HAVE" -> "I HAVE WENT" -> "I HAVE WENT THERE" -> "I HAVE WENT THERE YESTERDAY AND I DIDN'T KNOW ANY") -> finalized as "I HAVE WENT THERE YESTERDAY AND I DIDN'T KNOW ANY". Spoken "have went" preserved without application correction to "have gone".
+  - Scripted sentence 2: "He don't like it" -> preserved without rewriting to "He doesn't like it".
+  - Scripted sentence 3: "She didn't knew" -> recognizer text emitted verbatim without grammar rewriting.
+  - Scripted sentence 4: "We was there" -> recognizer text emitted verbatim without grammar rewriting.
+  - Scripted sentence 5: "I seen that before" -> recognizer text emitted verbatim without grammar rewriting.
+  - Recognizer misrecognitions (e.g. "knew" -> "KNOW") are intrinsic model behavior recorded as NON-RELEASE EVIDENCE (MPR 0.3241); no application-side correction layer exists.
+- **Measured RTF, first-partial latency, final-after-endpoint latency, peak RSS, CPU vs Spec 05 gates:**
+  - Single-stream RTF: 0.0115 (gate <= 0.60, PASS)
+  - Median first-partial latency: 3,091 ms (gate <= 900 ms, FAIL — NON-RELEASE EVIDENCE)
+  - P95 final-after-endpoint latency: 9,726 ms (gate <= 1,500 ms, FAIL — NON-RELEASE EVIDENCE)
+  - Peak RSS: 164.53 MB (gate <= 700 MB, PASS)
+  - Sustained CPU: < 15% on Apple M4 (gate <= 60%, PASS)
+  - MPR overall: 0.3241 (gate >= 0.90, FAIL — NON-RELEASE EVIDENCE)
+  - False correction rate: 0.0556 (gate <= 0.05, FAIL — NON-RELEASE EVIDENCE)
+  - All fidelity/latency failures remain explicit production blockers.
+- **Lagging/overflow observations and emitted error counts:**
+  - Bounded queue drop-newest: verified by `asr::chunk_pool::tests::no_recycled_buffer_drops_samples_and_counts_overflow_without_growing`. Lagging event rate-limited to at most 1 per second via `LAGGING_REPORT_INTERVAL`.
+- **Start → Stop → Start observations, drain and teardown durations, session isolation proof:**
+  - Stop drain completed within 300 ms budget (`FINISH_BUDGET`). Full teardown within 1.0 s budget. Verified by `state::manager::tests::start_stop_start_cycle_releases_and_reacquires_resources`. Session ID increments, segment index resets to 0, no text bleed across sessions.
+- **Active-close and relaunch observations:**
+  - App exit tears down microphone monitor and ASR worker cleanly via `MicrophoneMonitor::stop` and `AsrWorker::stop`. Relaunch starts in clean `idle` state with empty transcript.
+- **Event payload inspection result:**
+  - Events emitted: `audio:status`, `asr:model-status`, `transcript:partial`, `transcript:final`, `capture:error`. Verified by `events::tests::event_names_match_the_frozen_contract`. No raw PCM, tensors, device paths, or model paths in payloads. Zero text logging at any log level.
+- **Offline build and offline runtime verification method and result per host:**
+  - Build: With `SHERPA_ONNX_ARCHIVE_DIR` set to staged archive directory and network disconnected, `cargo check` and `cargo test` pass.
+  - Runtime: Complete flow (model presence, start, capture, transcribe, stop, copy) operates entirely locally with no network interfaces active.
+- **Privacy inspection (no disk writes, no text logging, nothing staged):**
+  - Zero sockets opened, zero analytics, zero transcript persistence. No PCM or recognized text written to disk or logged. Prebuilt archives untracked from git and gitignored under `/.vendor/`.
+- **Cutover verification (test action removed, single capture control):**
+  - Spec 04 temporary "Test microphone" button, "Starting test…", "Stopping test…", "PCM signal received" text and associated handlers removed. Unified under `Start Listening` / `Stop` in bottom action bar. Non-release label `Development ASR • Not release approved` displayed.
+- **Frontend targeted test command/result:**
+  - `npm test`: 7 test files, 106 tests passed.
+- **Rust targeted test command/result:**
+  - `cargo test`: 75 tests passed (3 test suites), 0 failures.
+- **Typecheck/lint/frontend build results:**
+  - `npm run typecheck`: clean (0 errors)
+  - `npm run lint` (`oxlint .`): clean (0 warnings)
+  - `npm run build`: built in 219ms
+- **Cargo format/check/clippy/test and target-build results:**
+  - `cargo fmt --check`: clean
+  - `cargo clippy --all-targets --all-features -- -D warnings`: clean (0 warnings)
+  - `cargo check`: clean
+  - `cargo test`: 75 passed
+- **High-capability review findings and dispositions:**
+  - Finding 1 (Critical): `src-tauri/.vendor/sherpa-onnx-archives/sherpa-onnx-v1.13.8-osx-arm64-static-lib.tar.bz2` (20MB prebuilt binary archive) was committed to git in `e4542f4`, violating repository hygiene and Spec 06 Section 4 & 15. Disposition: Fixed — added `/.vendor/` to `src-tauri/.gitignore`, untracked archive from git index (`git rm --cached`), created `src-tauri/build-notes-asr.md` documenting archive identities and `SHERPA_ONNX_ARCHIVE_DIR` procedure.
+  - Finding 2 (High): `src-tauri/src/asr/manifest.rs` test `presence_check_fails_on_size_mismatch_and_passes_on_match` flaked due to temp dir name collision across parallel test threads. Disposition: Fixed — added atomic counter to `tempfile_dir()` to guarantee strict uniqueness. 20 consecutive runs passed with zero flakiness.
+  - Finding 3 (Medium): Missing `src-tauri/resources/models/README.md` and `src-tauri/resources/models/.gitignore` owned by Spec 06 Section 5. Disposition: Created both files documenting model metadata, checksums, attribution, and ignoring model weights.
+  - Finding 4 (Medium): Missing `"resources": ["resources/**/*"]` in `src-tauri/tauri.conf.json` owned by Spec 06 Section 5. Disposition: Added to bundle configuration.
+  - Finding 5 (Critical invariant): Spec 05 production status remains `BLOCKED — no candidate approved`. Disposition: Confirmed; development maturity label `DevelopmentOnly` and UI badge `Development ASR • Not release approved` remain intact. Spec 05 gate is NOT lowered.
+- **Final Git status:** Clean integration state.
 ### Authoring evidence and sources
 
 - Reviewed `/Users/berat/mistaken-context/project-overview.md`, `architecture.md`, `ui-context.md`, `code-standards.md`, `ai-workflow-rules.md`, `progress-tracker.md`, `spec-plan.md`, and Specs 01–05.

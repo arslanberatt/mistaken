@@ -267,15 +267,19 @@ mod tests {
         );
     }
 
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
     /// Minimal temp-dir helper so this module needs no extra dev-dependency.
     fn tempfile_dir() -> TempDir {
+        let count = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let base = std::env::temp_dir().join(format!(
-            "mistaken-asr-manifest-test-{}-{}",
+            "mistaken-asr-manifest-test-{}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            count
         ));
         fs::create_dir_all(&base).unwrap();
         TempDir(base)

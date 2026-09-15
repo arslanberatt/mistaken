@@ -1,0 +1,5 @@
+# Ignore all model weights, token vocabularies, and runtime artifacts.
+# Model weights must never be committed to version control.
+*
+!.gitignore
+!README.md
