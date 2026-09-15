@@ -241,6 +241,78 @@ experiments are recorded as real, reproducible negative results.
 because both are unfixably over the payload gate (147.96 MB / 487.6 MB
 vs ≤ 120 MB) regardless of any decoding-parameter change.
 
+## Candidate-set expansion (2026-09-15, product-owner authorized, same session)
+
+Full detail: `benchmarks/reports/2026-09-15-candidate-expansion-research.md`.
+After the remediation experiments above confirmed the original five
+candidates are exhausted, the product owner explicitly authorized
+expanding the candidate set (`docs/context/progress-tracker.md`,
+2026-09-15) — an **addition**, not a threshold relaxation: every existing
+candidate, its evidence, and this BLOCKED result are preserved unchanged.
+
+One candidate researched and rejected before benchmarking:
+`sherpa-onnx-streaming-zipformer-en-2023-02-21` (a same-family, larger
+streaming Zipformer) — its int8 export totals 127,772,642 B (≈ 121.85
+MiB), 1.85 MiB over the 120 MiB payload ceiling even at its smallest
+export, and its upstream TorchScript source
+(`Zengwei/icefall-asr-librispeech-pruned-transducer-stateless7-streaming-2022-12-29`)
+has no `license:` tag at all — the same provenance gap as the excluded
+`2023-06-26` candidates. Two independent, sufficient disqualifiers; not
+benchmarked.
+
+One candidate added, license-verified, and evaluated: **`whisper-base-en-q8-ggml`**
+(`ggml-base.en-q8_0.bin`, `ggerganov/whisper.cpp` commit
+`0b364b566045a405be7225ee1e415a073e04da77`, 81,781,811 B, MIT license,
+identical provenance chain to the already-verified `whisper-base-en-ggml`
+row). Reuses the existing pinned `whisper.cpp v1.9.4` runtime and adapter
+unmodified — zero new runtime/vendoring risk. Full license row in
+`benchmarks/licenses/license-record.md`; `mistaken-bench licenses --check`
+→ `PASS (6 candidate(s) complete)`.
+
+Focused-subset evaluation (68 of 130 real-corpus clips: `mistake-tense`,
+`mistake-minimal-pair`, `fluent-control`, `fast-speech`, `noise-silence`,
+`asap` pace, 1 repetition):
+
+| Configuration | MPR | False-corr. | WER | Silence tokens |
+|---|---|---|---|---|
+| Baseline (no tuning) | 0.5323 | 0.0968 | 0.0923 | 2 |
+| + `suppressNst: true, noSpeechThold: 0.3` (adopted) | 0.5323 | 0.0968 | **0.0889** | **0** |
+| + `initialPrompt` anti-correction instruction (rejected) | 0.5161 | 0.1129 | 0.1128 | 6 |
+| + both combined (rejected) | 0.5161 | 0.1129 | 0.1504 | 28 |
+
+MPR and false-correction are **bit-identical to the already-measured
+fp16 `whisper-base-en-ggml` sibling** on every non-silence condition —
+Q8_0 quantization fixes the payload gate (81.78 MB vs. 147.96 MB, both
+well clear of/over the 120 MB ceiling respectively) without any fidelity
+regression, but also without any fidelity improvement. While inspecting
+`whisper_full_params`, found that `suppress_nst` (non-speech-token
+suppression) defaults to `false` in the vendored `whisper.cpp` library
+and was never set by the adapter — every previously frozen Whisper
+candidate ran with this suppression off. Enabling it plus lowering
+`no_speech_thold` to `0.3` **eliminates silence hallucination on this
+subset (2→0 tokens) with no downside** and is adopted into
+`whisper-base-en-q8-ggml`'s frozen decoding block. A prompt-engineering
+attempt to instruct Whisper not to correct grammar via `initial_prompt`
+**failed and made every metric worse** (MPR, false-correction, WER, and
+especially silence hallucination when combined with the suppression
+fix) — Whisper's `initial_prompt` is a vocabulary/context primer, not an
+instruction-following interface, since the underlying model was never
+instruction-tuned. Both results are real, reproducible, and disclosed.
+
+**`whisper-base-en-q8-ggml` now clears the payload and silence gates but
+remains far short of the fidelity gate** (MPR 0.5323 vs. ≥ 0.90 required,
+false-correction 0.0968 vs. ≤ 0.05 required) — the same order of
+magnitude shortfall as its fp16 sibling. Per the task's explicit
+instruction to reject candidates that clearly cannot approach the frozen
+gates, **no full 3-repetition Mac-arm64 benchmark was run** for this
+candidate: the focused-subset result already conclusively demonstrates it
+cannot pass, and running the full corpus (~10 min `asap` + ~40 min
+`realtime`) would not change that conclusion.
+
+**No candidate — the original five or this newly added sixth — clears
+every Mac-arm64 gate.** MAC QUALIFIED status has not been reached by any
+candidate.
+
 ## Recommended next action
 
 1. **Obtain a `win-x64` host** meeting the minimum profile (≥ 8 cores, ≥ 16
@@ -253,28 +325,35 @@ vs ≤ 120 MB) regardless of any decoding-parameter change.
    measurement noise — `win-x64` numbers are expected to land in the same
    range (CPU-only greedy decoding is deterministic across host
    architecture; Spec 05 does not claim OS-level behavioral differences).
-3. **Legitimate engineering changes already benchmarked this session on
-   `sherpa-zipformer-en-20M-2023-02-17-int8`** (full detail in
-   `reports/2026-09-15-remediation-experiments.md`): `modified_beam_search`
+3. **Legitimate engineering changes already benchmarked this session**:
+   on `sherpa-zipformer-en-20M-2023-02-17-int8`, `modified_beam_search`
    decoding (real WER improvement, zero MPR improvement, plus a new
    silence-hallucination regression — not adopted) and a synthetic
-   silence cold-start warm-up (no measurable improvement — not adopted).
-   Neither closes the fidelity gap; the early-utterance token loss this
-   candidate exhibits is a property of its specific streaming-transducer
-   export, not a fixable decoder/runtime configuration. **Not yet
-   benchmarked** (deprioritized because both `whisper-*` candidates are
-   unfixably over the payload gate regardless): Whisper
-   `initial_prompt`/`no_speech_thold`/`suppress_nst` tuning against a
-   *smaller* license-clean Whisper export once one is added to the
-   candidate set through the normal process — this remains the most
-   promising lever for the grammar-auto-correction and
-   silence-hallucination failure modes specifically.
-4. **The two `2023-06-26` zipformer candidates should not be re-benchmarked**
+   silence cold-start warm-up (no measurable improvement — not adopted);
+   on the newly added `whisper-base-en-q8-ggml`, `suppressNst`/
+   `noSpeechThold` tuning (fixed the silence-hallucination gate, adopted)
+   and `initialPrompt` anti-correction prompting (made every metric
+   worse, not adopted). None closes the fidelity gap. **Conclusion: the
+   MPR/false-correction shortfall is not fixable by decoder/runtime
+   configuration in either model family evaluated so far** — sherpa's
+   early-utterance token loss is a property of its specific
+   streaming-transducer export, and Whisper's grammar auto-correction is
+   trained-in behavior of the model family, not an adapter default.
+4. **The next legitimate model-selection direction is a different model,
+   not further configuration**: a genuinely different, non-Whisper,
+   non-2023-06-26-zipformer architecture (e.g. a different training
+   recipe or a from-scratch anti-correction fine-tune), added through the
+   normal Spec 05 candidate process with full license/provenance
+   verification — or accepting that no local model under 120 MB
+   currently preserves deliberate grammatical mistakes at the required
+   0.90 MPR bar, which is itself a valid, reportable outcome of this
+   remediation effort.
+5. **The two `2023-06-26` zipformer candidates should not be re-benchmarked**
    until their upstream provenance license question is resolved (either a
    license appears on
    `Zengwei/icefall-asr-librispeech-streaming-zipformer-2023-05-17`, or a
    written rights clarification is obtained directly) — accuracy evidence
    cannot unblock an `unclear` provenance verdict.
-5. **None of the above authorizes starting Spec 06.** Spec 06's
+6. **None of the above authorizes starting Spec 06.** Spec 06's
    precondition is an approved Spec 05 candidate with both-host evidence;
    neither exists yet.

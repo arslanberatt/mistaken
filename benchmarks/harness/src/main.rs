@@ -332,6 +332,9 @@ fn cmd_run(
                         None
                     },
                     warmup_silence_ms: descriptor.decoding.warmup_silence_ms,
+                    initial_prompt: descriptor.decoding.initial_prompt.clone(),
+                    no_speech_thold: descriptor.decoding.no_speech_thold,
+                    suppress_nst: descriptor.decoding.suppress_nst,
                 };
                 let timeout = clip_timeout(clip.duration_ms);
                 let adapter_path = adapter_path.clone();

@@ -64,6 +64,47 @@ inline std::optional<long long> ExtractInt(const std::string &json,
   return std::stoll(json.substr(start, pos - start));
 }
 
+inline std::optional<double> ExtractFloat(const std::string &json,
+                                           const std::string &key) {
+  const std::string needle = "\"" + key + "\"";
+  auto pos = json.find(needle);
+  if (pos == std::string::npos) return std::nullopt;
+  pos = json.find(':', pos + needle.size());
+  if (pos == std::string::npos) return std::nullopt;
+  ++pos;
+  while (pos < json.size() &&
+         std::isspace(static_cast<unsigned char>(json[pos]))) {
+    ++pos;
+  }
+  size_t start = pos;
+  if (pos < json.size() && (json[pos] == '-' || json[pos] == '+')) ++pos;
+  while (pos < json.size() &&
+         (std::isdigit(static_cast<unsigned char>(json[pos])) ||
+          json[pos] == '.' || json[pos] == 'e' || json[pos] == 'E' ||
+          json[pos] == '-' || json[pos] == '+')) {
+    ++pos;
+  }
+  if (pos == start) return std::nullopt;
+  return std::stod(json.substr(start, pos - start));
+}
+
+inline std::optional<bool> ExtractBool(const std::string &json,
+                                        const std::string &key) {
+  const std::string needle = "\"" + key + "\"";
+  auto pos = json.find(needle);
+  if (pos == std::string::npos) return std::nullopt;
+  pos = json.find(':', pos + needle.size());
+  if (pos == std::string::npos) return std::nullopt;
+  ++pos;
+  while (pos < json.size() &&
+         std::isspace(static_cast<unsigned char>(json[pos]))) {
+    ++pos;
+  }
+  if (json.compare(pos, 4, "true") == 0) return true;
+  if (json.compare(pos, 5, "false") == 0) return false;
+  return std::nullopt;
+}
+
 // Escapes a string for embedding as a JSON string value (used only for our
 // own emitted NDJSON events, where every field is either plain ASCII
 // recognizer output or a controlled literal).

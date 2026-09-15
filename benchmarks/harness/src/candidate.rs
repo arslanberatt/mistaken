@@ -55,6 +55,42 @@ pub struct DecodingDescriptor {
         skip_serializing_if = "Option::is_none"
     )]
     pub warmup_silence_ms: Option<u32>,
+    /// whisper-cpp adapter only, ignored by sherpa-onnx. Overrides
+    /// `whisper_full_params.initial_prompt` (spec-05-remediation
+    /// candidate-expansion experiment): prepended decoder context aimed
+    /// at reducing Whisper's language-model-driven grammar
+    /// auto-correction of deliberately incorrect input. Absent for every
+    /// previously frozen candidate descriptor — unchanged behavior
+    /// (`nullptr`, whisper.cpp's own default) unless explicitly set.
+    #[serde(
+        rename = "initialPrompt",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub initial_prompt: Option<String>,
+    /// whisper-cpp adapter only, ignored by sherpa-onnx. Overrides
+    /// `whisper_full_params.no_speech_thold` (library default `0.6`).
+    /// Absent means the library default, unchanged for every previously
+    /// frozen candidate descriptor.
+    #[serde(
+        rename = "noSpeechThold",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub no_speech_thold: Option<f32>,
+    /// whisper-cpp adapter only, ignored by sherpa-onnx. Overrides
+    /// `whisper_full_params.suppress_nst` (non-speech-token suppression;
+    /// the whisper.cpp library default is `false` — the adapter never
+    /// previously set this field explicitly, so every previously frozen
+    /// candidate ran with non-speech-token suppression *off*). Absent
+    /// means the library default (`false`), unchanged for every
+    /// previously frozen candidate descriptor.
+    #[serde(
+        rename = "suppressNst",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub suppress_nst: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -266,6 +302,9 @@ mod tests {
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
                 warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: content.len() as u64,
         };
@@ -310,6 +349,9 @@ mod tests {
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
                 warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: original.len() as u64,
         };
@@ -360,6 +402,9 @@ mod tests {
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
                 warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: 123,
         };
@@ -406,6 +451,9 @@ mod tests {
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
                 warmup_silence_ms: None,
+                initial_prompt: None,
+                no_speech_thold: None,
+                suppress_nst: None,
             },
             payload_bytes: content.len() as u64,
         };

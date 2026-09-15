@@ -105,6 +105,29 @@ row to stand alone rather than cross-reference another row).
 - Required attribution text: "Whisper model by OpenAI (github.com/openai/whisper), ggml/whisper.cpp conversion by the ggml authors and contributors (github.com/ggml-org/whisper.cpp)."
 - Redistribution verdict: permitted
 
+## whisper-base-en-q8-ggml
+
+
+Added 2026-09-15 during the `spec/05-remediation` candidate-set-expansion
+phase (product-owner decision, `docs/context/progress-tracker.md`), after
+the original five candidates were empirically exhausted. Same repository,
+license, and upstream provenance chain as `whisper-base-en-ggml` above,
+re-verified independently rather than cross-referenced, per AC16.
+
+- Runtime repository: ggml-org/whisper.cpp
+- Runtime tag: v1.9.4 (resolved commit 927cfce34f31707e17f2bff35c349632fb9e2c3a; source: https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest, retrieved: 2026-09-11)
+- Runtime license: MIT, "Copyright (c) 2023-2026 The ggml authors" (source: https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/LICENSE, retrieved: 2026-09-11)
+- Linked inference runtime: ggml (vendored in-tree by tag; same repository, same license)
+- Model repository: ggerganov/whisper.cpp (community GGML-format mirror of OpenAI's released weights)
+- Model revision: 0b364b566045a405be7225ee1e415a073e04da77 (commit "Add Q8_0 models", the commit that added `ggml-base.en-q8_0.bin`; file confirmed byte-identical between this commit and current `main` HEAD `5359861c739e955e79d9a303bcbc70fb988958b1`)
+- Weight license (declared): mit, per Hugging Face cardData.license on the ggerganov/whisper.cpp repository (source: https://huggingface.co/api/models/ggerganov/whisper.cpp, retrieved: 2026-09-15)
+- Upstream provenance repository: openai/whisper (model architecture/training code, MIT) and the openai/whisper-base.en released weights
+- Upstream provenance license: openai/whisper repository is MIT (source: https://raw.githubusercontent.com/openai/whisper/main/LICENSE, retrieved: 2026-09-11). Q8_0 is a post-training block quantization of the same base.en weights already verified for `whisper-base-en-ggml` (same upstream, same operative MIT license on the converted ggml binary); it is not a separate training artifact with separate rights.
+- Training corpus: OpenAI's internal 680,000-hour multilingual/multitask supervised dataset (Whisper paper, Radford et al. 2022, arXiv:2212.04356); not a redistributed corpus, no separate attribution obligation flows to Mistaken from the training data itself.
+- Training corpus terms: not independently redistributed by this candidate; not applicable.
+- Required attribution text: "Whisper model by OpenAI (github.com/openai/whisper), ggml/whisper.cpp conversion by the ggml authors and contributors (github.com/ggml-org/whisper.cpp)."
+- Redistribution verdict: permitted
+
 ## Verdict summary (not a candidate row)
 
 | Candidate | Verdict | Blocking reason |
@@ -114,9 +137,10 @@ row to stand alone rather than cross-reference another row).
 | sherpa-zipformer-en-20M-2023-02-17-int8 | permitted-with-attribution | Complete Apache-2.0 chain (runtime, weight, upstream provenance); LibriSpeech CC BY 4.0 attribution required. |
 | whisper-base-en-ggml | permitted | MIT runtime and MIT ggml conversion; OpenAI's own code is MIT. |
 | whisper-small-en-ggml | permitted | Same as whisper-base-en-ggml. |
+| whisper-base-en-q8-ggml | permitted | Same MIT chain as whisper-base-en-ggml; Q8_0 is a published post-training quantization of the same weights, not a separate artifact. |
 
 License-clean candidates (permitted / permitted-with-attribution): the 20M
-sherpa int8 model and both whisper.cpp candidates. The two 2023-06-26
+sherpa int8 model and all three whisper.cpp candidates. The two 2023-06-26
 zipformer candidates are license-blocked on upstream provenance regardless
 of any accuracy result, per Spec 05 section 10's explicit rule that an
 unclear verdict can never be approved.

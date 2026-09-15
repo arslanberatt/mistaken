@@ -43,6 +43,30 @@ pub struct Job {
         skip_serializing_if = "Option::is_none"
     )]
     pub warmup_silence_ms: Option<u32>,
+    /// See `candidate::DecodingDescriptor::initial_prompt`. whisper-cpp
+    /// adapter only.
+    #[serde(
+        rename = "initialPrompt",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub initial_prompt: Option<String>,
+    /// See `candidate::DecodingDescriptor::no_speech_thold`. whisper-cpp
+    /// adapter only.
+    #[serde(
+        rename = "noSpeechThold",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub no_speech_thold: Option<f32>,
+    /// See `candidate::DecodingDescriptor::suppress_nst`. whisper-cpp
+    /// adapter only.
+    #[serde(
+        rename = "suppressNst",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub suppress_nst: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -252,6 +276,9 @@ mod tests {
             chunk_ms: 100,
             window_ms: None,
             warmup_silence_ms: None,
+            initial_prompt: None,
+            no_speech_thold: None,
+            suppress_nst: None,
         };
         let value = serde_json::to_value(&job).unwrap();
         assert_eq!(value["clipId"], "mistake-tense-03");

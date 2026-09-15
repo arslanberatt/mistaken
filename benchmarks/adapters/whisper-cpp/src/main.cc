@@ -22,6 +22,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <sys/resource.h>
 #include <thread>
@@ -98,7 +99,10 @@ long long CpuTimeMs() {
 }
 
 std::string DecodeFull(struct whisper_context *ctx,
-                        const std::vector<float> &samples, int num_threads) {
+                        const std::vector<float> &samples, int num_threads,
+                        const std::optional<std::string> &initial_prompt,
+                        const std::optional<double> &no_speech_thold,
+                        const std::optional<bool> &suppress_nst) {
   whisper_full_params params =
       whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
   params.print_progress = false;
@@ -111,6 +115,18 @@ std::string DecodeFull(struct whisper_context *ctx,
   params.n_threads = num_threads;
   params.language = "en";
   params.suppress_blank = true;
+  // spec-05-remediation candidate-expansion tuning (all three optional,
+  // absent = whisper.cpp's own unmodified default, so every previously
+  // frozen candidate decodes identically to before):
+  if (initial_prompt.has_value()) {
+    params.initial_prompt = initial_prompt->c_str();
+  }
+  if (no_speech_thold.has_value()) {
+    params.no_speech_thold = static_cast<float>(*no_speech_thold);
+  }
+  if (suppress_nst.has_value()) {
+    params.suppress_nst = *suppress_nst;
+  }
 
   if (whisper_full(ctx, params, samples.data(),
                     static_cast<int>(samples.size())) != 0) {
@@ -157,6 +173,9 @@ int main() {
       json_lite::ExtractInt(job_line, "numThreads").value_or(2);
   const long long chunk_ms = json_lite::ExtractInt(job_line, "chunkMs").value_or(100);
   const long long window_ms = json_lite::ExtractInt(job_line, "windowMs").value_or(5000);
+  const auto initial_prompt = json_lite::ExtractString(job_line, "initialPrompt");
+  const auto no_speech_thold = json_lite::ExtractFloat(job_line, "noSpeechThold");
+  const auto suppress_nst = json_lite::ExtractBool(job_line, "suppressNst");
 
   if (!wav_path || !model_dir) {
     EmitError(0, "protocol_error", "job missing wavPath or model.modelDir");
@@ -231,8 +250,9 @@ int main() {
               : 0;
       std::vector<float> window(samples.begin() + static_cast<long>(window_start),
                                 samples.begin() + static_cast<long>(offset));
-      const std::string text =
-          DecodeFull(ctx, window, static_cast<int>(num_threads));
+      const std::string text = DecodeFull(ctx, window, static_cast<int>(num_threads),
+                                           initial_prompt, no_speech_thold,
+                                           suppress_nst);
       if (!text.empty() && text != last_partial) {
         EmitPartial(ElapsedMs(t0), text);
         last_partial = text;
@@ -252,8 +272,9 @@ int main() {
 
   // One authoritative full-utterance decode over the entire clip; this,
   // not the rolling-window partials, is the scored hypothesis.
-  const std::string final_text =
-      DecodeFull(ctx, samples, static_cast<int>(num_threads));
+  const std::string final_text = DecodeFull(
+      ctx, samples, static_cast<int>(num_threads), initial_prompt,
+      no_speech_thold, suppress_nst);
   if (!final_text.empty()) {
     EmitFinal(ElapsedMs(t0), final_text, 0);
   }
