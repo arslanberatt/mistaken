@@ -220,6 +220,27 @@ two-stream clip-repetitions — a stalled DNS/socket call inside either
 adapter would have manifested as a hung or `timeout`-coded clip, and none
 occurred.
 
+## Remediation experiments performed (2026-09-15, same session)
+
+Full detail, exact configurations, and raw before/after numbers:
+`reports/2026-09-15-remediation-experiments.md`. Summary: focused,
+representative-subset experiments (`mistake-tense`, `fluent-control`,
+full-corpus single-repetition confirmation) tested two legitimate,
+in-scope decoder/runtime configuration changes against
+`sherpa-zipformer-en-20M-2023-02-17-int8` — the only license-clean
+candidate small enough to ever satisfy the payload/RSS gates —
+**`modified_beam_search` decoding** (real WER improvement of 5–39%
+relative depending on condition, MPR completely unchanged at ~0.31–0.32
+overall, plus a new silence-hallucination regression) and **a synthetic
+silence cold-start warm-up before the real audio** (no measurable
+improvement, occasionally worse). Neither is a credible path to the
+MPR ≥ 0.90 gate, so **no full 3-repetition re-run was performed** and
+**no configuration was changed on any frozen candidate**; both
+experiments are recorded as real, reproducible negative results.
+`whisper-*` candidates were not experimented on further this session
+because both are unfixably over the payload gate (147.96 MB / 487.6 MB
+vs ≤ 120 MB) regardless of any decoding-parameter change.
+
 ## Recommended next action
 
 1. **Obtain a `win-x64` host** meeting the minimum profile (≥ 8 cores, ≥ 16
@@ -232,19 +253,22 @@ occurred.
    measurement noise — `win-x64` numbers are expected to land in the same
    range (CPU-only greedy decoding is deterministic across host
    architecture; Spec 05 does not claim OS-level behavioral differences).
-3. **Legitimate engineering changes worth benchmarking next**, in order of
-   expected impact: (a) a Whisper variant constrained against grammar
-   auto-correction — e.g. `initial_prompt`/`suppress_tokens` conditioning,
-   or a decoding temperature/beam configuration tuned to reduce
-   language-model-driven substitution, benchmarked with the same MPR/false-
-   correction scorer to see whether it actually helps rather than assumed;
-   (b) a sherpa-onnx chunk/context configuration with a larger `left`
-   context or bigger chunk size than `chunk-16-left-64`, to address the
-   observed early-utterance context loss on `mistake-tense` without
-   abandoning the lower false-correction-rate architecture; (c) a
-   VAD/endpoint-aware silence gate ahead of the recognizer, required
-   regardless of which candidate is chosen, since both whisper candidates
-   hallucinate on physical-silence clips (6 and 15 non-empty tokens).
+3. **Legitimate engineering changes already benchmarked this session on
+   `sherpa-zipformer-en-20M-2023-02-17-int8`** (full detail in
+   `reports/2026-09-15-remediation-experiments.md`): `modified_beam_search`
+   decoding (real WER improvement, zero MPR improvement, plus a new
+   silence-hallucination regression — not adopted) and a synthetic
+   silence cold-start warm-up (no measurable improvement — not adopted).
+   Neither closes the fidelity gap; the early-utterance token loss this
+   candidate exhibits is a property of its specific streaming-transducer
+   export, not a fixable decoder/runtime configuration. **Not yet
+   benchmarked** (deprioritized because both `whisper-*` candidates are
+   unfixably over the payload gate regardless): Whisper
+   `initial_prompt`/`no_speech_thold`/`suppress_nst` tuning against a
+   *smaller* license-clean Whisper export once one is added to the
+   candidate set through the normal process — this remains the most
+   promising lever for the grammar-auto-correction and
+   silence-hallucination failure modes specifically.
 4. **The two `2023-06-26` zipformer candidates should not be re-benchmarked**
    until their upstream provenance license question is resolved (either a
    license appears on

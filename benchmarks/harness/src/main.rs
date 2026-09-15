@@ -331,6 +331,7 @@ fn cmd_run(
                     } else {
                         None
                     },
+                    warmup_silence_ms: descriptor.decoding.warmup_silence_ms,
                 };
                 let timeout = clip_timeout(clip.duration_ms);
                 let adapter_path = adapter_path.clone();

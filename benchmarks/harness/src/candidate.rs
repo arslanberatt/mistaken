@@ -42,6 +42,19 @@ pub struct DecodingDescriptor {
     pub provider: String,
     #[serde(rename = "enableEndpoint")]
     pub enable_endpoint: bool,
+    /// Milliseconds of synthetic zero-valued audio the adapter feeds the
+    /// recognizer before the clip's real samples, to let a streaming
+    /// model's internal state warm up past its cold-start transient
+    /// before the first real word arrives (spec-05-remediation
+    /// experiment; sherpa-onnx adapter only). Absent/`None`/`0` means the
+    /// original, unchanged behavior — every previously frozen candidate
+    /// descriptor omits this field and is unaffected.
+    #[serde(
+        rename = "warmupSilenceMs",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub warmup_silence_ms: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,6 +219,22 @@ mod tests {
     }
 
     #[test]
+    fn warmup_silence_ms_defaults_to_none_when_absent() {
+        // Every frozen candidate descriptor omits `warmupSilenceMs`; this
+        // spec-05-remediation field must not require updating them.
+        let json = r#"{"method": "greedy_search", "numThreads": 2, "provider": "cpu", "enableEndpoint": true}"#;
+        let decoding: DecodingDescriptor = serde_json::from_str(json).unwrap();
+        assert_eq!(decoding.warmup_silence_ms, None);
+    }
+
+    #[test]
+    fn warmup_silence_ms_is_read_when_present() {
+        let json = r#"{"method": "greedy_search", "numThreads": 2, "provider": "cpu", "enableEndpoint": true, "warmupSilenceMs": 300}"#;
+        let decoding: DecodingDescriptor = serde_json::from_str(json).unwrap();
+        assert_eq!(decoding.warmup_silence_ms, Some(300));
+    }
+
+    #[test]
     fn verify_model_files_passes_on_matching_size_and_checksum() {
         let dir = std::env::temp_dir().join(format!("mistaken-bench-test-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
@@ -236,6 +265,7 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
             },
             payload_bytes: content.len() as u64,
         };
@@ -279,6 +309,7 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
             },
             payload_bytes: original.len() as u64,
         };
@@ -328,6 +359,7 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
             },
             payload_bytes: 123,
         };
@@ -373,6 +405,7 @@ mod tests {
                 num_threads: 2,
                 provider: "cpu".to_string(),
                 enable_endpoint: true,
+                warmup_silence_ms: None,
             },
             payload_bytes: content.len() as u64,
         };

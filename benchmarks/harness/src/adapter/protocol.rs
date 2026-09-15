@@ -35,6 +35,14 @@ pub struct Job {
     pub chunk_ms: u32,
     #[serde(rename = "windowMs", skip_serializing_if = "Option::is_none")]
     pub window_ms: Option<u32>,
+    /// See `candidate::DecodingDescriptor::warmup_silence_ms`. Absent for
+    /// every previously frozen candidate; sherpa-onnx adapter only.
+    #[serde(
+        rename = "warmupSilenceMs",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub warmup_silence_ms: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -243,6 +251,7 @@ mod tests {
             pace: Pace::Realtime,
             chunk_ms: 100,
             window_ms: None,
+            warmup_silence_ms: None,
         };
         let value = serde_json::to_value(&job).unwrap();
         assert_eq!(value["clipId"], "mistake-tense-03");

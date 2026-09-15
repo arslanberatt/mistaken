@@ -668,6 +668,37 @@ scoring rule, candidate set, or license verdict.
   650 `realtime` + 260 two-stream clip-repetitions.
 - **Final Git status / commit SHA:** recorded below after commit.
 
+### Remediation engineering experiments (branch `spec/05-remediation`, 2026-09-15, same session)
+
+Full detail: `benchmarks/reports/2026-09-15-remediation-experiments.md`
+(exact configurations, before/after numbers) and `benchmarks/reports/approval.md`
+("Remediation experiments performed"). Summary: after the Mac-arm64 re-run
+above confirmed every candidate still fails the fidelity gate, ran
+representative-subset experiments to test whether any in-scope decoder or
+runtime configuration change could close the gap. Diagnosis: only
+`sherpa-zipformer-en-20M-2023-02-17-int8` is small enough (41.6 MB / 164.5
+MB RSS) to ever satisfy the payload/RSS gates among the three
+license-clean candidates, and it is also furthest from the fidelity gate;
+both `whisper-*` candidates are closer on fidelity but unfixably over the
+120 MB payload gate regardless of configuration. Tested against
+`sherpa-zipformer-en-20M-2023-02-17-int8`: `modified_beam_search` decoding
+(real WER improvement 5–39% relative depending on condition; MPR
+unchanged at ~0.31–0.32 overall; a new silence-hallucination regression)
+and an optional synthetic-silence cold-start warm-up (`warmupSilenceMs`,
+a new backward-compatible field in `DecodingDescriptor`/`Job`, unused by
+every frozen candidate descriptor, implemented in the sherpa-onnx adapter
+with regression tests in `benchmarks/harness/src/candidate.rs`; no
+measurable improvement, occasionally worse). Neither closed the gap to
+MPR ≥ 0.90, so no full 3-repetition re-run was performed and no frozen
+candidate descriptor was changed. `cargo fmt --check`, `cargo clippy
+--all-targets --all-features -- -D warnings`, and `cargo test` (72
+passed, 0 failed) all still pass in `benchmarks/harness` after the
+`warmupSilenceMs` addition. Decision unchanged: **BLOCKED**. Next
+legitimate action is model selection (a smaller license-clean Whisper
+export) plus Whisper-specific `initial_prompt`/`no_speech_thold` tuning
+against it, not further configuration of the current frozen set.
+- **Final Git status / commit SHA:** recorded below after commit.
+
 ### Authoring evidence and sources
 
 - Reviewed `/Users/berat/mistaken-context/project-overview.md`, `architecture.md`, `ui-context.md`, `code-standards.md`, `ai-workflow-rules.md`, `progress-tracker.md`, `spec-plan.md`, and Specs 01–04.
