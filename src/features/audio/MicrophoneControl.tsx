@@ -1,7 +1,9 @@
 /**
- * Real microphone selector, Refresh, and Test microphone / Stop test
- * controls for the source bar. Presentation only: native lifecycle lives
- * behind `useMicrophoneController` and the typed runtime client.
+ * Real microphone selector, Refresh, and status text for the source bar.
+ * Presentation only: the single production capture action
+ * (`Start Listening` / `Stop`) lives in the transcript workspace footer,
+ * not here — this component only shows device selection and honest
+ * status/permission/guidance text for the microphone source.
  */
 import type { ChangeEvent } from "react";
 import { Mic } from "lucide-react";
@@ -17,9 +19,6 @@ export interface MicrophoneControlProps {
 
 interface Presentation {
   readonly statusText: string;
-  readonly actionLabel: string;
-  readonly actionDisabled: boolean;
-  readonly onAction: (() => void) | undefined;
   readonly selectorDisabled: boolean;
   readonly refreshDisabled: boolean;
   readonly guidance: string | null;
@@ -66,9 +65,6 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
   if (!bridgeReady) {
     return {
       statusText: "Connecting to local audio…",
-      actionLabel: "Test microphone",
-      actionDisabled: true,
-      onAction: undefined,
       selectorDisabled: true,
       refreshDisabled: true,
       guidance: null,
@@ -79,9 +75,6 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
   if (controller.listState === "loading" && controller.devices.length === 0) {
     return {
       statusText: "Finding microphones…",
-      actionLabel: "Test microphone",
-      actionDisabled: true,
-      onAction: undefined,
       selectorDisabled: true,
       refreshDisabled: true,
       guidance: null,
@@ -92,9 +85,6 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
   if (controller.listState === "ready" && controller.devices.length === 0) {
     return {
       statusText: "No microphone found.",
-      actionLabel: "Test microphone",
-      actionDisabled: true,
-      onAction: undefined,
       selectorDisabled: true,
       refreshDisabled: false,
       guidance: null,
@@ -104,12 +94,9 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
 
   const status = microphoneStatus?.status ?? "idle";
 
-  if (controller.commandPending === "start" || status === "starting") {
+  if (status === "starting") {
     return {
-      statusText: "Starting test…",
-      actionLabel: "Starting test…",
-      actionDisabled: true,
-      onAction: undefined,
+      statusText: "Starting…",
       selectorDisabled: true,
       refreshDisabled: true,
       guidance: null,
@@ -117,12 +104,9 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
     };
   }
 
-  if (controller.commandPending === "stop" || status === "stopping") {
+  if (status === "stopping") {
     return {
-      statusText: "Stopping test…",
-      actionLabel: "Stopping test…",
-      actionDisabled: true,
-      onAction: undefined,
+      statusText: "Stopping…",
       selectorDisabled: true,
       refreshDisabled: true,
       guidance: null,
@@ -134,13 +118,10 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
     const receiving = microphoneStatus.activity === "receiving";
     return {
       statusText: overflowWarning
-        ? "Microphone input is delayed; some audio was dropped."
+        ? "Local transcription is delayed; some audio was dropped."
         : receiving
-          ? "PCM signal received"
+          ? "Microphone active"
           : "Waiting for microphone signal…",
-      actionLabel: "Stop test",
-      actionDisabled: false,
-      onAction: controller.stopTest,
       selectorDisabled: true,
       refreshDisabled: true,
       guidance: null,
@@ -153,9 +134,6 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
     if (code === "microphone_permission_denied") {
       return {
         statusText: "Microphone access is off.",
-        actionLabel: "Test microphone",
-        actionDisabled: true,
-        onAction: undefined,
         selectorDisabled: false,
         refreshDisabled: false,
         guidance: permissionGuidance(),
@@ -164,9 +142,6 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
     }
     return {
       statusText: microphoneStatus.error.message,
-      actionLabel: "Test microphone",
-      actionDisabled: !controller.selectedDeviceId,
-      onAction: controller.selectedDeviceId ? controller.startTest : undefined,
       selectorDisabled: false,
       refreshDisabled: false,
       guidance: windowsUnavailableGuidance(code),
@@ -177,9 +152,6 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
   if (controller.error) {
     return {
       statusText: controller.error.message,
-      actionLabel: "Test microphone",
-      actionDisabled: !controller.selectedDeviceId,
-      onAction: controller.selectedDeviceId ? controller.startTest : undefined,
       selectorDisabled: false,
       refreshDisabled: false,
       guidance: null,
@@ -188,10 +160,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
   }
 
   return {
-    statusText: "Ready to test locally.",
-    actionLabel: "Test microphone",
-    actionDisabled: !controller.selectedDeviceId,
-    onAction: controller.selectedDeviceId ? controller.startTest : undefined,
+    statusText: "Ready.",
     selectorDisabled: false,
     refreshDisabled: false,
     guidance: null,
@@ -248,15 +217,6 @@ export function MicrophoneControl(props: MicrophoneControlProps) {
         Refresh microphones
       </button>
 
-      <button
-        type="button"
-        onClick={presentation.onAction}
-        disabled={presentation.actionDisabled}
-        className="rounded-md border border-[var(--border-default)] px-2 py-1 text-xs font-medium text-[var(--text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {presentation.actionLabel}
-      </button>
-
       <div role="status" aria-live="polite" className={`text-xs ${TONE_CLASS[presentation.tone]}`}>
         {presentation.statusText}
       </div>
@@ -266,7 +226,8 @@ export function MicrophoneControl(props: MicrophoneControlProps) {
       )}
 
       <div className="basis-full text-xs text-[var(--text-muted)]">
-        Test only — no recording or transcription is saved.
+        Speech is transcribed locally for development. Nothing is uploaded or recorded to disk.
+        This adapter is not release approved.
       </div>
     </div>
   );

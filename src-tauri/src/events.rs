@@ -83,6 +83,35 @@ pub fn emit_audio_status<R: tauri::Runtime>(
     .map_err(|_| RuntimeError::internal("failed to emit audio:status to the main window"))
 }
 
+/// Emits an `asr:model-status` full-snapshot payload to the `main` window.
+pub fn emit_model_status<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    snapshot: RuntimeSnapshot,
+) -> Result<(), RuntimeError> {
+    app.emit_to("main", MODEL_STATUS_EVENT, ModelStatusEvent { snapshot })
+        .map_err(|_| RuntimeError::internal("failed to emit asr:model-status to the main window"))
+}
+
+/// Emits a `transcript:partial` payload — the segment itself, not wrapped
+/// — to the `main` window.
+pub fn emit_transcript_partial<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    segment: &crate::state::runtime::TranscriptSegment,
+) -> Result<(), RuntimeError> {
+    app.emit_to("main", TRANSCRIPT_PARTIAL_EVENT, segment)
+        .map_err(|_| RuntimeError::internal("failed to emit transcript:partial to the main window"))
+}
+
+/// Emits a `transcript:final` payload — the segment itself, not wrapped —
+/// to the `main` window.
+pub fn emit_transcript_final<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    segment: &crate::state::runtime::TranscriptSegment,
+) -> Result<(), RuntimeError> {
+    app.emit_to("main", TRANSCRIPT_FINAL_EVENT, segment)
+        .map_err(|_| RuntimeError::internal("failed to emit transcript:final to the main window"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

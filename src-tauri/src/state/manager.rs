@@ -1,12 +1,19 @@
-//! `RuntimeManager`: orchestrates the real microphone lifecycle behind the
-//! typed runtime commands.
+//! `RuntimeManager`: orchestrates the real microphone + local development
+//! ASR lifecycle behind the typed runtime commands.
 //!
 //! This is the Tauri-facing glue between the pure [`RuntimeState`] machine,
-//! the platform-agnostic [`MicrophoneBackend`]/[`MicrophoneMonitor`], and
-//! native event emission. It owns the one active session (if any) and a
-//! monotonic generation counter so a Stop (or a superseding Start) can
-//! invalidate an in-flight Start that is still awaiting the macOS
-//! permission prompt or native device work.
+//! the platform-agnostic [`MicrophoneBackend`]/[`MicrophoneMonitor`], the
+//! bounded ASR chunk stage/worker, and native event emission. It owns the
+//! one active session (if any) and a monotonic generation counter so a
+//! Stop (or a superseding Start) can invalidate an in-flight Start that is
+//! still awaiting the macOS permission prompt, native device work, or the
+//! (first-use-only) model load.
+//!
+//! The loaded recognizer factory is cached for the process lifetime in
+//! `asr_model`: the pinned development model's presence, checksum
+//! verification, and native load happen at most once per process. Every
+//! transcript-quality result this produces is `NON-RELEASE EVIDENCE` (see
+//! `crate::asr` and `docs/context/architecture.md`).
 //!
 //! Generic over `R: tauri::Runtime` (defaulting to the production `Wry`
 //! runtime) purely so tests can drive it with `tauri::test`'s `MockRuntime`
@@ -17,6 +24,10 @@ use std::sync::{Arc, Mutex};
 
 use tauri::{AppHandle, Runtime};
 
+use crate::asr::chunk_pool::{build_asr_pool, AsrChunkFeeder};
+use crate::asr::manifest::{resolve_model_dir, DEVELOPMENT_MANIFEST};
+use crate::asr::worker::AsrWorkerObserver;
+use crate::asr::{AsrError, AsrErrorKind, AsrModelLoader, AsrWorker, RecognizerFactory};
 use crate::audio::microphone::{
     MicrophoneBackend, MicrophoneCaptureHandle, MicrophoneMonitor, MicrophoneMonitorObserver,
 };
@@ -24,8 +35,8 @@ use crate::audio::{AudioError, AudioErrorKind};
 use crate::events;
 
 use super::runtime::{
-    Activity, AudioSourceStatus, CaptureStatus, MicrophoneDevice, RuntimeError, RuntimeErrorCode,
-    RuntimeSnapshot, RuntimeState, TranscriptSource,
+    Activity, AudioSourceStatus, CaptureStatus, MicrophoneDevice, ModelStatus, RuntimeError,
+    RuntimeErrorCode, RuntimeSnapshot, RuntimeState, TranscriptSegment, TranscriptSource,
 };
 
 fn map_audio_error(error: AudioError) -> RuntimeError {
@@ -75,28 +86,59 @@ fn map_audio_error(error: AudioError) -> RuntimeError {
     RuntimeError::new(code, message, recoverable).with_source(source)
 }
 
+fn map_asr_error(error: &AsrError) -> RuntimeError {
+    let (code, recoverable): (RuntimeErrorCode, bool) = match error.kind {
+        AsrErrorKind::ModelMissing => (RuntimeErrorCode::ModelMissing, true),
+        AsrErrorKind::ModelUnsupported => (RuntimeErrorCode::ModelUnsupported, false),
+        AsrErrorKind::ModelLoadFailed => (RuntimeErrorCode::ModelLoadFailed, true),
+        AsrErrorKind::StreamCreateFailed => (RuntimeErrorCode::CaptureStartFailed, true),
+        AsrErrorKind::DecodeFailed | AsrErrorKind::Internal => (RuntimeErrorCode::Internal, false),
+    };
+    RuntimeError::new(code, error.detail.clone(), recoverable)
+        .with_source(TranscriptSource::Microphone)
+}
+
+fn model_status_for_asr_error(error: &AsrError) -> ModelStatus {
+    match error.kind {
+        AsrErrorKind::ModelMissing => ModelStatus::Missing,
+        AsrErrorKind::ModelUnsupported => ModelStatus::Unsupported {
+            error: map_asr_error(error),
+        },
+        _ => ModelStatus::Failed {
+            error: map_asr_error(error),
+        },
+    }
+}
+
 struct ActiveMicrophoneSession {
     monitor: MicrophoneMonitor,
+    asr_worker: AsrWorker,
 }
 
 /// The single process-managed runtime handle. `Arc`-wrapped by Tauri's
 /// managed state so background work (the async command's blocking task and
-/// the monitor's observer) can hold a cheap clone.
+/// the monitor's/worker's observers) can hold a cheap clone.
 pub struct RuntimeManager<R: Runtime = tauri::Wry> {
     state: Mutex<RuntimeState>,
     backend: Arc<dyn MicrophoneBackend>,
+    asr_loader: Arc<dyn AsrModelLoader>,
+    asr_model: Mutex<Option<Arc<dyn RecognizerFactory>>>,
     session: Mutex<Option<ActiveMicrophoneSession>>,
     generation: AtomicU64,
+    session_counter: AtomicU64,
     _runtime: std::marker::PhantomData<fn() -> R>,
 }
 
 impl<R: Runtime> RuntimeManager<R> {
-    pub fn new(backend: Arc<dyn MicrophoneBackend>) -> Self {
+    pub fn new(backend: Arc<dyn MicrophoneBackend>, asr_loader: Arc<dyn AsrModelLoader>) -> Self {
         Self {
             state: Mutex::new(RuntimeState::new()),
             backend,
+            asr_loader,
+            asr_model: Mutex::new(None),
             session: Mutex::new(None),
             generation: AtomicU64::new(0),
+            session_counter: AtomicU64::new(0),
             _runtime: std::marker::PhantomData,
         }
     }
@@ -115,6 +157,14 @@ impl<R: Runtime> RuntimeManager<R> {
             .map_err(|_| RuntimeError::internal("microphone session mutex was poisoned"))
     }
 
+    fn lock_asr_model(
+        &self,
+    ) -> Result<std::sync::MutexGuard<'_, Option<Arc<dyn RecognizerFactory>>>, RuntimeError> {
+        self.asr_model
+            .lock()
+            .map_err(|_| RuntimeError::internal("asr model cache mutex was poisoned"))
+    }
+
     pub fn snapshot(&self) -> Result<RuntimeSnapshot, RuntimeError> {
         Ok(self.lock_state()?.snapshot())
     }
@@ -131,6 +181,38 @@ impl<R: Runtime> RuntimeManager<R> {
     ) -> Result<(), RuntimeError> {
         let snapshot = self.snapshot()?;
         events::emit_audio_status(app, source, snapshot)
+    }
+
+    fn emit_model_status(&self, app: &AppHandle<R>) -> Result<(), RuntimeError> {
+        let snapshot = self.snapshot()?;
+        events::emit_model_status(app, snapshot)
+    }
+
+    fn set_model_status(
+        &self,
+        app: &AppHandle<R>,
+        status: ModelStatus,
+    ) -> Result<(), RuntimeError> {
+        self.lock_state()?.apply_model_status(status)?;
+        self.emit_model_status(app)
+    }
+
+    /// Launch-time, metadata-only model presence report: existence and
+    /// byte size only, never a hash and never a load. Safe to call once
+    /// during Tauri's `setup` hook, before any window/listener exists.
+    pub fn initialize_model_presence(&self, app: &AppHandle<R>) {
+        let status = match resolve_model_dir(app) {
+            Ok(dir) => match crate::asr::manifest::check_presence(&dir, &DEVELOPMENT_MANIFEST) {
+                Ok(()) => ModelStatus::Ready {
+                    model_id: DEVELOPMENT_MANIFEST.model_id.to_string(),
+                },
+                Err(_) => ModelStatus::Missing,
+            },
+            Err(_) => ModelStatus::Missing,
+        };
+        if let Ok(mut state) = self.state.lock() {
+            let _ = state.apply_model_status(status);
+        }
     }
 
     /// Lists real devices and reconciles microphone availability. Emits
@@ -182,12 +264,69 @@ impl<R: Runtime> RuntimeManager<R> {
         Ok(dtos)
     }
 
-    /// Starts (or restarts) microphone capture. Rejects concurrent starts;
-    /// otherwise transitions `idle`/`error` -> `starting` synchronously,
-    /// performs native work (which may block on the macOS permission
-    /// prompt) off the caller's async task, and only then commits
-    /// `listening` — unless a concurrent Stop invalidated this attempt in
-    /// the meantime, in which case any native resource it built is released
+    /// Resolves, verifies, and loads the pinned development model exactly
+    /// once per process; every later call reuses the cached factory
+    /// without touching the filesystem again.
+    async fn ensure_asr_model_loaded(
+        self: &Arc<Self>,
+        app: &AppHandle<R>,
+    ) -> Result<Arc<dyn RecognizerFactory>, AsrError> {
+        let cached = self
+            .lock_asr_model()
+            .map_err(|_| {
+                AsrError::new(AsrErrorKind::Internal, "asr model cache mutex was poisoned")
+            })?
+            .clone();
+        if let Some(factory) = cached {
+            return Ok(factory);
+        }
+
+        let _ = self.set_model_status(
+            app,
+            ModelStatus::Loading {
+                model_id: Some(DEVELOPMENT_MANIFEST.model_id.to_string()),
+            },
+        );
+
+        let dir = resolve_model_dir(app)?;
+        let loader = self.asr_loader.clone();
+        let load_result = tauri::async_runtime::spawn_blocking(move || loader.load(&dir)).await;
+
+        let result = match load_result {
+            Ok(inner) => inner,
+            Err(_join_error) => Err(AsrError::new(
+                AsrErrorKind::Internal,
+                "model load task panicked",
+            )),
+        };
+
+        match &result {
+            Ok(factory) => {
+                if let Ok(mut guard) = self.lock_asr_model() {
+                    *guard = Some(factory.clone());
+                }
+                let _ = self.set_model_status(
+                    app,
+                    ModelStatus::Ready {
+                        model_id: DEVELOPMENT_MANIFEST.model_id.to_string(),
+                    },
+                );
+            }
+            Err(error) => {
+                let _ = self.set_model_status(app, model_status_for_asr_error(error));
+            }
+        }
+        result
+    }
+
+    /// Starts (or restarts) microphone capture with local ASR transcription.
+    /// Rejects concurrent starts; otherwise transitions `idle`/`error` ->
+    /// `starting` synchronously, loads the pinned development model on
+    /// first use, performs native microphone work (which may block on the
+    /// macOS permission prompt) off the caller's async task, opens a fresh
+    /// recognizer stream and ASR worker, and only then commits `listening`
+    /// — unless a concurrent Stop invalidated this attempt in the
+    /// meantime, in which case every resource it built is released
     /// without touching state further.
     pub async fn start_microphone(
         self: &Arc<Self>,
@@ -215,6 +354,19 @@ impl<R: Runtime> RuntimeManager<R> {
         };
         self.emit_capture_status(&app)?;
         self.emit_audio_status(&app, TranscriptSource::Microphone)?;
+
+        let factory = match self.ensure_asr_model_loaded(&app).await {
+            Ok(factory) => factory,
+            Err(asr_error) => {
+                return self
+                    .fail_starting(&app, generation, map_asr_error(&asr_error))
+                    .await;
+            }
+        };
+
+        if self.generation.load(Ordering::SeqCst) != generation {
+            return Err(RuntimeError::capture_not_active());
+        }
 
         let backend = self.backend.clone();
         let device_for_blocking = device_id.clone();
@@ -250,13 +402,47 @@ impl<R: Runtime> RuntimeManager<R> {
             return Err(RuntimeError::capture_not_active());
         }
 
+        let format = capture.format;
+        let chunk_capacity =
+            crate::asr::chunk_pool::asr_chunk_capacity_for_rate(format.sample_rate_hz.get());
+        let (asr_producer, asr_consumer) = build_asr_pool(chunk_capacity);
+
+        let stream = match factory.open_stream(format) {
+            Ok(stream) => stream,
+            Err(asr_error) => {
+                let MicrophoneCaptureHandle { mut session, .. } = capture;
+                let _ = session.stop();
+                return self
+                    .fail_starting(&app, generation, map_asr_error(&asr_error))
+                    .await;
+            }
+        };
+
+        let session_id = self.session_counter.fetch_add(1, Ordering::SeqCst) + 1;
+        let asr_observer: Arc<dyn AsrWorkerObserver> = Arc::new(RuntimeAsrObserver {
+            manager: self.clone(),
+            app: app.clone(),
+            generation,
+        });
+        let asr_worker = AsrWorker::spawn(
+            asr_consumer,
+            stream,
+            format.sample_rate_hz.get(),
+            session_id,
+            asr_observer,
+        );
+
+        let asr_feeder = AsrChunkFeeder::new(asr_producer, chunk_capacity);
         let observer: Arc<dyn MicrophoneMonitorObserver> = Arc::new(RuntimeMonitorObserver {
             manager: self.clone(),
             app: app.clone(),
             generation,
         });
-        let monitor = MicrophoneMonitor::spawn(capture, observer);
-        *self.lock_session()? = Some(ActiveMicrophoneSession { monitor });
+        let monitor = MicrophoneMonitor::spawn(capture, observer, asr_feeder);
+        *self.lock_session()? = Some(ActiveMicrophoneSession {
+            monitor,
+            asr_worker,
+        });
 
         let status = {
             let mut state = self.lock_state()?;
@@ -294,7 +480,7 @@ impl<R: Runtime> RuntimeManager<R> {
 
     /// Stops capture. Idle rejects with `capture_not_active`; every other
     /// state (starting/listening/stopping/error) releases any active
-    /// session and settles into idle.
+    /// session (ASR worker then microphone monitor) and settles into idle.
     pub async fn stop_microphone(
         self: &Arc<Self>,
         app: AppHandle<R>,
@@ -314,9 +500,17 @@ impl<R: Runtime> RuntimeManager<R> {
         self.emit_capture_status(&app)?;
 
         if let Some(active) = existing {
-            tauri::async_runtime::spawn_blocking(move || active.monitor.stop())
-                .await
-                .map_err(|_| RuntimeError::internal("microphone stop task panicked"))?;
+            tauri::async_runtime::spawn_blocking(move || {
+                // The monitor's teardown flushes any partial ASR chunk and
+                // marks the chunk stream finished (via `AsrChunkFeeder`'s
+                // `Drop`), which is what lets the worker's own bounded
+                // finish drain below terminate promptly instead of parking
+                // until its next tick.
+                active.monitor.stop();
+                active.asr_worker.stop();
+            })
+            .await
+            .map_err(|_| RuntimeError::internal("microphone stop task panicked"))?;
         }
 
         let status = {
@@ -388,7 +582,8 @@ impl<R: Runtime> MicrophoneMonitorObserver for RuntimeMonitorObserver<R> {
             return;
         }
         // Drop our own session entry so a subsequent Stop does not try to
-        // join a monitor thread that has already exited on its own.
+        // join a monitor thread that has already exited on its own. This
+        // also joins and releases the paired ASR worker.
         if let Ok(mut session) = self.manager.session.lock() {
             session.take();
         }
@@ -414,11 +609,94 @@ impl<R: Runtime> MicrophoneMonitorObserver for RuntimeMonitorObserver<R> {
     }
 }
 
+/// Bridges the ASR worker thread to Tauri state/events. Every method is
+/// called directly on the worker thread, so it must stay cheap,
+/// non-blocking, and panic-free. Never logs recognized text.
+struct RuntimeAsrObserver<R: Runtime> {
+    manager: Arc<RuntimeManager<R>>,
+    app: AppHandle<R>,
+    generation: u64,
+}
+
+impl<R: Runtime> RuntimeAsrObserver<R> {
+    fn is_current(&self) -> bool {
+        self.manager.generation.load(Ordering::SeqCst) == self.generation
+    }
+}
+
+impl<R: Runtime> AsrWorkerObserver for RuntimeAsrObserver<R> {
+    fn on_partial(&self, segment_id: &str, text: &str, started_at_ms: u64) {
+        if !self.is_current() {
+            return;
+        }
+        let segment = TranscriptSegment {
+            id: segment_id.to_string(),
+            source: TranscriptSource::Microphone,
+            text: text.to_string(),
+            started_at_ms,
+            ended_at_ms: None,
+            is_final: false,
+        };
+        let _ = events::emit_transcript_partial(&self.app, &segment);
+    }
+
+    fn on_final(&self, segment_id: &str, text: &str, started_at_ms: u64, ended_at_ms: u64) {
+        if !self.is_current() {
+            return;
+        }
+        let segment = TranscriptSegment {
+            id: segment_id.to_string(),
+            source: TranscriptSource::Microphone,
+            text: text.to_string(),
+            started_at_ms,
+            ended_at_ms: Some(ended_at_ms),
+            is_final: true,
+        };
+        let _ = events::emit_transcript_final(&self.app, &segment);
+    }
+
+    fn on_lagging(&self) {
+        if !self.is_current() {
+            return;
+        }
+        let error = RuntimeError::new(
+            RuntimeErrorCode::InferenceLagging,
+            "local transcription is falling behind; some audio was dropped",
+            true,
+        )
+        .with_source(TranscriptSource::Microphone);
+        let _ = events::emit_capture_error(&self.app, &error);
+    }
+
+    fn on_error(&self, error: AsrError) {
+        if !self.is_current() {
+            return;
+        }
+        if let Ok(mut session) = self.manager.session.lock() {
+            session.take();
+        }
+
+        let runtime_error = map_asr_error(&error);
+        if let Ok(mut state) = self.manager.state.lock() {
+            let _ = state.apply_microphone_status(AudioSourceStatus::Error {
+                error: runtime_error.clone(),
+            });
+            let _ = state.apply_capture_status(CaptureStatus::Error);
+        }
+        let _ = self
+            .manager
+            .emit_audio_status(&self.app, TranscriptSource::Microphone);
+        let _ = self.manager.emit_capture_status(&self.app);
+        let _ = events::emit_capture_error(&self.app, &runtime_error);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::audio::microphone::NativeMicrophoneDevice;
     use parking_lot::Mutex as PlMutex;
+    use std::path::Path;
     use std::sync::mpsc as std_mpsc;
     use std::time::Duration;
 
@@ -493,16 +771,75 @@ mod tests {
         }
     }
 
+    /// A fake recognizer stream used only by tests: never touches
+    /// sherpa-onnx, emits nothing unless scripted.
+    struct FakeStream;
+    impl crate::asr::StreamingRecognizer for FakeStream {
+        fn accept(&mut self, _samples: &[f32]) -> Result<(), AsrError> {
+            Ok(())
+        }
+        fn poll(&mut self, _out: &mut Vec<crate::asr::RecognizedSegment>) -> Result<(), AsrError> {
+            Ok(())
+        }
+        fn finish(
+            &mut self,
+            _out: &mut Vec<crate::asr::RecognizedSegment>,
+        ) -> Result<(), AsrError> {
+            Ok(())
+        }
+    }
+
+    struct FakeRecognizerFactory;
+    impl RecognizerFactory for FakeRecognizerFactory {
+        fn open_stream(
+            &self,
+            _format: crate::audio::PcmFormat,
+        ) -> Result<Box<dyn crate::asr::StreamingRecognizer>, AsrError> {
+            Ok(Box::new(FakeStream))
+        }
+    }
+
+    /// A deterministic model loader for tests: never touches the
+    /// filesystem or sherpa-onnx. Configurable to fail once so Start's
+    /// model-load failure path can be exercised.
+    #[derive(Default)]
+    struct FakeAsrModelLoader {
+        next_load_error: PlMutex<Option<AsrError>>,
+        load_calls: Arc<std::sync::atomic::AtomicUsize>,
+    }
+    impl AsrModelLoader for FakeAsrModelLoader {
+        fn load(&self, _dir: &Path) -> Result<Arc<dyn RecognizerFactory>, AsrError> {
+            self.load_calls
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if let Some(error) = self.next_load_error.lock().take() {
+                return Err(error);
+            }
+            Ok(Arc::new(FakeRecognizerFactory))
+        }
+    }
+
     fn manager_with(
         backend: FakeMicrophoneBackend,
     ) -> (
         Arc<RuntimeManager<tauri::test::MockRuntime>>,
         tauri::App<tauri::test::MockRuntime>,
     ) {
+        manager_with_loader(backend, FakeAsrModelLoader::default())
+    }
+
+    fn manager_with_loader(
+        backend: FakeMicrophoneBackend,
+        loader: FakeAsrModelLoader,
+    ) -> (
+        Arc<RuntimeManager<tauri::test::MockRuntime>>,
+        tauri::App<tauri::test::MockRuntime>,
+    ) {
+        crate::test_support::ensure_model_dir_env();
         let app = tauri::test::mock_app();
-        let manager = Arc::new(RuntimeManager::<tauri::test::MockRuntime>::new(Arc::new(
-            backend,
-        )));
+        let manager = Arc::new(RuntimeManager::<tauri::test::MockRuntime>::new(
+            Arc::new(backend),
+            Arc::new(loader),
+        ));
         (manager, app)
     }
 
@@ -520,6 +857,10 @@ mod tests {
             assert!(matches!(
                 manager.snapshot().unwrap().microphone,
                 AudioSourceStatus::Capturing { .. }
+            ));
+            assert!(matches!(
+                manager.snapshot().unwrap().model_status,
+                ModelStatus::Ready { .. }
             ));
 
             let status = manager
@@ -556,6 +897,56 @@ mod tests {
 
             assert_eq!(starts.load(std::sync::atomic::Ordering::SeqCst), 2);
             assert_eq!(stopped.load(std::sync::atomic::Ordering::SeqCst), 2);
+        });
+    }
+
+    #[test]
+    fn model_loads_exactly_once_across_repeated_starts() {
+        tauri::async_runtime::block_on(async {
+            let backend = FakeMicrophoneBackend::default();
+            let loader = FakeAsrModelLoader::default();
+            let load_calls = loader.load_calls.clone();
+            let (manager, app) = manager_with_loader(backend, loader);
+            let handle = app.handle().clone();
+
+            for _ in 0..3 {
+                manager
+                    .start_microphone(handle.clone(), None)
+                    .await
+                    .expect("start succeeds");
+                manager
+                    .stop_microphone(handle.clone())
+                    .await
+                    .expect("stop succeeds");
+            }
+
+            assert_eq!(load_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        });
+    }
+
+    #[test]
+    fn model_load_failure_rejects_start_before_touching_the_microphone() {
+        tauri::async_runtime::block_on(async {
+            let backend = FakeMicrophoneBackend::default();
+            let starts = backend.start_calls.clone();
+            let loader = FakeAsrModelLoader::default();
+            *loader.next_load_error.lock() = Some(AsrError::new(
+                AsrErrorKind::ModelMissing,
+                "expected model file at /nonexistent",
+            ));
+            let (manager, app) = manager_with_loader(backend, loader);
+            let handle = app.handle().clone();
+
+            let error = manager
+                .start_microphone(handle, None)
+                .await
+                .expect_err("missing model rejects start");
+            assert_eq!(error.code, RuntimeErrorCode::ModelMissing);
+            assert_eq!(starts.load(std::sync::atomic::Ordering::SeqCst), 0);
+            assert!(matches!(
+                manager.snapshot().unwrap().model_status,
+                ModelStatus::Missing
+            ));
         });
     }
 

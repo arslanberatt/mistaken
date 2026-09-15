@@ -36,18 +36,22 @@ pub struct MicrophoneMonitor {
 
 impl MicrophoneMonitor {
     /// Spawns the monitor loop for one active capture. Takes ownership of
-    /// the capture handle (session + pool consumer + fault flag) for its
-    /// entire lifetime; nothing else may touch them concurrently.
+    /// the capture handle (session + pool consumer + fault flag) and the
+    /// ASR chunk feeder for its entire lifetime; nothing else may touch
+    /// them concurrently. Every drained block is copied into the ASR
+    /// feeder (Spec 06's second bounded stage) before its buffer is
+    /// recycled back to Spec 04's pool.
     pub fn spawn(
         capture: MicrophoneCaptureHandle,
         observer: Arc<dyn MicrophoneMonitorObserver>,
+        asr_feeder: crate::asr::chunk_pool::AsrChunkFeeder,
     ) -> Self {
         let stop_flag = Arc::new(AtomicBool::new(false));
         let thread_stop_flag = stop_flag.clone();
 
         let join = thread::Builder::new()
             .name("mistaken-mic-monitor".into())
-            .spawn(move || run(capture, observer, thread_stop_flag))
+            .spawn(move || run(capture, observer, thread_stop_flag, asr_feeder))
             .expect("failed to spawn microphone monitor thread");
 
         Self {
@@ -94,6 +98,7 @@ fn run(
     mut capture: MicrophoneCaptureHandle,
     observer: Arc<dyn MicrophoneMonitorObserver>,
     stop_flag: Arc<AtomicBool>,
+    mut asr_feeder: crate::asr::chunk_pool::AsrChunkFeeder,
 ) {
     let mut signaled = false;
     let mut last_overflow_report: Option<Instant> = None;
@@ -112,8 +117,9 @@ fn run(
         while let Some(block) = capture.consumer.try_recv() {
             drained_any = true;
 
+            let valid = &block.samples[..block.valid_samples];
             if !signaled {
-                let peak = block.samples[..block.valid_samples]
+                let peak = valid
                     .iter()
                     .fold(0.0_f32, |max, sample| max.max(sample.abs()));
                 if peak >= SIGNAL_THRESHOLD {
@@ -121,6 +127,10 @@ fn run(
                     observer.on_first_signal();
                 }
             }
+            // Copy into the current ASR chunk before recycling the Spec
+            // 04 buffer, so inference latency can never stall capture
+            // recycling: this call is allocation-free and non-blocking.
+            asr_feeder.accept(valid);
 
             // A recycle failure is an internal pool invariant violation:
             // end the session rather than silently shrinking the pool.
@@ -159,6 +169,11 @@ mod tests {
     use crate::audio::{AudioCaptureSession, AudioError, AudioSource, PcmBlockSink};
     use parking_lot::Mutex;
     use std::sync::atomic::AtomicUsize;
+
+    fn test_asr_feeder() -> crate::asr::chunk_pool::AsrChunkFeeder {
+        let (producer, _consumer) = crate::asr::chunk_pool::build_asr_pool(4);
+        crate::asr::chunk_pool::AsrChunkFeeder::new(producer, 4)
+    }
 
     struct FakeSession {
         stopped: Arc<AtomicBool>,
@@ -233,7 +248,7 @@ mod tests {
         let (mut producer, consumer) = build_pool(4);
         let (handle, stopped) = handle_with(consumer);
         let observer = Arc::new(RecordingObserver::default());
-        let monitor = MicrophoneMonitor::spawn(handle, observer.clone());
+        let monitor = MicrophoneMonitor::spawn(handle, observer.clone(), test_asr_feeder());
 
         // Below threshold: no signal.
         let mut buf = producer.try_acquire().unwrap();
@@ -262,7 +277,7 @@ mod tests {
         let (_producer, consumer) = build_pool(4);
         let (handle, stopped) = handle_with(consumer);
         let observer = Arc::new(RecordingObserver::default());
-        let monitor = MicrophoneMonitor::spawn(handle, observer);
+        let monitor = MicrophoneMonitor::spawn(handle, observer, test_asr_feeder());
 
         assert!(!stopped.load(Ordering::SeqCst));
         monitor.stop();
@@ -275,7 +290,7 @@ mod tests {
         let (handle, stopped) = handle_with(consumer);
         let observer = Arc::new(RecordingObserver::default());
         {
-            let _monitor = MicrophoneMonitor::spawn(handle, observer);
+            let _monitor = MicrophoneMonitor::spawn(handle, observer, test_asr_feeder());
         }
         assert!(stopped.load(Ordering::SeqCst));
     }
@@ -316,7 +331,7 @@ mod tests {
             done: done_tx,
         });
         let dyn_observer: Arc<dyn MicrophoneMonitorObserver> = observer.clone();
-        let monitor = MicrophoneMonitor::spawn(handle, dyn_observer);
+        let monitor = MicrophoneMonitor::spawn(handle, dyn_observer, test_asr_feeder());
         *observer.slot.lock() = Some(monitor);
 
         fault.set();
@@ -343,7 +358,7 @@ mod tests {
         let (handle, stopped) = handle_with(consumer);
         let fault = handle.fault.clone();
         let observer = Arc::new(RecordingObserver::default());
-        let monitor = MicrophoneMonitor::spawn(handle, observer.clone());
+        let monitor = MicrophoneMonitor::spawn(handle, observer.clone(), test_asr_feeder());
 
         fault.set();
         std::thread::sleep(Duration::from_millis(80));

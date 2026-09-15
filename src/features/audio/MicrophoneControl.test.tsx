@@ -11,12 +11,9 @@ function makeController(
     devices: [{ id: "a", label: "Built-in Microphone", isDefault: true }],
     selectedDeviceId: "a",
     listState: "ready",
-    commandPending: null,
     error: null,
     refresh: vi.fn(),
     selectDevice: vi.fn(),
-    startTest: vi.fn(),
-    stopTest: vi.fn(),
     ...overrides,
   };
 }
@@ -34,10 +31,10 @@ describe("MicrophoneControl", () => {
 
     expect(screen.getByText("Connecting to local audio…")).toBeInTheDocument();
     expect(screen.getByRole("combobox")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Test microphone" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeDisabled();
   });
 
-  it("shows the no-devices state with Refresh enabled and Test disabled", () => {
+  it("shows the no-devices state with Refresh enabled", () => {
     render(
       <MicrophoneControl
         bridgeReady={true}
@@ -49,10 +46,10 @@ describe("MicrophoneControl", () => {
 
     expect(screen.getByText("No microphone found.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Test microphone" })).toBeDisabled();
+    expect(screen.getByRole("combobox")).toBeDisabled();
   });
 
-  it("shows the ready state with a real device label and an enabled Test action", () => {
+  it("shows the ready state with a real device label", () => {
     render(
       <MicrophoneControl
         bridgeReady={true}
@@ -62,12 +59,12 @@ describe("MicrophoneControl", () => {
       />,
     );
 
-    expect(screen.getByText("Ready to test locally.")).toBeInTheDocument();
+    expect(screen.getByText("Ready.")).toBeInTheDocument();
     expect(screen.getByText("Built-in Microphone (default)")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Test microphone" })).toBeEnabled();
+    expect(screen.getByRole("combobox")).toBeEnabled();
   });
 
-  it("shows waiting activity with Stop test enabled and no receiving claim", () => {
+  it("shows waiting activity and disables the selector while capturing", () => {
     const status: AudioSourceStatus = {
       status: "capturing",
       deviceId: "a",
@@ -83,7 +80,7 @@ describe("MicrophoneControl", () => {
     );
 
     expect(screen.getByText("Waiting for microphone signal…")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Stop test" })).toBeEnabled();
+    expect(screen.getByRole("combobox")).toBeDisabled();
   });
 
   it("shows receiving activity once a real signal arrives", () => {
@@ -101,10 +98,10 @@ describe("MicrophoneControl", () => {
       />,
     );
 
-    expect(screen.getByText("PCM signal received")).toBeInTheDocument();
+    expect(screen.getByText("Microphone active")).toBeInTheDocument();
   });
 
-  it("shows the overflow warning instead of the receiving message while capturing", () => {
+  it("shows the overflow warning instead of the active message while capturing", () => {
     const status: AudioSourceStatus = {
       status: "capturing",
       deviceId: "a",
@@ -120,11 +117,11 @@ describe("MicrophoneControl", () => {
     );
 
     expect(
-      screen.getByText("Microphone input is delayed; some audio was dropped."),
+      screen.getByText("Local transcription is delayed; some audio was dropped."),
     ).toBeInTheDocument();
   });
 
-  it("shows exact permission-denied guidance and disables Test until Refresh", () => {
+  it("shows exact permission-denied guidance and keeps the selector usable", () => {
     const platformSpy = vi
       .spyOn(window.navigator, "platform", "get")
       .mockReturnValue("MacIntel");
@@ -147,7 +144,7 @@ describe("MicrophoneControl", () => {
         />,
       );
 
-      expect(screen.getByRole("button", { name: "Test microphone" })).toBeDisabled();
+      expect(screen.getByText("Microphone access is off.")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeEnabled();
       expect(screen.getByText(/Enable Mistaken in System Settings/)).toBeInTheDocument();
     } finally {
@@ -155,7 +152,7 @@ describe("MicrophoneControl", () => {
     }
   });
 
-  it("shows Windows settings guidance for a denied-access start failure and allows retry", () => {
+  it("shows Windows settings guidance for a denied-access start failure", () => {
     // Verified on real Windows 10 22H2 hardware: turning off "Let desktop
     // apps access your microphone" surfaces through WASAPI/CPAL as an
     // unclassified start failure, never as microphone_permission_denied,
@@ -189,8 +186,7 @@ describe("MicrophoneControl", () => {
           "Check Settings → Privacy & security → Microphone → Let desktop apps access your microphone.",
         ),
       ).toBeInTheDocument();
-      // The user can act on the guidance and retry without a relaunch.
-      expect(screen.getByRole("button", { name: "Test microphone" })).toBeEnabled();
+      expect(screen.getByRole("combobox")).toBeEnabled();
       expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeEnabled();
     } finally {
       platformSpy.mockRestore();
@@ -244,9 +240,7 @@ describe("MicrophoneControl", () => {
       />,
     );
 
-    expect(
-      screen.getByText("the selected microphone was disconnected"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("the selected microphone was disconnected")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeEnabled();
   });
 
@@ -254,14 +248,30 @@ describe("MicrophoneControl", () => {
     render(
       <MicrophoneControl
         bridgeReady={true}
-        controller={makeController({ commandPending: "start" })}
+        controller={makeController()}
         microphoneStatus={{ status: "starting", deviceId: "a" }}
         overflowWarning={false}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Starting test…" })).toBeDisabled();
+    expect(screen.getByText("Starting…")).toBeInTheDocument();
     expect(screen.getByRole("combobox")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh microphones" })).toBeDisabled();
+  });
+
+  it("always shows the non-release development-adapter explanation", () => {
+    render(
+      <MicrophoneControl
+        bridgeReady={true}
+        controller={makeController()}
+        microphoneStatus={{ status: "idle" }}
+        overflowWarning={false}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Speech is transcribed locally for development/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not release approved/)).toBeInTheDocument();
   });
 });
