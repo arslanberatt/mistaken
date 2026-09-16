@@ -1861,6 +1861,10 @@ mod tests {
         /// which is consumed after one call). Used to simulate a
         /// persistently flapping device across every recovery attempt.
         always_fail_kind: PlMutex<Option<AudioErrorKind>>,
+        /// Handed to the next constructed `FakeSession`, whose `stop()`
+        /// blocks on it. Used to induce a controlled real teardown hang
+        /// for the stopping-watchdog regression test.
+        stop_gate: PlMutex<Option<std_mpsc::Receiver<()>>>,
         stopped_sessions: Arc<AtomicUsize>,
         start_calls: Arc<AtomicUsize>,
     }
@@ -1872,6 +1876,7 @@ mod tests {
                 start_gate: PlMutex::new(None),
                 next_start_error: PlMutex::new(None),
                 always_fail_kind: PlMutex::new(None),
+                stop_gate: PlMutex::new(None),
                 stopped_sessions: Arc::new(AtomicUsize::new(0)),
                 start_calls: Arc::new(AtomicUsize::new(0)),
             }
@@ -1881,6 +1886,7 @@ mod tests {
     struct FakeSession {
         stopped_sessions: Arc<AtomicUsize>,
         source: AudioSource,
+        stop_gate: PlMutex<Option<std_mpsc::Receiver<()>>>,
     }
 
     impl AudioCaptureSession for FakeSession {
@@ -1888,6 +1894,9 @@ mod tests {
             self.source
         }
         fn stop(&mut self) -> Result<(), AudioError> {
+            if let Some(gate) = self.stop_gate.lock().take() {
+                let _ = gate.recv();
+            }
             self.stopped_sessions.fetch_add(1, Ordering::SeqCst);
             Ok(())
         }
@@ -1921,6 +1930,7 @@ mod tests {
                 session: Box::new(FakeSession {
                     stopped_sessions: self.stopped_sessions.clone(),
                     source: AudioSource::Microphone,
+                    stop_gate: PlMutex::new(self.stop_gate.lock().take()),
                 }),
                 consumer,
                 fault: Arc::new(crate::audio::microphone::StreamFault::default()),
@@ -1972,6 +1982,7 @@ mod tests {
             Ok(Box::new(FakeSession {
                 stopped_sessions: self.stopped_sessions.clone(),
                 source: AudioSource::System,
+                stop_gate: PlMutex::new(None),
             }))
         }
 
@@ -2665,6 +2676,57 @@ mod tests {
             assert_eq!(snap.capture_status, CaptureStatus::Error);
             let counters = manager.recovery_counters(AudioSource::Microphone);
             assert_eq!(counters.watchdog_expiries, 1);
+        });
+    }
+
+    #[test]
+    fn stopping_watchdog_force_commits_idle_when_teardown_hangs() {
+        tauri::async_runtime::block_on(async {
+            let app = test_app();
+            let mic_backend = Arc::new(FakeMicrophoneBackend::default());
+            let sys_backend = Arc::new(FakeSystemBackend::default());
+            let loader = Arc::new(FakeModelLoader::success());
+
+            let policy = RecoveryPolicy {
+                stopping_watchdog: Duration::from_millis(50),
+                ..fast_test_policy()
+            };
+            let manager = Arc::new(RuntimeManager::new_with_policy(
+                mic_backend.clone(),
+                sys_backend,
+                loader,
+                policy,
+            ));
+
+            let (_stop_gate_tx, stop_gate_rx) = std_mpsc::channel::<()>();
+            *mic_backend.stop_gate.lock() = Some(stop_gate_rx); // never signaled: session.stop() blocks forever
+
+            manager
+                .start_capture(app.clone(), Some("mic-1".into()), false)
+                .await
+                .unwrap();
+
+            // Fire-and-forget: the underlying `FakeSession::stop()` call
+            // never returns, so a command awaiting `stop_capture` directly
+            // would hang forever too. The watchdog's job is to make the
+            // *state* terminal (Idle) on its own within the bound
+            // regardless, while the stuck background task keeps running
+            // harmlessly.
+            let manager_for_task = manager.clone();
+            let app_for_task = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = manager_for_task.stop_capture(app_for_task).await;
+            });
+
+            std::thread::sleep(Duration::from_millis(300));
+
+            let snap = manager.snapshot().unwrap();
+            assert_eq!(
+                snap.capture_status,
+                CaptureStatus::Idle,
+                "the stopping watchdog must force Idle even though the underlying \
+                 teardown call is still hanging in the background"
+            );
         });
     }
 }
