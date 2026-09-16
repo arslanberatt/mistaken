@@ -237,9 +237,10 @@ export function TranscriptWorkspace({
   const startDisabledForIdle =
     captureStatus === "idle" && captureAction.disabled;
 
+  const canCopy = hasFinalContent && copyState !== "pending";
   useWorkspaceShortcuts({
     onToggleCapture: captureAction.onClick,
-    onCopyAll: handleCopy,
+    onCopyAll: canCopy ? handleCopy : undefined,
     onCancelClearConfirmation: clearConfirming ? handleClearCancel : undefined,
   });
 

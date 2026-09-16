@@ -3,20 +3,23 @@
  * platform-correct `Cmd/Ctrl + Enter` toggles capture, `Cmd/Ctrl + Shift +
  * C` copies, and `Escape` cancels an open Clear confirmation. Every
  * handler is the exact function the corresponding button already calls —
- * this hook adds no alternate code path or disabled-state duplication,
- * since a `undefined` action is simply not invoked and each callback's
- * own guard (pending/disabled) governs the rest.
+ * this hook adds no alternate code path or disabled-state duplication.
  *
- * `preventDefault()` is called only for a recognized combination, so
- * native selection, platform copy/select-all, and text navigation inside
- * the transcript are never touched for anything else. A thrown handler is
- * caught so one failure can never unregister the listener.
+ * `preventDefault()` is called **only** when a handler for the matched
+ * combination is actually defined, i.e. the action is currently
+ * available. When `onToggleCapture`/`onCopyAll` is `undefined` (the
+ * action is disabled or already pending), the event is left completely
+ * untouched — the same as any other unhandled combination — so it never
+ * silently swallows a native shortcut (notably the development-webview
+ * devtools-inspector collision on `Cmd/Ctrl+Shift+C`) for an action that
+ * produced no visible effect. A thrown handler is caught so one failure
+ * can never unregister the listener.
  */
 import { useEffect, useRef } from "react";
 
 export interface WorkspaceShortcutHandlers {
   readonly onToggleCapture: (() => void) | undefined;
-  readonly onCopyAll: () => void;
+  readonly onCopyAll: (() => void) | undefined;
   readonly onCancelClearConfirmation: (() => void) | undefined;
 }
 
@@ -56,14 +59,20 @@ export function useWorkspaceShortcuts(handlers: WorkspaceShortcutHandlers): void
         }
 
         if (event.key === "Enter") {
-          event.preventDefault();
-          handlersRef.current.onToggleCapture?.();
+          const toggle = handlersRef.current.onToggleCapture;
+          if (toggle) {
+            event.preventDefault();
+            toggle();
+          }
           return;
         }
 
         if (event.shiftKey && event.key.toLowerCase() === "c") {
-          event.preventDefault();
-          handlersRef.current.onCopyAll();
+          const copy = handlersRef.current.onCopyAll;
+          if (copy) {
+            event.preventDefault();
+            copy();
+          }
         }
       } catch {
         // A handler failure must never unregister this listener or hang

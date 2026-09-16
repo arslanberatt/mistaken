@@ -9,16 +9,16 @@ function dispatch(init: Partial<KeyboardEventInit> & { key: string }): boolean {
 
 function renderShortcuts(overrides: {
   onToggleCapture?: (() => void) | undefined;
-  onCopyAll?: () => void;
+  onCopyAll?: (() => void) | undefined;
   onCancelClearConfirmation?: (() => void) | undefined;
 } = {}) {
   const onToggleCapture = "onToggleCapture" in overrides ? overrides.onToggleCapture : vi.fn();
-  const onCopyAll = overrides.onCopyAll ?? vi.fn();
+  const onCopyAll = "onCopyAll" in overrides ? overrides.onCopyAll : vi.fn();
   const onCancelClearConfirmation = overrides.onCancelClearConfirmation;
   const utils = renderHook(
     (props: {
       onToggleCapture: (() => void) | undefined;
-      onCopyAll: () => void;
+      onCopyAll: (() => void) | undefined;
       onCancelClearConfirmation: (() => void) | undefined;
     }) => useWorkspaceShortcuts(props),
     { initialProps: { onToggleCapture, onCopyAll, onCancelClearConfirmation } },
@@ -66,11 +66,23 @@ describe("useWorkspaceShortcuts on macOS", () => {
     expect(onCopyAll).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores Cmd+Enter while the toggle action is unavailable, without throwing", () => {
+  it("ignores Cmd+Enter while the toggle action is unavailable, without throwing or preventing default", () => {
     const { onToggleCapture } = renderOnMac({ onToggleCapture: undefined });
-    expect(() => dispatch({ key: "Enter", metaKey: true })).not.toThrow();
+    let notPrevented = false;
+    expect(() => {
+      notPrevented = dispatch({ key: "Enter", metaKey: true });
+    }).not.toThrow();
     expect(onToggleCapture).toBeUndefined();
+    expect(notPrevented).toBe(true);
   });
+
+  it("ignores Cmd+Shift+C while Copy All is unavailable, without preventing default", () => {
+    const { onCopyAll } = renderOnMac({ onCopyAll: undefined });
+    const notPrevented = dispatch({ key: "C", metaKey: true, shiftKey: true });
+    expect(onCopyAll).toBeUndefined();
+    expect(notPrevented).toBe(true);
+  });
+
 
   it("ignores repeated key events", () => {
     const { onToggleCapture } = renderOnMac();

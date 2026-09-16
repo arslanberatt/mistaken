@@ -441,14 +441,25 @@ describe("TranscriptWorkspace keyboard shortcuts", () => {
     expect(onStartRequested).not.toHaveBeenCalled();
   });
 
-  it("ignores the shortcut while Start Listening is disabled", () => {
+  it("ignores the shortcut while Start Listening is disabled, without preventing default", () => {
     stubPlatform(true);
     const onStartRequested = vi.fn();
     renderWorkspace({ captureStatus: "idle", canStart: false, onStartRequested });
 
-    fireEvent.keyDown(window, { key: "Enter", metaKey: true });
+    const notPrevented = fireEvent.keyDown(window, { key: "Enter", metaKey: true });
     expect(onStartRequested).not.toHaveBeenCalled();
+    expect(notPrevented).toBe(true);
   });
+
+  it("ignores Cmd+Shift+C while Copy All is disabled, without preventing default", () => {
+    stubPlatform(true);
+    renderWorkspace({ segments: [] });
+
+    const notPrevented = fireEvent.keyDown(window, { key: "C", metaKey: true, shiftKey: true });
+    expect(screen.queryByText("Copied")).not.toBeInTheDocument();
+    expect(notPrevented).toBe(true);
+  });
+
 
   it("Ctrl+Enter toggles capture on a Windows platform instead of Cmd+Enter", () => {
     stubPlatform(false);
