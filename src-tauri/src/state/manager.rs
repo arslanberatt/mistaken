@@ -1185,7 +1185,7 @@ impl<R: Runtime> RuntimeManager<R> {
         self: &Arc<Self>,
         app: AppHandle<R>,
     ) -> Result<CaptureStatus, RuntimeError> {
-        self.generation.fetch_add(1, Ordering::SeqCst);
+        let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
 
         if self.lock_state()?.capture_status() == CaptureStatus::Idle {
             return Err(RuntimeError::capture_not_active());
@@ -1208,6 +1208,15 @@ impl<R: Runtime> RuntimeManager<R> {
             completed.store(true, Ordering::Release);
         }
 
+        // A stopping watchdog may already have force-committed Idle (see
+        // `arm_stopping_watchdog`) while the real teardown above was still
+        // hanging, and a newer Start or Stop may already own the session
+        // by the time it finally returns. This call's own resource
+        // release already ran correctly above; it must not also
+        // overwrite a newer generation's already-applied, visible status.
+        if self.generation.load(Ordering::SeqCst) != generation {
+            return Ok(CaptureStatus::Idle);
+        }
         let status = {
             let mut state = self.lock_state()?;
             let snap = state.snapshot();
@@ -1443,12 +1452,28 @@ impl<R: Runtime> RuntimeManager<R> {
                 }));
                 if outcome.is_err() {
                     panic_manager.counters.record_panic(source);
-                    panic_manager.commit_terminal(
-                        &panic_app,
-                        source,
-                        RuntimeError::internal("recovery supervisor panicked (contained)")
-                            .with_source(TranscriptSource::from(source)),
-                    );
+                    // Defense in depth: every other background mutation in
+                    // this module (`fail_starting`, the watchdogs,
+                    // `handle_source_runtime_error`) checks `generation`
+                    // before committing a terminal/status change, because a
+                    // Stop or a new Start may already have superseded this
+                    // attempt. `run_recovery_attempt` itself already
+                    // re-checks generation immediately after every
+                    // await/blocking boundary it contains, so no injection
+                    // test could make this branch observably fire on a
+                    // stale generation today — but a panic can originate
+                    // from code with no nearby check (a future change, or a
+                    // real recognizer/OS panic this fake can't simulate),
+                    // so this boundary is guarded the same way as every
+                    // other one instead of being the sole exception.
+                    if panic_manager.generation.load(Ordering::SeqCst) == generation {
+                        panic_manager.commit_terminal(
+                            &panic_app,
+                            source,
+                            RuntimeError::internal("recovery supervisor panicked (contained)")
+                                .with_source(TranscriptSource::from(source)),
+                        );
+                    }
                 }
             })
             .expect("failed to spawn recovery supervisor thread");
@@ -1867,6 +1892,10 @@ mod tests {
         stop_gate: PlMutex<Option<std_mpsc::Receiver<()>>>,
         stopped_sessions: Arc<AtomicUsize>,
         start_calls: Arc<AtomicUsize>,
+        /// When set, `start()` panics instead of returning, after
+        /// clearing `start_gate` if one was set. Used only by the
+        /// supervisor-panic-wrapper generation-staleness regression test.
+        panic_on_start: std::sync::atomic::AtomicBool,
     }
 
     impl Default for FakeMicrophoneBackend {
@@ -1879,6 +1908,7 @@ mod tests {
                 stop_gate: PlMutex::new(None),
                 stopped_sessions: Arc::new(AtomicUsize::new(0)),
                 start_calls: Arc::new(AtomicUsize::new(0)),
+                panic_on_start: std::sync::atomic::AtomicBool::new(false),
             }
         }
     }
@@ -1912,6 +1942,9 @@ mod tests {
 
             if let Some(gate) = self.start_gate.lock().take() {
                 let _ = gate.recv();
+            }
+            if self.panic_on_start.load(Ordering::SeqCst) {
+                panic!("injected panic for supervisor panic-wrapper regression test");
             }
 
             if let Some(kind) = *self.always_fail_kind.lock() {
@@ -2007,12 +2040,23 @@ mod tests {
         }
     }
 
-    struct FakeRecognizerFactory;
+    struct FakeRecognizerFactory {
+        /// When set, `open_stream` panics instead of returning. Used only
+        /// by the recovery-supervisor panic-wrapper generation-staleness
+        /// regression test: unlike `FakeMicrophoneBackend::start`, this
+        /// call is not wrapped in `spawn_blocking`, so a panic here
+        /// propagates synchronously up through `run_recovery_attempt`
+        /// into `schedule_recovery`'s outer `catch_unwind`.
+        panic_on_open: Arc<std::sync::atomic::AtomicBool>,
+    }
     impl RecognizerFactory for FakeRecognizerFactory {
         fn open_stream(
             &self,
             _format: PcmFormat,
         ) -> Result<Box<dyn crate::asr::StreamingRecognizer>, AsrError> {
+            if self.panic_on_open.load(Ordering::SeqCst) {
+                panic!("injected panic for recovery-supervisor panic-wrapper regression test");
+            }
             Ok(Box::new(FakeStream))
         }
     }
@@ -2020,6 +2064,7 @@ mod tests {
     struct FakeModelLoader {
         fail_next: PlMutex<Option<AsrError>>,
         load_calls: Arc<AtomicUsize>,
+        panic_on_open: Arc<std::sync::atomic::AtomicBool>,
     }
 
     impl FakeModelLoader {
@@ -2027,6 +2072,7 @@ mod tests {
             Self {
                 fail_next: PlMutex::new(None),
                 load_calls: Arc::new(AtomicUsize::new(0)),
+                panic_on_open: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             }
         }
     }
@@ -2037,7 +2083,9 @@ mod tests {
             if let Some(err) = self.fail_next.lock().take() {
                 return Err(err);
             }
-            Ok(Arc::new(FakeRecognizerFactory))
+            Ok(Arc::new(FakeRecognizerFactory {
+                panic_on_open: self.panic_on_open.clone(),
+            }))
         }
     }
 
@@ -2726,6 +2774,209 @@ mod tests {
                 CaptureStatus::Idle,
                 "the stopping watchdog must force Idle even though the underlying \
                  teardown call is still hanging in the background"
+            );
+        });
+    }
+
+    #[test]
+    fn late_stop_completion_after_watchdog_does_not_clobber_a_newer_session() {
+        tauri::async_runtime::block_on(async {
+            let app = test_app();
+            let mic_backend = Arc::new(FakeMicrophoneBackend::default());
+            let sys_backend = Arc::new(FakeSystemBackend::default());
+            let loader = Arc::new(FakeModelLoader::success());
+
+            let policy = RecoveryPolicy {
+                stopping_watchdog: Duration::from_millis(50),
+                ..fast_test_policy()
+            };
+            let manager = Arc::new(RuntimeManager::new_with_policy(
+                mic_backend.clone(),
+                sys_backend,
+                loader,
+                policy,
+            ));
+
+            let (stop_gate_tx, stop_gate_rx) = std_mpsc::channel::<()>();
+            *mic_backend.stop_gate.lock() = Some(stop_gate_rx);
+
+            manager
+                .start_capture(app.clone(), Some("mic-1".into()), false)
+                .await
+                .unwrap();
+
+            // Fire-and-forget Stop: its underlying teardown blocks forever
+            // on `stop_gate_rx` until signaled below, exactly like the
+            // watchdog-hang test above.
+            let manager_for_task = manager.clone();
+            let app_for_task = app.clone();
+            let stop_task = tauri::async_runtime::spawn(async move {
+                let _ = manager_for_task.stop_capture(app_for_task).await;
+            });
+
+            // Let the stopping watchdog fire and force Idle while the real
+            // teardown is still hanging in the background.
+            std::thread::sleep(Duration::from_millis(150));
+            assert_eq!(
+                manager.snapshot().unwrap().capture_status,
+                CaptureStatus::Idle
+            );
+
+            // The user, seeing Idle, starts a brand new session while the
+            // old Stop call is still stuck awaiting its hung teardown.
+            manager
+                .start_capture(app.clone(), Some("mic-1".into()), false)
+                .await
+                .unwrap();
+            assert_eq!(
+                manager.snapshot().unwrap().capture_status,
+                CaptureStatus::Listening
+            );
+            assert_eq!(mic_backend.start_calls.load(Ordering::SeqCst), 2);
+
+            // Now let the old, superseded Stop's teardown finally complete.
+            stop_gate_tx.send(()).unwrap();
+            let _ = stop_task.await;
+            std::thread::sleep(Duration::from_millis(150));
+
+            // The late-finishing old Stop must not clobber the new
+            // session's visible state back to Idle.
+            let snap = manager.snapshot().unwrap();
+            assert_eq!(
+                snap.capture_status,
+                CaptureStatus::Listening,
+                "a Stop call superseded by the stopping watchdog and then a \
+                 new Start must not overwrite the new session's status when \
+                 its hung teardown finally completes"
+            );
+        });
+    }
+
+    #[test]
+    fn recovery_backend_start_panic_is_join_error_converted_and_generation_guarded() {
+        // `FakeMicrophoneBackend::start` runs inside `spawn_blocking`
+        // (`start_microphone_source`), so a panic there is converted to a
+        // `JoinError` -> `RuntimeError::internal(...)` and routed through
+        // the already generation-guarded `handle_source_runtime_error`
+        // path, never reaching `schedule_recovery`'s outer `catch_unwind`.
+        // This test pins that this specific boundary is already safe.
+        tauri::async_runtime::block_on(async {
+            let app = test_app();
+            let mic_backend = Arc::new(FakeMicrophoneBackend::default());
+            let sys_backend = Arc::new(FakeSystemBackend::default());
+            let loader = Arc::new(FakeModelLoader::success());
+            let manager = Arc::new(RuntimeManager::new_with_policy(
+                mic_backend.clone(),
+                sys_backend,
+                loader,
+                fast_test_policy(),
+            ));
+
+            manager
+                .start_capture(app.clone(), Some("mic-1".into()), false)
+                .await
+                .unwrap();
+            assert_eq!(mic_backend.start_calls.load(Ordering::SeqCst), 1);
+
+            let (start_tx, start_rx) = std_mpsc::channel::<()>();
+            *mic_backend.start_gate.lock() = Some(start_rx);
+            mic_backend.panic_on_start.store(true, Ordering::SeqCst);
+
+            let generation = manager.generation.load(Ordering::SeqCst);
+            manager.handle_source_fault(
+                &app,
+                generation,
+                AudioSource::Microphone,
+                AudioErrorKind::DeviceDisconnected,
+            );
+            std::thread::sleep(Duration::from_millis(50));
+
+            let stop_status = manager.stop_capture(app.clone()).await.unwrap();
+            assert_eq!(stop_status, CaptureStatus::Idle);
+
+            start_tx.send(()).unwrap();
+            std::thread::sleep(Duration::from_millis(150));
+
+            let snap = manager.snapshot().unwrap();
+            assert_eq!(snap.capture_status, CaptureStatus::Idle);
+            assert!(!matches!(snap.microphone, AudioSourceStatus::Error { .. }));
+        });
+    }
+
+    #[test]
+    fn recovery_synchronous_panic_after_generation_stale_does_not_clobber_newer_session() {
+        // `factory.open_stream()` runs synchronously inside
+        // `run_recovery_attempt`, not inside `spawn_blocking` like
+        // `backend.start()`. This test's own Stop-during-block sequencing
+        // exercises `start_microphone_source`'s existing post-`start()`
+        // generation check (it returns `capture_not_active` before ever
+        // reaching `open_stream` once Stop has already run) — so the
+        // panic-armed `open_stream` never actually fires here, and this
+        // test observes that already-guarded path staying clean. The
+        // `schedule_recovery` panic branch itself now also carries its
+        // own generation guard (defense in depth, see its comment) for
+        // whatever narrower window this layered sequencing doesn't cover.
+        tauri::async_runtime::block_on(async {
+            let app = test_app();
+            let mic_backend = Arc::new(FakeMicrophoneBackend::default());
+            let sys_backend = Arc::new(FakeSystemBackend::default());
+            let loader = Arc::new(FakeModelLoader::success());
+            let panic_on_open = loader.panic_on_open.clone();
+            let manager = Arc::new(RuntimeManager::new_with_policy(
+                mic_backend.clone(),
+                sys_backend,
+                loader,
+                fast_test_policy(),
+            ));
+
+            manager
+                .start_capture(app.clone(), Some("mic-1".into()), false)
+                .await
+                .unwrap();
+
+            // Block the recovery attempt's restart call (`backend.start`)
+            // so its timing relative to the Stop below is controlled, and
+            // arm `open_stream` (reached right after `start` returns) to
+            // panic once the recovery attempt gets that far.
+            let (start_tx, start_rx) = std_mpsc::channel::<()>();
+            *mic_backend.start_gate.lock() = Some(start_rx);
+            panic_on_open.store(true, Ordering::SeqCst);
+
+            let generation = manager.generation.load(Ordering::SeqCst);
+            manager.handle_source_fault(
+                &app,
+                generation,
+                AudioSource::Microphone,
+                AudioErrorKind::DeviceDisconnected,
+            );
+            std::thread::sleep(Duration::from_millis(50));
+
+            // A clean Stop supersedes the in-flight recovery attempt:
+            // generation moves on and the session returns to Idle before
+            // the recovery attempt is released to run into the panic.
+            let stop_status = manager.stop_capture(app.clone()).await.unwrap();
+            assert_eq!(stop_status, CaptureStatus::Idle);
+
+            // Release `backend.start()`; it returns successfully, and the
+            // recovery attempt immediately calls the now-armed
+            // `open_stream`, which panics. `schedule_recovery`'s wrapper
+            // catches it strictly after the Stop above already moved
+            // generation on.
+            start_tx.send(()).unwrap();
+            std::thread::sleep(Duration::from_millis(150));
+
+            let snap = manager.snapshot().unwrap();
+            assert_eq!(
+                snap.capture_status,
+                CaptureStatus::Idle,
+                "a recovery attempt's synchronous panic, caught after Stop already \
+                 moved generation on, must not force the session back into an \
+                 Error state"
+            );
+            assert!(
+                !matches!(snap.microphone, AudioSourceStatus::Error { .. }),
+                "the stale panic-triggered terminal commit must not overwrite \
+                 the already-clean microphone status"
             );
         });
     }
