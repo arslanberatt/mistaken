@@ -1,8 +1,32 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AudioSourceStatus } from "../../lib/tauri";
 import { MicrophoneControl } from "./MicrophoneControl";
 import type { UseMicrophoneControllerResult } from "./microphone-controller";
+
+const { listen } = vi.hoisted(() => ({ listen: vi.fn() }));
+vi.mock("@tauri-apps/api/event", () => ({ listen }));
+
+beforeEach(() => {
+  listen.mockResolvedValue(vi.fn(async () => {}));
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+function captureErrorHandler(): (payload: unknown) => void {
+  let handler: ((event: { payload: unknown }) => void) | undefined;
+  listen.mockImplementation(async (_event: string, fn: (event: { payload: unknown }) => void) => {
+    handler = fn;
+    return vi.fn(async () => {});
+  });
+  return (payload: unknown) => {
+    act(() => {
+      handler?.({ payload });
+    });
+  };
+}
 
 function makeController(
   overrides: Partial<UseMicrophoneControllerResult> = {},
@@ -273,5 +297,83 @@ describe("MicrophoneControl", () => {
       screen.getByText(/Speech is transcribed locally for development/),
     ).toBeInTheDocument();
     expect(screen.getByText(/not release approved/)).toBeInTheDocument();
+  });
+
+  it("shows a reconnecting attempt counter while recovering", async () => {
+    const emit = captureErrorHandler();
+    render(
+      <MicrophoneControl
+        bridgeReady={true}
+        controller={makeController()}
+        microphoneStatus={{ status: "starting", deviceId: "a" }}
+        overflowWarning={false}
+      />,
+    );
+    await waitFor(() => expect(listen).toHaveBeenCalled());
+
+    emit({
+      code: "device_disconnected",
+      message: "Reconnecting microphone… attempt 1 of 3",
+      recoverable: true,
+      source: "microphone",
+    });
+
+    expect(
+      screen.getByText("Reconnecting microphone… attempt 1 of 3"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the degraded-lag banner while transcribing slower than real time", async () => {
+    const emit = captureErrorHandler();
+    const status: AudioSourceStatus = {
+      status: "capturing",
+      deviceId: "a",
+      activity: "receiving",
+    };
+    render(
+      <MicrophoneControl
+        bridgeReady={true}
+        controller={makeController()}
+        microphoneStatus={status}
+        overflowWarning={false}
+      />,
+    );
+    await waitFor(() => expect(listen).toHaveBeenCalled());
+
+    emit({
+      code: "inference_lagging",
+      message: "Microphone is transcribing slower than real time. Some audio is being skipped.",
+      recoverable: true,
+      source: "microphone",
+    });
+
+    expect(
+      screen.getByText(
+        "Microphone is transcribing slower than real time. Some audio is being skipped.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the exact reason plus Automatic reconnection stopped. when recovery is exhausted", () => {
+    const status: AudioSourceStatus = {
+      status: "error",
+      error: {
+        code: "device_disconnected",
+        message: "the selected microphone was disconnected Automatic reconnection stopped.",
+        recoverable: true,
+      },
+    };
+    render(
+      <MicrophoneControl
+        bridgeReady={true}
+        controller={makeController()}
+        microphoneStatus={status}
+        overflowWarning={false}
+      />,
+    );
+
+    expect(
+      screen.getByText("the selected microphone was disconnected Automatic reconnection stopped."),
+    ).toBeInTheDocument();
   });
 });

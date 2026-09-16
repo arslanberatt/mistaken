@@ -4,6 +4,7 @@
 //! the ASR chunk feeder. Drains 20 ms blocks, checks signal magnitude,
 //! enforces the source invariant (`AudioSource::System`), feeds ASR, and recycles buffers.
 
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
@@ -25,6 +26,7 @@ pub trait SystemAudioMonitorObserver: Send + Sync + 'static {
 pub struct SystemAudioMonitor {
     thread: Option<JoinHandle<()>>,
     stop_flag: Arc<AtomicBool>,
+    abandon_flag: Arc<AtomicBool>,
 }
 
 impl SystemAudioMonitor {
@@ -35,19 +37,54 @@ impl SystemAudioMonitor {
         asr_feeder: crate::asr::chunk_pool::AsrChunkFeeder,
     ) -> Self {
         let stop_flag = Arc::new(AtomicBool::new(false));
+        let abandon_flag = Arc::new(AtomicBool::new(false));
         let thread_stop = stop_flag.clone();
+        let thread_abandon = abandon_flag.clone();
         let thread = thread::Builder::new()
             .name("mistaken-system-monitor".into())
-            .spawn(move || run(session, consumer, observer, thread_stop, asr_feeder))
+            .spawn(move || {
+                let panic_observer = observer.clone();
+                let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
+                    run(
+                        session,
+                        consumer,
+                        observer,
+                        thread_stop,
+                        thread_abandon,
+                        asr_feeder,
+                    )
+                }));
+                if outcome.is_err() {
+                    // Panic contained; payload never logged, only this
+                    // fixed sanitized description crosses the boundary.
+                    panic_observer.on_fault(AudioErrorKind::Internal);
+                }
+            })
             .expect("failed to spawn system audio monitor thread");
 
         Self {
             thread: Some(thread),
             stop_flag,
+            abandon_flag,
         }
     }
 
+    /// Graceful teardown used by a user-initiated Stop: the in-flight
+    /// interim (if any) is finalized normally.
     pub fn stop(&mut self) {
+        self.stop_flag.store(true, Ordering::Release);
+        if let Some(thread) = self.thread.take() {
+            thread.thread().unpark();
+            join_unless_self(thread);
+        }
+    }
+
+    /// Same teardown as [`Self::stop`], except the ASR feeder is torn
+    /// down through `AsrChunkFeeder::abandon` instead of `finish`: no
+    /// final is emitted for whatever interim was in flight. Used only by
+    /// Spec 10's fault-triggered teardown, never by a user-initiated Stop.
+    pub fn abandon(&mut self) {
+        self.abandon_flag.store(true, Ordering::Release);
         self.stop_flag.store(true, Ordering::Release);
         if let Some(thread) = self.thread.take() {
             thread.thread().unpark();
@@ -74,6 +111,7 @@ fn run(
     mut consumer: PoolConsumer,
     observer: Arc<dyn SystemAudioMonitorObserver>,
     stop_flag: Arc<AtomicBool>,
+    abandon_flag: Arc<AtomicBool>,
     mut asr_feeder: crate::asr::chunk_pool::AsrChunkFeeder,
 ) {
     let mut signaled = false;
@@ -93,6 +131,9 @@ fn run(
             if block.source != AudioSource::System {
                 observer.on_fault(AudioErrorKind::Internal);
                 let _ = session.stop();
+                // Internal-invariant violation: state is untrusted, so
+                // this exit always abandons regardless of `abandon_flag`.
+                asr_feeder.abandon();
                 return;
             }
 
@@ -113,6 +154,7 @@ fn run(
             if consumer.recycle(block).is_err() {
                 observer.on_fault(AudioErrorKind::Internal);
                 let _ = session.stop();
+                asr_feeder.abandon();
                 return;
             }
         }
@@ -136,6 +178,11 @@ fn run(
     }
 
     let _ = session.stop();
+    if abandon_flag.load(Ordering::Acquire) {
+        asr_feeder.abandon();
+    } else {
+        asr_feeder.finish();
+    }
 }
 
 #[cfg(test)]
@@ -277,6 +324,85 @@ mod tests {
         std::thread::sleep(Duration::from_millis(50));
         assert_eq!(*fault.lock(), Some(AudioErrorKind::Internal));
         assert!(stopped.load(Ordering::SeqCst));
+
+        monitor.stop();
+    }
+
+    struct DropReleasedSession {
+        released: Arc<AtomicBool>,
+    }
+    impl AudioCaptureSession for DropReleasedSession {
+        fn source(&self) -> AudioSource {
+            AudioSource::System
+        }
+        fn stop(&mut self) -> Result<(), AudioError> {
+            Ok(())
+        }
+    }
+    impl Drop for DropReleasedSession {
+        fn drop(&mut self) {
+            self.released.store(true, Ordering::SeqCst);
+        }
+    }
+
+    struct PanicOnFirstSignalObserver {
+        fault: Arc<Mutex<Option<AudioErrorKind>>>,
+    }
+    impl SystemAudioMonitorObserver for PanicOnFirstSignalObserver {
+        fn on_first_signal(&self) {
+            panic!("injected panic for Spec 10 containment test");
+        }
+        fn on_overflow(&self) {}
+        fn on_fault(&self, error: AudioErrorKind) {
+            *self.fault.lock() = Some(error);
+        }
+    }
+
+    #[test]
+    fn panic_in_observer_callback_is_contained_reported_and_still_releases_the_session() {
+        let released = Arc::new(AtomicBool::new(false));
+        let session = Box::new(DropReleasedSession {
+            released: released.clone(),
+        });
+        let (mut producer, consumer) = build_pool(960);
+        let (asr_producer, _) = build_asr_pool(4800);
+        let asr_feeder = crate::asr::chunk_pool::AsrChunkFeeder::new(asr_producer, 4800);
+
+        let fault = Arc::new(Mutex::new(None));
+        let observer = Arc::new(PanicOnFirstSignalObserver {
+            fault: fault.clone(),
+        });
+        let mut monitor = SystemAudioMonitor::spawn(session, consumer, observer, asr_feeder);
+
+        let mut buf = producer.try_acquire().unwrap();
+        buf[0..960].fill(0.5);
+        let block = PcmBlock {
+            source: AudioSource::System,
+            sequence: 0,
+            format: PcmFormat {
+                sample_rate_hz: NonZeroU32::new(48000).unwrap(),
+                channels: NonZeroU16::new(1).unwrap(),
+            },
+            valid_samples: 960,
+            samples: buf,
+        };
+        assert!(producer.try_submit(block).is_ok());
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while fault.lock().is_none() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+
+        assert_eq!(
+            *fault.lock(),
+            Some(AudioErrorKind::Internal),
+            "the panic must be reported as exactly one internal fault, never propagated"
+        );
+        assert!(
+            released.load(Ordering::SeqCst),
+            "the capture session must still be released even though the panic \
+             happened before the normal tail teardown ran"
+        );
 
         monitor.stop();
     }

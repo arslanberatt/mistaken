@@ -6,9 +6,11 @@
  * status/permission/guidance text for the microphone source.
  */
 import type { ChangeEvent } from "react";
-import { Mic } from "lucide-react";
+import { Mic, TriangleAlert } from "lucide-react";
 import type { AudioSourceStatus } from "../../lib/tauri";
 import type { UseMicrophoneControllerResult } from "./microphone-controller";
+import { useSourceRecoveryPresentation } from "./recovery-presentation";
+import type { RecoveryPresentation } from "./recovery-presentation";
 
 export interface MicrophoneControlProps {
   readonly bridgeReady: boolean;
@@ -23,6 +25,7 @@ interface Presentation {
   readonly refreshDisabled: boolean;
   readonly guidance: string | null;
   readonly tone: "muted" | "success" | "warning" | "error";
+  readonly icon: "none" | "alert";
 }
 
 const MACOS_PERMISSION_GUIDANCE =
@@ -59,7 +62,10 @@ function windowsUnavailableGuidance(code: string): string | null {
     : null;
 }
 
-function buildPresentation(props: MicrophoneControlProps): Presentation {
+function buildPresentation(
+  props: MicrophoneControlProps,
+  recovery: RecoveryPresentation,
+): Presentation {
   const { bridgeReady, controller, microphoneStatus, overflowWarning } = props;
 
   if (!bridgeReady) {
@@ -69,6 +75,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: true,
       guidance: null,
       tone: "muted",
+      icon: "none",
     };
   }
 
@@ -79,6 +86,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: true,
       guidance: null,
       tone: "muted",
+      icon: "none",
     };
   }
 
@@ -89,18 +97,30 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: false,
       guidance: null,
       tone: "muted",
+      icon: "none",
     };
   }
 
   const status = microphoneStatus?.status ?? "idle";
 
   if (status === "starting") {
+    if (recovery.recovering) {
+      return {
+        statusText: `Reconnecting microphone… attempt ${recovery.recovering.attempt} of ${recovery.recovering.max}`,
+        selectorDisabled: true,
+        refreshDisabled: true,
+        guidance: null,
+        tone: "warning",
+        icon: "alert",
+      };
+    }
     return {
       statusText: "Starting…",
       selectorDisabled: true,
       refreshDisabled: true,
       guidance: null,
       tone: "muted",
+      icon: "none",
     };
   }
 
@@ -111,11 +131,23 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: true,
       guidance: null,
       tone: "muted",
+      icon: "none",
     };
   }
 
   if (status === "capturing" && microphoneStatus?.status === "capturing") {
     const receiving = microphoneStatus.activity === "receiving";
+    if (recovery.degraded) {
+      return {
+        statusText:
+          "Microphone is transcribing slower than real time. Some audio is being skipped.",
+        selectorDisabled: true,
+        refreshDisabled: true,
+        guidance: null,
+        tone: "warning",
+        icon: "none",
+      };
+    }
     return {
       statusText: overflowWarning
         ? "Local transcription is delayed; some audio was dropped."
@@ -126,6 +158,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: true,
       guidance: null,
       tone: overflowWarning ? "warning" : receiving ? "success" : "muted",
+      icon: "none",
     };
   }
 
@@ -138,6 +171,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
         refreshDisabled: false,
         guidance: permissionGuidance(),
         tone: "error",
+        icon: "alert",
       };
     }
     return {
@@ -146,6 +180,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: false,
       guidance: windowsUnavailableGuidance(code),
       tone: "error",
+      icon: "alert",
     };
   }
 
@@ -156,6 +191,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
       refreshDisabled: false,
       guidance: null,
       tone: "error",
+      icon: "alert",
     };
   }
 
@@ -165,6 +201,7 @@ function buildPresentation(props: MicrophoneControlProps): Presentation {
     refreshDisabled: false,
     guidance: null,
     tone: "muted",
+    icon: "none",
   };
 }
 
@@ -177,7 +214,8 @@ const TONE_CLASS: Record<Presentation["tone"], string> = {
 
 export function MicrophoneControl(props: MicrophoneControlProps) {
   const { controller } = props;
-  const presentation = buildPresentation(props);
+  const recovery = useSourceRecoveryPresentation("microphone", props.microphoneStatus);
+  const presentation = buildPresentation(props, recovery);
 
   function handleSelectChange(event: ChangeEvent<HTMLSelectElement>) {
     controller.selectDevice(event.target.value);
@@ -217,7 +255,14 @@ export function MicrophoneControl(props: MicrophoneControlProps) {
         Refresh microphones
       </button>
 
-      <div role="status" aria-live="polite" className={`text-xs ${TONE_CLASS[presentation.tone]}`}>
+      <div
+        role="status"
+        aria-live="polite"
+        className={`flex items-center gap-1 text-xs ${TONE_CLASS[presentation.tone]}`}
+      >
+        {presentation.icon === "alert" && (
+          <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5" />
+        )}
         {presentation.statusText}
       </div>
 

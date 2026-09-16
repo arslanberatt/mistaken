@@ -37,6 +37,11 @@ pub const FINISH_BUDGET: Duration = Duration::from_millis(300);
 /// `inference_lagging` is reported at most once per this interval while
 /// the ASR chunk pool keeps dropping newest samples.
 pub const LAGGING_REPORT_INTERVAL: Duration = Duration::from_secs(1);
+/// Sustained-lag detection window and threshold (Spec 10): a source
+/// enters the degraded state when a completed, non-overlapping window
+/// this long sees more than this percentage of its chunks dropped.
+pub const LAG_WINDOW: Duration = Duration::from_secs(10);
+pub const LAG_THRESHOLD_PERCENT: u8 = 20;
 /// Upper bound on how long the ASR worker parks between chunk checks.
 pub const WORKER_TICK: Duration = Duration::from_millis(20);
 

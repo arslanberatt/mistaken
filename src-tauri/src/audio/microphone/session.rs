@@ -7,6 +7,7 @@
 //! serialization, or transcript state directly; all of that is reported
 //! through the small [`super::MicrophoneMonitorObserver`] callback.
 
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
@@ -31,6 +32,7 @@ const OVERFLOW_REPORT_INTERVAL: Duration = Duration::from_secs(1);
 /// thread, the pool, or the underlying capture session.
 pub struct MicrophoneMonitor {
     stop_flag: Arc<AtomicBool>,
+    abandon_flag: Arc<AtomicBool>,
     join: Option<JoinHandle<()>>,
 }
 
@@ -40,22 +42,46 @@ impl MicrophoneMonitor {
     /// ASR chunk feeder for its entire lifetime; nothing else may touch
     /// them concurrently. Every drained block is copied into the ASR
     /// feeder (Spec 06's second bounded stage) before its buffer is
-    /// recycled back to Spec 04's pool.
+    /// recycled back to Spec 04's pool. The whole loop runs inside a
+    /// panic boundary (Spec 10): a caught panic reports one `internal`
+    /// fault instead of aborting the process or leaving a poisoned
+    /// half-torn-down capture.
     pub fn spawn(
         capture: MicrophoneCaptureHandle,
         observer: Arc<dyn MicrophoneMonitorObserver>,
         asr_feeder: crate::asr::chunk_pool::AsrChunkFeeder,
     ) -> Self {
         let stop_flag = Arc::new(AtomicBool::new(false));
+        let abandon_flag = Arc::new(AtomicBool::new(false));
         let thread_stop_flag = stop_flag.clone();
+        let thread_abandon_flag = abandon_flag.clone();
 
         let join = thread::Builder::new()
             .name("mistaken-mic-monitor".into())
-            .spawn(move || run(capture, observer, thread_stop_flag, asr_feeder))
+            .spawn(move || {
+                let panic_observer = observer.clone();
+                let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
+                    run(
+                        capture,
+                        observer,
+                        thread_stop_flag,
+                        thread_abandon_flag,
+                        asr_feeder,
+                    )
+                }));
+                if outcome.is_err() {
+                    // Panic contained. The payload is never logged; only
+                    // this fixed, sanitized description crosses the
+                    // boundary. Resources already owned by `run`'s locals
+                    // are released by ordinary unwind-drop.
+                    panic_observer.on_fault(AudioErrorKind::Internal);
+                }
+            })
             .expect("failed to spawn microphone monitor thread");
 
         Self {
             stop_flag,
+            abandon_flag,
             join: Some(join),
         }
     }
@@ -63,8 +89,18 @@ impl MicrophoneMonitor {
     /// Signals the monitor to stop and blocks until it has torn down the
     /// capture session and pool, then exited. Safe to call more than once
     /// only through `Drop`; this consuming method runs the teardown exactly
-    /// once.
+    /// once. The in-flight interim (if any) is finalized normally: this is
+    /// the graceful path used by a user-initiated Stop.
     pub fn stop(mut self) {
+        self.request_stop_and_join();
+    }
+
+    /// Same teardown as [`Self::stop`], except the ASR feeder is torn
+    /// down through `AsrChunkFeeder::abandon` instead of `finish`: no
+    /// final is emitted for whatever interim was in flight. Used only by
+    /// Spec 10's fault-triggered teardown, never by a user-initiated Stop.
+    pub fn abandon(mut self) {
+        self.abandon_flag.store(true, Ordering::Release);
         self.request_stop_and_join();
     }
 
@@ -98,6 +134,7 @@ fn run(
     mut capture: MicrophoneCaptureHandle,
     observer: Arc<dyn MicrophoneMonitorObserver>,
     stop_flag: Arc<AtomicBool>,
+    abandon_flag: Arc<AtomicBool>,
     mut asr_feeder: crate::asr::chunk_pool::AsrChunkFeeder,
 ) {
     let mut signaled = false;
@@ -119,6 +156,9 @@ fn run(
             if block.source != AudioSource::Microphone {
                 observer.on_fault(AudioErrorKind::Internal);
                 let _ = capture.session.stop();
+                // Internal-invariant violation: state is untrusted, so
+                // this exit always abandons regardless of `abandon_flag`.
+                asr_feeder.abandon();
                 return;
             }
 
@@ -142,6 +182,7 @@ fn run(
             if capture.consumer.recycle(block).is_err() {
                 observer.on_fault(AudioErrorKind::Internal);
                 let _ = capture.session.stop();
+                asr_feeder.abandon();
                 return;
             }
         }
@@ -165,6 +206,11 @@ fn run(
     }
 
     let _ = capture.session.stop();
+    if abandon_flag.load(Ordering::Acquire) {
+        asr_feeder.abandon();
+    } else {
+        asr_feeder.finish();
+    }
 }
 
 #[cfg(test)]
@@ -373,6 +419,91 @@ mod tests {
 
         // The monitor thread has already exited on its own; stop() still
         // joins cleanly without hanging or double-stopping.
+        monitor.stop();
+    }
+
+    /// A capture session whose release is observed through `Drop` rather
+    /// than an explicit `stop()` call, so a test can prove resources are
+    /// released even when a panic unwinds past the normal `stop()` call
+    /// site (Spec 10 panic containment) — real `cpal::Stream` release
+    /// works the same way: it has its own `Drop` impl, so unwinding
+    /// through it releases the device regardless of whether `stop()` was
+    /// explicitly reached.
+    struct DropReleasedSession {
+        released: Arc<AtomicBool>,
+    }
+    impl AudioCaptureSession for DropReleasedSession {
+        fn source(&self) -> AudioSource {
+            AudioSource::Microphone
+        }
+        fn stop(&mut self) -> Result<(), AudioError> {
+            Ok(())
+        }
+    }
+    impl Drop for DropReleasedSession {
+        fn drop(&mut self) {
+            self.released.store(true, Ordering::SeqCst);
+        }
+    }
+
+    struct PanicOnFirstSignalObserver {
+        fault: Mutex<Vec<AudioErrorKind>>,
+    }
+    impl MicrophoneMonitorObserver for PanicOnFirstSignalObserver {
+        fn on_first_signal(&self) {
+            panic!("injected panic for Spec 10 containment test");
+        }
+        fn on_overflow(&self) {}
+        fn on_fault(&self, kind: AudioErrorKind) {
+            self.fault.lock().push(kind);
+        }
+    }
+
+    #[test]
+    fn panic_in_observer_callback_is_contained_reported_and_still_releases_the_session() {
+        let (mut producer, consumer) = build_pool(4);
+        let released = Arc::new(AtomicBool::new(false));
+        let handle = MicrophoneCaptureHandle {
+            session: Box::new(DropReleasedSession {
+                released: released.clone(),
+            }),
+            consumer,
+            fault: Arc::new(super::super::StreamFault::default()),
+            format: crate::audio::PcmFormat {
+                sample_rate_hz: std::num::NonZeroU32::new(16_000).unwrap(),
+                channels: std::num::NonZeroU16::new(1).unwrap(),
+            },
+        };
+        let observer = Arc::new(PanicOnFirstSignalObserver {
+            fault: Mutex::new(Vec::new()),
+        });
+        let dyn_observer: Arc<dyn MicrophoneMonitorObserver> = observer.clone();
+        let monitor = MicrophoneMonitor::spawn(handle, dyn_observer, test_asr_feeder());
+
+        // A block above the signal threshold triggers `on_first_signal`,
+        // which panics — this is the injected fault.
+        submit_test_block(&mut producer, vec![0.5_f32; 4].into_boxed_slice()).unwrap();
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while observer.fault.lock().is_empty() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+
+        assert_eq!(
+            *observer.fault.lock(),
+            vec![AudioErrorKind::Internal],
+            "the panic must be reported as exactly one internal fault, never propagated"
+        );
+        assert!(
+            released.load(Ordering::SeqCst),
+            "the capture session must still be released even though the panic \
+             happened before the normal tail teardown ran"
+        );
+
+        // A process abort here (panic = \"abort\") would have already
+        // ended this test binary before reaching this line; simply
+        // getting here plus the assertions above is the containment
+        // proof for the default (unwind) profile this suite runs under.
         monitor.stop();
     }
 }

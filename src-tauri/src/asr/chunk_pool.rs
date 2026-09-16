@@ -48,6 +48,7 @@ pub struct AsrChunkProducer {
     recycle_rx: Consumer<Box<[f32]>>,
     overflow: Arc<AsrOverflowCounter>,
     finished: Arc<AtomicBool>,
+    abandoned: Arc<AtomicBool>,
 }
 
 impl AsrChunkProducer {
@@ -77,6 +78,17 @@ impl AsrChunkProducer {
     fn mark_finished(&self) {
         self.finished.store(true, Ordering::Release);
     }
+
+    /// Signals that the stream is being abandoned rather than gracefully
+    /// finished: no pending partial chunk was submitted, and the worker
+    /// must skip its normal `StreamingRecognizer::finish()` drain
+    /// entirely so no final is emitted for the abandoned interim. Implies
+    /// `mark_finished` so the worker's "no chunk available and finished"
+    /// exit condition is also satisfied.
+    fn mark_abandoned(&self) {
+        self.abandoned.store(true, Ordering::Release);
+        self.finished.store(true, Ordering::Release);
+    }
 }
 
 /// Consumer-side handle, owned by the ASR worker thread.
@@ -85,6 +97,7 @@ pub struct AsrChunkConsumer {
     recycle_tx: Producer<Box<[f32]>>,
     overflow: Arc<AsrOverflowCounter>,
     finished: Arc<AtomicBool>,
+    abandoned: Arc<AtomicBool>,
 }
 
 impl AsrChunkConsumer {
@@ -110,6 +123,14 @@ impl AsrChunkConsumer {
     pub fn is_finished(&self) -> bool {
         self.finished.load(Ordering::Acquire)
     }
+
+    /// `true` if the feeder's teardown was an `abandon()` rather than a
+    /// graceful `finish()`: the worker must skip `StreamingRecognizer::
+    /// finish()` entirely in that case, emitting no final for whatever
+    /// interim was in flight. Always implies [`Self::is_finished`].
+    pub fn is_abandoned(&self) -> bool {
+        self.abandoned.load(Ordering::Acquire)
+    }
 }
 
 /// Allocates the fixed ASR chunk pool and splits it into its
@@ -125,18 +146,21 @@ pub fn build_asr_pool(chunk_capacity_samples: usize) -> (AsrChunkProducer, AsrCh
     let (filled_tx, filled_rx) = RingBuffer::<AsrChunk>::new(ASR_POOL_CAPACITY);
     let overflow = Arc::new(AsrOverflowCounter::default());
     let finished = Arc::new(AtomicBool::new(false));
+    let abandoned = Arc::new(AtomicBool::new(false));
 
     let producer = AsrChunkProducer {
         filled_tx,
         recycle_rx,
         overflow: overflow.clone(),
         finished: finished.clone(),
+        abandoned: abandoned.clone(),
     };
     let consumer = AsrChunkConsumer {
         filled_rx,
         recycle_tx,
         overflow,
         finished,
+        abandoned,
     };
     (producer, consumer)
 }
@@ -227,6 +251,18 @@ impl AsrChunkFeeder {
         }
         self.producer.mark_finished();
     }
+
+    /// Discards any partially filled chunk without submitting it and
+    /// marks the stream abandoned (never gracefully finished). Consuming
+    /// `self` here, rather than taking `&mut self`, guarantees this can
+    /// only ever run once per feeder and that the subsequent `Drop`
+    /// cannot re-run `finish()`'s flush-and-submit behavior afterward.
+    pub fn abandon(mut self) {
+        self.finished_called = true;
+        self.current = None;
+        self.cursor = 0;
+        self.producer.mark_abandoned();
+    }
 }
 
 impl Drop for AsrChunkFeeder {
@@ -274,6 +310,19 @@ mod tests {
         feeder.finish();
         assert!(consumer.try_recv().is_none());
         assert!(consumer.is_finished());
+    }
+
+    #[test]
+    fn abandon_discards_partial_tail_and_never_finishes_gracefully() {
+        let (producer, mut consumer) = build_asr_pool(4);
+        let mut feeder = AsrChunkFeeder::new(producer, 4);
+        feeder.accept(&[1.0, 2.0]); // partial, would normally flush at finish()
+        feeder.abandon();
+
+        // The partial tail was discarded, never submitted as a chunk.
+        assert!(consumer.try_recv().is_none());
+        assert!(consumer.is_finished());
+        assert!(consumer.is_abandoned());
     }
 
     #[test]

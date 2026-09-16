@@ -13,6 +13,111 @@ use asr::manifest::DEVELOPMENT_MANIFEST;
 use audio::microphone::CpalMicrophoneBackend;
 use state::RuntimeManager;
 
+/// Hand-written FFI to the platform's already-linked system library for
+/// `SIGINT`/`SIGTERM` (Unix) or console control events (Windows). Spec 10
+/// requires a real termination-signal handler that runs the single
+/// idempotent `shutdown()` before exit, but may not add a Cargo
+/// dependency (`ctrlc`/`signal-hook` were considered and rejected solely
+/// for that reason) — raw `extern` bindings avoid one entirely.
+mod termination_signal {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    static REQUESTED: AtomicBool = AtomicBool::new(false);
+
+    /// Installs the platform handler. Both handler bodies are
+    /// async-signal-safe: an atomic store and nothing else.
+    pub fn install() {
+        imp::install();
+    }
+
+    /// Polled by a dedicated watcher thread rather than acted on directly
+    /// inside the signal handler, since the handler itself must stay
+    /// async-signal-safe (no locks, no allocation, no native audio calls).
+    pub fn requested() -> bool {
+        REQUESTED.load(Ordering::SeqCst)
+    }
+
+    fn mark_requested() {
+        REQUESTED.store(true, Ordering::SeqCst);
+    }
+
+    #[cfg(unix)]
+    mod imp {
+        use super::mark_requested;
+
+        const SIGINT: i32 = 2;
+        const SIGTERM: i32 = 15;
+
+        unsafe extern "C" {
+            fn signal(signum: i32, handler: usize) -> usize;
+        }
+
+        extern "C" fn on_signal(_signum: i32) {
+            mark_requested();
+        }
+
+        pub fn install() {
+            // SAFETY: `on_signal` only performs an atomic store, which is
+            // async-signal-safe; `signal` is the standard POSIX libc entry
+            // point already linked into every Unix binary.
+            unsafe {
+                signal(SIGINT, on_signal as *const () as usize);
+                signal(SIGTERM, on_signal as *const () as usize);
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    mod imp {
+        use super::mark_requested;
+
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn SetConsoleCtrlHandler(handler: usize, add: i32) -> i32;
+        }
+
+        // CTRL_C_EVENT, CTRL_CLOSE_EVENT, and friends all route here; every
+        // one of them means "the console/process is going away".
+        unsafe extern "system" fn on_ctrl_event(_ctrl_type: u32) -> i32 {
+            mark_requested();
+            1 // TRUE: handled, do not fall through to the default handler.
+        }
+
+        pub fn install() {
+            // SAFETY: `on_ctrl_event` only performs an atomic store, which
+            // is safe to call from this callback; `kernel32` is already
+            // linked into every Windows binary.
+            unsafe {
+                SetConsoleCtrlHandler(on_ctrl_event as *const () as usize, 1);
+            }
+        }
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    mod imp {
+        pub fn install() {}
+    }
+}
+
+/// Spawns the one background thread that polls for a delivered
+/// termination signal and runs the single idempotent `shutdown()` before
+/// exiting the process. The signal handler itself cannot safely call into
+/// native audio/lock code, so it only sets a flag; this thread does the
+/// real work.
+fn spawn_termination_watcher(manager: Arc<RuntimeManager>) {
+    termination_signal::install();
+    std::thread::Builder::new()
+        .name("mistaken-termination-watcher".into())
+        .spawn(move || loop {
+            if termination_signal::requested() {
+                manager.shutdown();
+                std::process::exit(0);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        })
+        .expect("failed to spawn termination-signal watcher thread");
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let manager = Arc::new(RuntimeManager::<tauri::Wry>::new(
@@ -21,8 +126,12 @@ pub fn run() {
         Arc::new(SherpaModelLoader::new(&DEVELOPMENT_MANIFEST)),
     ));
     let setup_manager = manager.clone();
+    let window_event_manager = manager.clone();
+    let run_event_manager = manager.clone();
 
-    tauri::Builder::default()
+    spawn_termination_watcher(manager.clone());
+
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(move |app| {
             // Launch-time, metadata-only model presence report (existence
@@ -40,8 +149,31 @@ pub fn run() {
             commands::runtime::start_capture,
             commands::runtime::stop_capture,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        // Entry point 1 of the single idempotent shutdown path (Spec 10):
+        // the main window's close request. Never waits for a React
+        // listener, an IPC response, or a webview state.
+        .on_window_event(move |_window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                window_event_manager.shutdown();
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    // Entry points 2 and 3: the application's own exit sequence
+    // (`ExitRequested`, fired once when the app is about to quit) and the
+    // event loop's final `Exit`. `shutdown()` is idempotent, so calling it
+    // from more than one of these three entry points on the same quit is
+    // safe by design.
+    app.run(move |_app_handle, event| match event {
+        tauri::RunEvent::ExitRequested { .. } => {
+            run_event_manager.shutdown();
+        }
+        tauri::RunEvent::Exit => {
+            run_event_manager.shutdown();
+        }
+        _ => {}
+    });
 }
 
 /// Test-only support shared across module test suites. Exists so process-
