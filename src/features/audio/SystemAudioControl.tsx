@@ -14,8 +14,10 @@
  * - Short truthful privacy note: Mistaken captures system audio only,
  *   records nothing to disk, and uploads nothing.
  */
-import { MonitorSpeaker } from "lucide-react";
+import { MonitorSpeaker, TriangleAlert } from "lucide-react";
 import type { AudioSourceStatus } from "../../lib/tauri";
+import { useSourceRecoveryPresentation } from "./recovery-presentation";
+import type { RecoveryPresentation } from "./recovery-presentation";
 
 export interface SystemAudioControlProps {
   readonly enabled: boolean;
@@ -29,6 +31,7 @@ interface Presentation {
   readonly toggleDisabled: boolean;
   readonly guidance: string | null;
   readonly tone: "muted" | "success" | "warning" | "error";
+  readonly icon: "none" | "alert";
 }
 
 
@@ -64,7 +67,10 @@ function platformGuidanceForError(code: string, message?: string): string {
   return message ?? "System audio encountered an error.";
 }
 
-function buildPresentation(props: SystemAudioControlProps): Presentation {
+function buildPresentation(
+  props: SystemAudioControlProps,
+  recovery: RecoveryPresentation,
+): Presentation {
   const { enabled, disabled, systemAudioStatus } = props;
 
   if (!systemAudioStatus) {
@@ -73,6 +79,7 @@ function buildPresentation(props: SystemAudioControlProps): Presentation {
       toggleDisabled: disabled,
       guidance: null,
       tone: "muted",
+      icon: "none",
     };
   }
 
@@ -87,34 +94,59 @@ function buildPresentation(props: SystemAudioControlProps): Presentation {
         toggleDisabled: true,
         guidance,
         tone: "muted",
+        icon: "none",
       };
     }
     case "error": {
-      const guidance = platformGuidanceForError(
-        systemAudioStatus.error.code,
-        systemAudioStatus.error.message,
+      const isRecoveryExhausted = systemAudioStatus.error.message.includes(
+        "Automatic reconnection stopped.",
       );
+      const guidance = isRecoveryExhausted
+        ? systemAudioStatus.error.message
+        : platformGuidanceForError(systemAudioStatus.error.code, systemAudioStatus.error.message);
       return {
         statusText: "Error",
         toggleDisabled: disabled,
         guidance,
         tone: "error",
+        icon: "alert",
       };
     }
     case "starting":
+      if (recovery.recovering) {
+        return {
+          statusText: `Reconnecting system audio… attempt ${recovery.recovering.attempt} of ${recovery.recovering.max}`,
+          toggleDisabled: true,
+          guidance: null,
+          tone: "warning",
+          icon: "alert",
+        };
+      }
       return {
         statusText: "Starting…",
         toggleDisabled: true,
         guidance: null,
         tone: "muted",
+        icon: "none",
       };
     case "capturing": {
       const isReceiving = systemAudioStatus.activity === "receiving";
+      if (recovery.degraded) {
+        return {
+          statusText:
+            "System audio is transcribing slower than real time. Some audio is being skipped.",
+          toggleDisabled: true,
+          guidance: null,
+          tone: "warning",
+          icon: "none",
+        };
+      }
       return {
         statusText: isReceiving ? "Capturing" : "Waiting for audio…",
         toggleDisabled: true,
         guidance: null,
         tone: isReceiving ? "success" : "muted",
+        icon: "none",
       };
     }
     case "idle":
@@ -124,6 +156,7 @@ function buildPresentation(props: SystemAudioControlProps): Presentation {
         toggleDisabled: disabled,
         guidance: null,
         tone: "muted",
+        icon: "none",
       };
   }
 }
@@ -137,8 +170,8 @@ const TONE_CLASS: Record<Presentation["tone"], string> = {
 
 export function SystemAudioControl(props: SystemAudioControlProps) {
   const { enabled, onChange } = props;
-  const presentation = buildPresentation(props);
-
+  const recovery = useSourceRecoveryPresentation("system", props.systemAudioStatus);
+  const presentation = buildPresentation(props, recovery);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -161,8 +194,11 @@ export function SystemAudioControl(props: SystemAudioControlProps) {
       <div
         role="status"
         aria-live="polite"
-        className={`text-xs ${TONE_CLASS[presentation.tone]}`}
+        className={`flex items-center gap-1 text-xs ${TONE_CLASS[presentation.tone]}`}
       >
+        {presentation.icon === "alert" && (
+          <TriangleAlert aria-hidden="true" className="h-3.5 w-3.5" />
+        )}
         {presentation.statusText}
       </div>
 

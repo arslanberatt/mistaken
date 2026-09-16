@@ -4,14 +4,19 @@
 //! [`AsrWorkerObserver`]. Never touches Tauri, serialization, or
 //! transcript state directly.
 
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
+use crate::audio::supervisor::LagWindow;
+
 use super::chunk_pool::AsrChunkConsumer;
-use super::recognizer::{RecognizedSegment, StreamingRecognizer};
+use super::recognizer::{AsrErrorKind, RecognizedSegment, StreamingRecognizer};
 use super::AsrError;
-use super::{LAGGING_REPORT_INTERVAL, PARTIAL_THROTTLE, WORKER_TICK};
+use super::{
+    LAGGING_REPORT_INTERVAL, LAG_THRESHOLD_PERCENT, LAG_WINDOW, PARTIAL_THROTTLE, WORKER_TICK,
+};
 use crate::audio::AudioSource;
 
 /// Observed directly on the worker thread; implemented by the Tauri-facing
@@ -30,6 +35,11 @@ pub trait AsrWorkerObserver: Send + Sync + 'static {
     /// The ASR chunk pool dropped at least one chunk's worth of audio
     /// since the last report; capture and transcription continue.
     fn on_lagging(&self, source: AudioSource);
+    /// Sustained-lag state transition over a completed 10 s window
+    /// (`true` entering degraded, `false` leaving it). Distinct from
+    /// `on_lagging`, which continues to fire on every new drop exactly
+    /// as before; this fires only on the state edge.
+    fn on_lag_changed(&self, source: AudioSource, lagging: bool);
     /// A recognizer error ended the session; every resource is released
     /// by the caller, the existing transcript is preserved.
     fn on_error(&self, source: AudioSource, error: AsrError);
@@ -62,11 +72,12 @@ impl SegmentTracker {
         session_id: u64,
         sample_rate_hz: u32,
         source_start_offset_ms: u64,
+        segment_index_start: u64,
     ) -> Self {
         Self {
             source,
             session_id,
-            segment_index: 0,
+            segment_index: segment_index_start,
             sample_rate_hz,
             source_start_offset_ms,
             fed_samples: 0,
@@ -147,6 +158,7 @@ pub struct AsrWorker {
 }
 
 impl AsrWorker {
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         source: AudioSource,
         consumer: AsrChunkConsumer,
@@ -154,6 +166,7 @@ impl AsrWorker {
         sample_rate_hz: u32,
         session_id: u64,
         source_start_offset_ms: u64,
+        segment_index_start: u64,
         observer: Arc<dyn AsrWorkerObserver>,
     ) -> Self {
         let name = match source {
@@ -163,15 +176,31 @@ impl AsrWorker {
         let join = thread::Builder::new()
             .name(name.into())
             .spawn(move || {
-                run(
-                    source,
-                    consumer,
-                    stream,
-                    sample_rate_hz,
-                    session_id,
-                    source_start_offset_ms,
-                    observer,
-                )
+                let panic_observer = observer.clone();
+                let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
+                    run(
+                        source,
+                        consumer,
+                        stream,
+                        sample_rate_hz,
+                        session_id,
+                        source_start_offset_ms,
+                        segment_index_start,
+                        observer,
+                    )
+                }));
+                if outcome.is_err() {
+                    // Panic contained: converted to one `internal`
+                    // source-terminal error with full resource release
+                    // via normal unwind-drop of every local this closure
+                    // owned. The payload itself is never logged (it can
+                    // contain arbitrary data); only this fixed,
+                    // sanitized description crosses the boundary.
+                    panic_observer.on_error(
+                        source,
+                        AsrError::new(AsrErrorKind::Internal, "asr worker panicked (contained)"),
+                    );
+                }
             })
             .expect("failed to spawn ASR worker thread");
         Self { join: Some(join) }
@@ -197,6 +226,7 @@ fn join_unless_self(join: JoinHandle<()>) {
     let _ = join.join();
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run(
     source: AudioSource,
     mut consumer: AsrChunkConsumer,
@@ -204,18 +234,28 @@ fn run(
     sample_rate_hz: u32,
     session_id: u64,
     source_start_offset_ms: u64,
+    segment_index_start: u64,
     observer: Arc<dyn AsrWorkerObserver>,
 ) {
-    let mut tracker =
-        SegmentTracker::new(source, session_id, sample_rate_hz, source_start_offset_ms);
+    let mut tracker = SegmentTracker::new(
+        source,
+        session_id,
+        sample_rate_hz,
+        source_start_offset_ms,
+        segment_index_start,
+    );
     let mut segments: Vec<RecognizedSegment> = Vec::new();
     let mut last_overflow_report: Option<Instant> = None;
     let mut last_overflow_total = 0_u64;
+    let mut lag_window_last_overflow_total = 0_u64;
+    let mut lag_window = LagWindow::new(LAG_WINDOW, LAG_THRESHOLD_PERCENT);
 
     'outer: loop {
         let mut drained_any = false;
+        let mut drained_this_tick = 0_u64;
         while let Some(chunk) = consumer.try_recv() {
             drained_any = true;
+            drained_this_tick += 1;
             let valid = &chunk.samples[..chunk.valid_samples];
 
             if let Err(error) = stream.accept(valid) {
@@ -249,12 +289,26 @@ fn run(
             last_overflow_total = overflow_total;
         }
 
+        let dropped_this_tick = overflow_total - lag_window_last_overflow_total;
+        lag_window_last_overflow_total = overflow_total;
+        if let Some(lagging) = lag_window.record(drained_this_tick, dropped_this_tick) {
+            observer.on_lag_changed(source, lagging);
+        }
+
         if !drained_any {
             if consumer.is_finished() {
                 break;
             }
             thread::park_timeout(WORKER_TICK);
         }
+    }
+
+    // Abandoned (Spec 10 fault-triggered teardown): the in-flight interim
+    // is intentionally left unfinalized. Never call `finish()` here —
+    // doing so could emit a final for audio the recognizer already
+    // buffered even though no new chunk was submitted.
+    if consumer.is_abandoned() {
+        return;
     }
 
     segments.clear();
@@ -291,6 +345,7 @@ mod tests {
             ended_at_ms: u64,
         },
         Lagging(AudioSource),
+        LagChanged(AudioSource, bool),
         Error(AudioSource),
     }
 
@@ -331,6 +386,9 @@ mod tests {
         }
         fn on_lagging(&self, source: AudioSource) {
             self.events.lock().push(Event::Lagging(source));
+        }
+        fn on_lag_changed(&self, source: AudioSource, lagging: bool) {
+            self.events.lock().push(Event::LagChanged(source, lagging));
         }
         fn on_error(&self, source: AudioSource, _error: AsrError) {
             self.events.lock().push(Event::Error(source));
@@ -379,6 +437,7 @@ mod tests {
             16_000,
             7,
             offset_ms,
+            0,
             observer.clone(),
         );
         (feeder, worker, observer)
@@ -556,6 +615,7 @@ mod tests {
             16_000,
             1,
             0,
+            0,
             observer,
         );
 
@@ -585,6 +645,7 @@ mod tests {
             16_000,
             42,
             0,
+            0,
             observer.clone(),
         );
 
@@ -601,6 +662,96 @@ mod tests {
                 started_at_ms: 0,
                 ended_at_ms: 0,
             }]
+        );
+    }
+
+    struct PanickingRecognizer;
+    impl StreamingRecognizer for PanickingRecognizer {
+        fn accept(&mut self, _samples: &[f32]) -> Result<(), AsrError> {
+            panic!("injected panic for Spec 10 containment test");
+        }
+        fn poll(&mut self, _out: &mut Vec<RecognizedSegment>) -> Result<(), AsrError> {
+            Ok(())
+        }
+        fn finish(&mut self, _out: &mut Vec<RecognizedSegment>) -> Result<(), AsrError> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn injected_panic_in_stream_accept_is_contained_and_reported_as_internal() {
+        let (producer, consumer) = build_asr_pool(4);
+        let mut feeder = AsrChunkFeeder::new(producer, 4);
+        let recognizer: Box<dyn StreamingRecognizer> = Box::new(PanickingRecognizer);
+        let observer = Arc::new(RecordingObserver::default());
+        let mut worker = AsrWorker::spawn(
+            AudioSource::Microphone,
+            consumer,
+            recognizer,
+            16_000,
+            1,
+            0,
+            0,
+            observer.clone(),
+        );
+
+        // A full chunk reaches `stream.accept()`, which panics.
+        feeder.accept(&[0.1, 0.2, 0.3, 0.4]);
+        // `stop()` joins the worker thread; the panic was already caught
+        // inside the spawned closure, so the thread exits normally rather
+        // than propagating a panic to this join — a process abort here
+        // would fail this test outright.
+        worker.stop();
+
+        let events = observer.events.lock().clone();
+        assert_eq!(events, vec![Event::Error(AudioSource::Microphone)]);
+    }
+
+    #[test]
+    fn abandon_never_emits_a_final_for_the_in_flight_interim() {
+        let (producer, consumer) = build_asr_pool(4);
+        let mut feeder = AsrChunkFeeder::new(producer, 4);
+        // `finish_script` carries a final that would be emitted by a
+        // *graceful* stop; abandon must never reach it.
+        let recognizer: Box<dyn StreamingRecognizer> = Box::new(ScriptedRecognizer {
+            accepted_samples: StdAtomicU64::new(0),
+            script: PlMutex::new(vec![RecognizedSegment {
+                text: "still speaking".to_string(),
+                is_final: false,
+            }]),
+            finish_script: PlMutex::new(vec![RecognizedSegment {
+                text: "would-be final".to_string(),
+                is_final: true,
+            }]),
+        });
+        let observer = Arc::new(RecordingObserver::default());
+        let mut worker = AsrWorker::spawn(
+            AudioSource::Microphone,
+            consumer,
+            recognizer,
+            16_000,
+            9,
+            0,
+            0,
+            observer.clone(),
+        );
+
+        feeder.accept(&[0.1, 0.2, 0.3, 0.4]);
+        std::thread::sleep(Duration::from_millis(80));
+        // Fault-triggered teardown (Spec 10): abandon, not finish.
+        feeder.abandon();
+        worker.stop();
+
+        let events = observer.events.lock().clone();
+        assert_eq!(
+            events,
+            vec![Event::Partial {
+                source: AudioSource::Microphone,
+                id: "mic-9-0".to_string(),
+                text: "still speaking".to_string(),
+                started_at_ms: 0,
+            }],
+            "abandon must never drain finish_script into a final"
         );
     }
 }
