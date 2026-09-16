@@ -28,11 +28,25 @@ sha2 = "0.10"
 sherpa-onnx = { version = "1.13.8", default-features = false, features = ["static"] }
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+#
+# `panic` is deliberately NOT set to "abort" here even though Tauri's size
+# guideline suggests it: Spec 10's panic-containment invariant
+# (docs/lifecycle-policy.md; architecture.md "Failures are contained")
+# relies on `std::panic::catch_unwind` in asr::worker,
+# audio::microphone::session, audio::system::session, and
+# state::manager::schedule_recovery to convert a worker-thread panic into
+# a source-terminal `internal` error instead of crashing the whole app.
+# `catch_unwind` cannot catch anything once the active strategy is
+# "abort", so a release build with `panic = "abort"` would silently turn
+# every one of those sites into a full-process abort — invalidating the
+# panic-containment claim precisely in the profile Spec 12 accepts.
+# `src-tauri/src/lib.rs` has a compile-time guard that fails the build if
+# this regresses.
 [profile.release]
 codegen-units = 1
 lto = true
 opt-level = 3
-panic = "abort"
+panic = "unwind"
 strip = true
 
 [target.'cfg(target_os = "macos")'.dependencies]

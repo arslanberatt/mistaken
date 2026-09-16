@@ -1,5 +1,23 @@
 //! Mistaken desktop application library entrypoint.
 
+// Spec 10's panic-containment invariant (docs/lifecycle-policy.md;
+// architecture.md "Failures are contained, transitions are bounded")
+// relies on `std::panic::catch_unwind` in asr::worker,
+// audio::microphone::session, audio::system::session, and
+// state::manager::schedule_recovery to convert a worker-thread panic
+// into a source-terminal `internal` error instead of crashing the whole
+// process. `catch_unwind` silently does nothing under `panic = "abort"`,
+// so fail the build instead of shipping a profile where containment is a
+// no-op. See `[profile.release]` in `Cargo.toml`.
+#[cfg(not(panic = "unwind"))]
+compile_error!(
+    "Mistaken requires panic = \"unwind\" (see [profile.release] in \
+     Cargo.toml): catch_unwind-based panic containment in asr::worker, \
+     audio::microphone::session, audio::system::session, and \
+     state::manager::schedule_recovery is a Spec 10 / architecture.md \
+     invariant and silently does nothing under panic = \"abort\"."
+);
+
 pub mod asr;
 pub mod audio;
 pub mod commands;
