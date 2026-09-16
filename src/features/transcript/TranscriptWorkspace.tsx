@@ -244,8 +244,8 @@ export function TranscriptWorkspace({
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
-      <header className="flex items-center justify-between gap-4 border-b border-[var(--border-default)] px-6 py-4">
+    <div className="flex h-screen flex-col overflow-y-auto bg-[var(--bg-base)] text-[var(--text-primary)]">
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--border-default)] px-6 py-4">
         <h1 className="text-lg font-semibold tracking-tight">Mistaken</h1>
         <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
           <span
@@ -264,7 +264,7 @@ export function TranscriptWorkspace({
 
       <section
         aria-label="Audio sources"
-        className="flex flex-wrap items-center gap-4 border-b border-[var(--border-default)] px-6 py-3 text-sm text-[var(--text-secondary)]"
+        className="flex shrink-0 flex-wrap items-center gap-4 border-b border-[var(--border-default)] px-6 py-3 text-sm text-[var(--text-secondary)]"
       >
         <div className="flex items-center gap-2">{microphoneControl}</div>
         {systemAudioControl ?? (
@@ -313,7 +313,7 @@ export function TranscriptWorkspace({
       </section>
 
       {!isFollowing && (
-        <div className="flex justify-center border-t border-[var(--border-default)] bg-[var(--bg-elevated)] px-6 py-2">
+        <div className="flex shrink-0 justify-center border-t border-[var(--border-default)] bg-[var(--bg-elevated)] px-6 py-2">
           <button
             type="button"
             onClick={handleJumpToLatest}
@@ -325,7 +325,7 @@ export function TranscriptWorkspace({
         </div>
       )}
 
-      <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-default)] px-6 py-4">
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-[var(--border-default)] px-6 py-4">
         <span
           className="font-[var(--font-mono)] text-sm text-[var(--text-secondary)]"
           aria-label={`Elapsed time ${formatElapsedTime(elapsedMs)}`}

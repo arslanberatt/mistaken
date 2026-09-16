@@ -639,6 +639,36 @@ describe("TranscriptWorkspace announcement policy", () => {
   });
 });
 
+describe("TranscriptWorkspace fixed-shell layout at large text scale", () => {
+  // Regression: at 720x520 with 150%/200% OS text scale, the header plus
+  // source bar plus footer alone can exceed the viewport height. An
+  // earlier fix used `h-screen overflow-hidden` on the shell, which kept
+  // the four-region look but silently clipped the Clear/Start/Copy
+  // controls with no way to reach them (overflow:hidden permits no
+  // scroll at all) — found via real Chromium layout measurement. The
+  // shell must stay exactly one viewport tall (`h-screen`) with a
+  // scrollable fallback (`overflow-y-auto`, never `overflow-hidden`), and
+  // every fixed band must refuse to compress (`shrink-0`) so all the
+  // squeeze lands on the transcript's own scroll region first.
+  it("keeps the shell at a fixed viewport height with a scrollable fallback, never a clipping overflow", () => {
+    const { container } = renderWorkspace();
+    const shell = container.firstElementChild as HTMLElement;
+    expect(shell.className).toContain("h-screen");
+    expect(shell.className).toContain("overflow-y-auto");
+    expect(shell.className).not.toContain("overflow-hidden");
+    expect(shell.className).not.toContain("min-h-screen");
+  });
+
+  it("marks every fixed band non-shrinking so only the transcript absorbs overflow", () => {
+    renderWorkspace();
+    expect(screen.getByRole("banner").className).toContain("shrink-0");
+    expect(screen.getByRole("region", { name: /audio sources/i }).className).toContain(
+      "shrink-0",
+    );
+    expect(screen.getByRole("contentinfo").className).toContain("shrink-0");
+  });
+});
+
 describe("TranscriptWorkspace auto-follow and Jump to latest", () => {
   beforeEach(() => {
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
